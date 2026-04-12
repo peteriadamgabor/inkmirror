@@ -11,25 +11,32 @@ function initialTheme(): Theme {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-const [theme, setThemeSignal] = createSignal<Theme>(initialTheme());
+const [themeSignal, setThemeSignal] = createSignal<Theme>(initialTheme());
 
 function applyTheme(t: Theme): void {
   if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle('dark', t === 'dark');
 }
 
+function setTheme(t: Theme): void {
+  setThemeSignal(t);
+  applyTheme(t);
+  try {
+    localStorage.setItem(STORAGE_KEY, t);
+  } catch {
+    /* private mode */
+  }
+}
+
+function toggleTheme(): void {
+  setTheme(themeSignal() === 'dark' ? 'light' : 'dark');
+}
+
 export function useTheme() {
-  onMount(() => applyTheme(theme()));
+  onMount(() => applyTheme(themeSignal()));
   return {
-    theme,
-    setTheme(t: Theme) {
-      setThemeSignal(t);
-      applyTheme(t);
-      try { localStorage.setItem(STORAGE_KEY, t); } catch { /* private mode */ }
-    },
-    toggleTheme() {
-      const next: Theme = theme() === 'dark' ? 'light' : 'dark';
-      this.setTheme(next);
-    },
+    theme: themeSignal,
+    setTheme,
+    toggleTheme,
   };
 }

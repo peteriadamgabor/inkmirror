@@ -147,9 +147,24 @@ export const BlockView = (props: { block: Block }) => {
   const onPaste = (e: ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
-    // execCommand is deprecated but still the simplest reliable way to insert
-    // plain text at the caret inside contenteditable.
-    document.execCommand('insertText', false, text);
+    if (!text) return;
+    // Manual Range-based insertion: Firefox's execCommand('insertText') can
+    // preserve the clipboard's source styling even for the plain-text path,
+    // which shows up as pasted text suddenly having the wiki's font. Raw
+    // DOM insertion gives us a bare text node with no formatting of any kind.
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    // Move caret to the end of the inserted text.
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Trigger a commit pulse so the store catches up.
+    commitDebounced();
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
