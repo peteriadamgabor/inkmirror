@@ -1189,6 +1189,12 @@ git commit -m "docs: Phase 1 final perf verdict including input latency and manu
 
 ---
 
+## Known polish items to address in this plan
+
+- **Smooth wheel scrolling.** After the ResizeObserver + anchoring fix (commit `b657ce6`), the virtualization math is stable but wheel scroll in Firefox feels "too fast" — raw per-pixel deltas with no interpolation. Fix options: `scroll-behavior: smooth` on `data-scroll-root="editor"`, or a wheel-delta accumulator that animates `scrollTop` over a short rAF window (~150ms). Pick whichever feels best when testing in real Firefox. Applies to Task 1 or a new micro-task appended after it.
+
+---
+
 ## Plan 2 Exit Criteria
 
 Plan 2 is complete when **all** of these hold:
