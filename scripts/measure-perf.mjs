@@ -157,6 +157,47 @@ try {
     };
   });
 
+  // Input latency: navigate to the / starter route (which has a writable
+  // block) and measure keydown → next paint for a sequence of inserted chars.
+  await page.goto('http://localhost:4173/', { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[data-editable]', { timeout: 5000 });
+
+  const inputLatency = await page.evaluate(async () => {
+    const editable = document.querySelector('[data-editable]');
+    if (!editable) return { error: 'no editable block' };
+    editable.focus();
+    // Place caret at the end.
+    const range = document.createRange();
+    range.selectNodeContents(editable);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const samples = [];
+    for (let i = 0; i < 30; i++) {
+      const start = performance.now();
+      document.execCommand('insertText', false, 'x');
+      await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+      const end = performance.now();
+      samples.push(end - start);
+    }
+
+    const trimmed = samples.slice(5); // warm-up
+    if (trimmed.length === 0) return { error: 'no samples' };
+    const sorted = [...trimmed].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const p95 = sorted[Math.floor(sorted.length * 0.95)];
+    const mean = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+    return {
+      sampleCount: trimmed.length,
+      meanMs: +mean.toFixed(3),
+      medianMs: +median.toFixed(3),
+      p95Ms: +p95.toFixed(3),
+      passedTarget: median < 16,
+    };
+  });
+
   const metrics = await page.metrics();
 
   const result = {
@@ -166,6 +207,7 @@ try {
     measurementsReadyMs,
     layoutState: state,
     fps: fpsResults,
+    inputLatency,
     heapUsedMB: +(metrics.JSHeapUsedSize / (1024 * 1024)).toFixed(2),
     heapTotalMB: +(metrics.JSHeapTotalSize / (1024 * 1024)).toFixed(2),
   };
