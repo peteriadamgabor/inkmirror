@@ -228,7 +228,7 @@ export const BlockView = (props: { block: Block }) => {
         onCompositionEnd={onCompositionEnd}
         onPaste={onPaste}
         onKeyDown={onKeyDown}
-        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap outline-none"
+        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none"
       />
     </div>
   );
