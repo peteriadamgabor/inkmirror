@@ -67,7 +67,12 @@ export function createPretextMeasurer(): Measurer {
       if (text.length === 0) {
         return { height: DEFAULT_BLOCK_HEIGHT, lineCount: 1 };
       }
-      const prepared = prepare(text, font);
+      // BlockView renders with CSS `white-space: pre-wrap` (Tailwind
+      // `whitespace-pre-wrap`), so pretext must be told to preserve
+      // spaces, tabs, and \n hard breaks rather than collapsing them.
+      // Without this option pretext under-counts lines for any text
+      // containing multi-space runs or newlines.
+      const prepared = prepare(text, font, { whiteSpace: 'pre-wrap' });
       const result = layout(prepared, width, lineHeight);
       return { height: result.height, lineCount: result.lineCount };
     },

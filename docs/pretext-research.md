@@ -54,6 +54,35 @@ the current `Measurer` interface only memoizes the full result).
 Other useful exports we are not yet using: `prepareWithSegments`,
 `layoutWithLines`, `walkLineRanges`, `clearCache`, `setLocale`.
 
+## Update (2026-04-13): README review of github.com/chenglou/pretext
+
+The upstream README documents several things the `.d.ts` alone did not:
+
+1. **`{ whiteSpace: 'pre-wrap' }` option on `prepare()`.** Without this,
+   pretext normalizes whitespace like CSS `white-space: normal` — which
+   DOES NOT match our BlockView, which uses Tailwind `whitespace-pre-wrap`.
+   Our first measurements were therefore undercounting heights for any
+   text with multi-space runs or `\n` soft breaks. Fixed in commit after
+   this update: `createPretextMeasurer` now passes `{ whiteSpace: 'pre-wrap' }`
+   unconditionally, matching the editor's CSS.
+2. **Author explicitly lists our use case as a target.** The README says:
+   > "prevent layout shift when new text loads and you wanna re-anchor
+   > the scroll position"
+   That is exactly what Editor.tsx's `captureAnchor`/`restoreAnchor` pair
+   does. Worth knowing the library author considers this a first-class
+   scenario — confirms our architecture is on the intended path.
+3. **`prepareWithSegments` + `layoutWithLines`** give per-line ranges +
+   per-line widths. This is a natural fit for Phase 3's "sentence rhythm"
+   / Dual Pulse analysis — we could extract real line breakpoints from
+   pretext instead of guessing from sentence lengths. Parked as a future
+   optimization; no change to Plan 1/2.
+4. **`rich-inline` helper** at `@chenglou/pretext/rich-inline` exists for
+   inline flow with code spans, mentions, chips, etc. Not needed yet;
+   worth remembering when we add @mentions / character references to the
+   editor in Phase 3.
+5. The `font` argument is a CSS shorthand string like `'16px Inter'` —
+   confirmed matching how we pass `'16px Georgia, serif'`.
+
 ## Install command
 
 ```bash
