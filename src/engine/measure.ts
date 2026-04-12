@@ -1,3 +1,5 @@
+import { prepare, layout } from '@chenglou/pretext';
+
 export interface MeasureInput {
   text: string;
   font: string;
@@ -47,14 +49,27 @@ export function createCanvasMeasurer(): Measurer {
 }
 
 /**
- * pretext-backed measurer. Real body wired in Task 6 after API research.
+ * pretext-backed measurer.
+ *
+ * Backed by `@chenglou/pretext` (Canvas-based text measurement & layout).
+ * The library requires `OffscreenCanvas` or a DOM `<canvas>` context at
+ * measure time, so this only works in real browsers (Vite dev/prod) or in
+ * a JSDOM environment that has the native `canvas` package installed.
+ *
+ * For empty text we short-circuit to DEFAULT_BLOCK_HEIGHT to (a) avoid
+ * paying the prepare cost and (b) match createStubMeasurer's contract.
+ *
+ * See docs/pretext-research.md for the API research log and verdict.
  */
 export function createPretextMeasurer(): Measurer {
   return {
-    measure() {
-      throw new Error(
-        'createPretextMeasurer not yet wired — see docs/pretext-research.md and Task 6',
-      );
+    measure({ text, font, width, lineHeight }) {
+      if (text.length === 0) {
+        return { height: DEFAULT_BLOCK_HEIGHT, lineCount: 1 };
+      }
+      const prepared = prepare(text, font);
+      const result = layout(prepared, width, lineHeight);
+      return { height: result.height, lineCount: result.lineCount };
     },
   };
 }
