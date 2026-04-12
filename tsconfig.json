@@ -12,7 +12,7 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "types": ["vite/client", "vitest/globals"],
+    "types": ["vite/client", "vitest/globals", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
