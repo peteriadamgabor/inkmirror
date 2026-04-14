@@ -6,6 +6,11 @@ export interface LanguageResult {
   score: number;
 }
 
+export interface SentimentResult {
+  label: string;
+  score: number;
+}
+
 interface PendingRequest {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
@@ -18,6 +23,7 @@ export interface AiClientHandle {
   loadError: Accessor<string | null>;
   preload: () => Promise<void>;
   detectLanguage: (text: string) => Promise<LanguageResult[]>;
+  detectSentiment: (text: string) => Promise<SentimentResult[]>;
 }
 
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -139,11 +145,17 @@ export function createAiClient(deps: AiClientDeps): AiClientHandle {
     return Array.isArray(result) ? result : [result];
   }
 
+  async function detectSentiment(text: string): Promise<SentimentResult[]> {
+    const result = await send<SentimentResult[] | SentimentResult>('detect-sentiment', { text });
+    return Array.isArray(result) ? result : [result];
+  }
+
   return {
     isReady,
     isLoading,
     loadError,
     preload,
     detectLanguage,
+    detectSentiment,
   };
 }

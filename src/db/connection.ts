@@ -1,6 +1,15 @@
 import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
 import { logDbError } from './errors';
 
+export interface SentimentRow {
+  block_id: string;
+  document_id: string;
+  label: string;
+  score: number;
+  content_hash: string;
+  analyzed_at: string;
+}
+
 export interface BlockRow {
   id: string;
   document_id: string;
@@ -49,13 +58,18 @@ export interface StoryForgeSchema extends DBSchema {
     value: BlockRow;
     indexes: { by_document: string; by_chapter: string };
   };
+  sentiments: {
+    key: string;
+    value: SentimentRow;
+    indexes: { by_document: string };
+  };
 }
 
 const DB_NAME = 'storyforge';
-// Version 2: bumped from 1 to force the upgrade handler to run against any
-// leftover DB created during the SurrealDB Wasm experiment (which left a
-// same-named IDB with no object stores).
-const DB_VERSION = 2;
+// v1: initial stores
+// v2: idempotent upgrade after SurrealDB leftover
+// v3: add `sentiments` store for Phase 3 slice 2
+const DB_VERSION = 3;
 
 export type StoryForgeDb = IDBPDatabase<StoryForgeSchema>;
 
@@ -79,6 +93,10 @@ export function getDb(): Promise<StoryForgeDb> {
             const blocks = db.createObjectStore('blocks', { keyPath: 'id' });
             blocks.createIndex('by_document', 'document_id');
             blocks.createIndex('by_chapter', 'chapter_id');
+          }
+          if (!db.objectStoreNames.contains('sentiments')) {
+            const sentiments = db.createObjectStore('sentiments', { keyPath: 'block_id' });
+            sentiments.createIndex('by_document', 'document_id');
           }
         },
       });

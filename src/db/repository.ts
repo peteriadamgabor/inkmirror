@@ -1,6 +1,21 @@
 import type { Block, Chapter, Document, UUID } from '@/types';
-import { getDb, type BlockRow, type ChapterRow, type DocumentRow, type StoryForgeDb } from './connection';
+import {
+  getDb,
+  type BlockRow,
+  type ChapterRow,
+  type DocumentRow,
+  type SentimentRow,
+  type StoryForgeDb,
+} from './connection';
 import { logDbError } from './errors';
+
+export interface SentimentEntry {
+  blockId: UUID;
+  label: string;
+  score: number;
+  contentHash: string;
+  analyzedAt: string;
+}
 
 function blockToRow(b: Block, documentId: UUID): BlockRow {
   return {
@@ -100,6 +115,10 @@ export interface DbLike {
       deletedFrom: NonNullable<Block['deleted_from']>,
     ): Promise<void>;
   };
+  sentiments: {
+    put(row: SentimentRow): Promise<unknown>;
+    getAllByDocument(documentId: string): Promise<SentimentRow[]>;
+  };
 }
 
 let testDb: DbLike | null = null;
@@ -136,6 +155,11 @@ function realDb(idb: StoryForgeDb): DbLike {
         }
         await tx.done;
       },
+    },
+    sentiments: {
+      put: (row) => idb.put('sentiments', row),
+      getAllByDocument: (documentId) =>
+        idb.getAllFromIndex('sentiments', 'by_document', documentId),
     },
   };
 }
@@ -203,10 +227,49 @@ export async function listDocuments(): Promise<Document[]> {
   }
 }
 
+export async function saveSentiment(
+  documentId: UUID,
+  entry: SentimentEntry,
+): Promise<void> {
+  try {
+    const row: SentimentRow = {
+      block_id: entry.blockId,
+      document_id: documentId,
+      label: entry.label,
+      score: entry.score,
+      content_hash: entry.contentHash,
+      analyzed_at: entry.analyzedAt,
+    };
+    const d = await db();
+    await d.sentiments.put(row);
+  } catch (err) {
+    logDbError('repository.saveSentiment', err);
+    throw err;
+  }
+}
+
+export async function loadSentiments(documentId: UUID): Promise<SentimentEntry[]> {
+  try {
+    const d = await db();
+    const rows = await d.sentiments.getAllByDocument(documentId);
+    return rows.map((r) => ({
+      blockId: r.block_id,
+      label: r.label,
+      score: r.score,
+      contentHash: r.content_hash,
+      analyzedAt: r.analyzed_at,
+    }));
+  } catch (err) {
+    logDbError('repository.loadSentiments', err);
+    throw err;
+  }
+}
+
 export interface LoadedDocument {
   document: Document;
   chapters: Chapter[];
   blocks: Block[];
+  sentiments: SentimentEntry[];
 }
 
 export async function loadDocument(documentId: UUID): Promise<LoadedDocument | null> {
@@ -223,10 +286,13 @@ export async function loadDocument(documentId: UUID): Promise<LoadedDocument | n
       .filter((r) => r.deleted_at === null)
       .sort((a, b) => a.order_idx - b.order_idx);
 
+    const sentiments = await loadSentiments(documentId);
+
     return {
       document: rowToDocument(docRow),
       chapters: chapterRows.map(rowToChapter),
       blocks: visibleBlocks.map(rowToBlock),
+      sentiments,
     };
   } catch (err) {
     logDbError('repository.loadDocument', err);

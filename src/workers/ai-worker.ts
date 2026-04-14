@@ -1,25 +1,37 @@
 /// <reference lib="webworker" />
 import { pipeline, env, type TextClassificationPipeline } from '@huggingface/transformers';
 
-// Allow remote model downloads from HF; disable local model lookup.
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 
-const MODEL_ID = 'onnx-community/language_detection-ONNX';
-const TASK = 'text-classification';
+// ---------- model configuration ----------
+
+interface ModelConfig {
+  id: string;
+  task: 'text-classification';
+}
+
+const MODELS: Record<'sentiment', ModelConfig> = {
+  sentiment: {
+    id: 'Xenova/distilbert-base-multilingual-cased-sentiments-student',
+    task: 'text-classification',
+  },
+};
+
+// ---------- message protocol ----------
 
 export interface AiRequestPreload {
   id: string;
   kind: 'preload';
 }
 
-export interface AiRequestDetectLanguage {
+export interface AiRequestDetectSentiment {
   id: string;
-  kind: 'detect-language';
+  kind: 'detect-sentiment';
   text: string;
 }
 
-export type AiRequest = AiRequestPreload | AiRequestDetectLanguage;
+export type AiRequest = AiRequestPreload | AiRequestDetectSentiment;
 
 export interface AiResponseOk {
   id: string;
@@ -35,6 +47,7 @@ export interface AiResponseErr {
 
 export interface AiResponseReady {
   kind: 'ready';
+  model: string;
 }
 
 export interface AiResponseProgress {
@@ -45,18 +58,21 @@ export interface AiResponseProgress {
 
 export type AiResponse = AiResponseOk | AiResponseErr | AiResponseReady | AiResponseProgress;
 
-let classifierPromise: Promise<TextClassificationPipeline> | null = null;
+// ---------- pipeline cache ----------
+
+const pipelinePromises = new Map<keyof typeof MODELS, Promise<TextClassificationPipeline>>();
 
 function post(msg: AiResponse): void {
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(msg);
 }
 
-async function getClassifier(): Promise<TextClassificationPipeline> {
-  if (classifierPromise) return classifierPromise;
-  classifierPromise = (async () => {
-    const pipe = (await pipeline(TASK, MODEL_ID, {
+async function getPipeline(key: keyof typeof MODELS): Promise<TextClassificationPipeline> {
+  const cached = pipelinePromises.get(key);
+  if (cached) return cached;
+  const cfg = MODELS[key];
+  const promise = (async () => {
+    const pipe = (await pipeline(cfg.task, cfg.id, {
       progress_callback: (progress: unknown) => {
-        // Transformers.js emits { status, file, progress, loaded, total }
         const p = progress as { status?: string; progress?: number };
         post({
           kind: 'progress',
@@ -65,32 +81,35 @@ async function getClassifier(): Promise<TextClassificationPipeline> {
         });
       },
     })) as TextClassificationPipeline;
-    post({ kind: 'ready' });
+    post({ kind: 'ready', model: key });
     return pipe;
   })();
-  return classifierPromise;
+  pipelinePromises.set(key, promise);
+  return promise;
 }
 
-(self as unknown as DedicatedWorkerGlobalScope).addEventListener('message', async (event: MessageEvent<AiRequest>) => {
-  const req = event.data;
-  try {
-    if (req.kind === 'preload') {
-      await getClassifier();
-      post({ id: req.id, ok: true, result: null });
-      return;
+(self as unknown as DedicatedWorkerGlobalScope).addEventListener(
+  'message',
+  async (event: MessageEvent<AiRequest>) => {
+    const req = event.data;
+    try {
+      if (req.kind === 'preload') {
+        await getPipeline('sentiment');
+        post({ id: req.id, ok: true, result: null });
+        return;
+      }
+      if (req.kind === 'detect-sentiment') {
+        const classifier = await getPipeline('sentiment');
+        const output = await classifier(req.text);
+        post({ id: req.id, ok: true, result: output });
+        return;
+      }
+    } catch (err) {
+      post({
+        id: req.id,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
-    if (req.kind === 'detect-language') {
-      const classifier = await getClassifier();
-      const output = await classifier(req.text);
-      // transformers.js returns an array of {label, score}
-      post({ id: req.id, ok: true, result: output });
-      return;
-    }
-  } catch (err) {
-    post({
-      id: req.id,
-      ok: false,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
-});
+  },
+);

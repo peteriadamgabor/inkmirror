@@ -1,7 +1,7 @@
 import { createStore, unwrap } from 'solid-js/store';
 import type { Block, Chapter, Document, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
-import type { LoadedDocument } from '@/db/repository';
+import type { LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
 
 export interface ViewportState {
@@ -14,6 +14,13 @@ export interface BlockMeasurement {
   contentHash: string;
 }
 
+export interface BlockSentiment {
+  label: string;
+  score: number;
+  contentHash: string;
+  analyzedAt: string;
+}
+
 export interface AppState {
   document: Document | null;
   chapters: Chapter[];
@@ -21,6 +28,7 @@ export interface AppState {
   blockOrder: UUID[];
   activeChapterId: UUID | null;
   measurements: Record<UUID, BlockMeasurement>;
+  sentiments: Record<UUID, BlockSentiment>;
   viewport: ViewportState;
 }
 
@@ -31,6 +39,7 @@ const initialState: AppState = {
   blockOrder: [],
   activeChapterId: null,
   measurements: {},
+  sentiments: {},
   viewport: { scrollTop: 0, viewportHeight: 0 },
 };
 
@@ -46,6 +55,15 @@ const dirtyContentBlocks = new Set<UUID>();
 
 export function setPersistEnabled(enabled: boolean): void {
   persistEnabled = enabled;
+}
+
+// ---------- sentiment hook (DI so we avoid a store → ai cycle) ----------
+
+type SentimentHook = (blockId: UUID, text: string) => void;
+let sentimentHook: SentimentHook | null = null;
+
+export function setSentimentHook(hook: SentimentHook | null): void {
+  sentimentHook = hook;
 }
 
 function track<T>(p: Promise<T>): Promise<T> {
@@ -66,6 +84,9 @@ function persistBlockNow(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
   track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+  if (sentimentHook && block.content.trim().length > 0) {
+    sentimentHook(blockId, block.content);
+  }
 }
 
 function scheduleBlockContentWrite(blockId: UUID): void {
@@ -107,6 +128,7 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     blockOrder,
     activeChapterId: doc.chapters[0]?.id ?? null,
     measurements: {},
+    sentiments: {},
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -118,6 +140,15 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     blocks[b.id] = b;
     blockOrder.push(b.id);
   }
+  const sentiments: Record<UUID, BlockSentiment> = {};
+  for (const s of loaded.sentiments) {
+    sentiments[s.blockId] = {
+      label: s.label,
+      score: s.score,
+      contentHash: s.contentHash,
+      analyzedAt: s.analyzedAt,
+    };
+  }
   setStore({
     document: loaded.document,
     chapters: loaded.chapters,
@@ -125,8 +156,23 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     blockOrder,
     activeChapterId: loaded.chapters[0]?.id ?? null,
     measurements: {},
+    sentiments,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
+}
+
+export function setSentiment(blockId: UUID, sentiment: BlockSentiment): void {
+  setStore('sentiments', blockId, sentiment);
+  if (persistEnabled && store.document) {
+    const entry: SentimentEntry = {
+      blockId,
+      label: sentiment.label,
+      score: sentiment.score,
+      contentHash: sentiment.contentHash,
+      analyzedAt: sentiment.analyzedAt,
+    };
+    track(repo.saveSentiment(store.document.id, entry).catch(() => undefined));
+  }
 }
 
 // ---------- viewport + measurements ----------

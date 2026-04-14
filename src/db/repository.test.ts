@@ -5,15 +5,18 @@ import {
   softDeleteBlock,
   loadDocument,
   listDocuments,
+  saveSentiment,
+  loadSentiments,
   type DbLike,
 } from './repository';
 import type { Block } from '@/types';
-import type { BlockRow, ChapterRow, DocumentRow } from './connection';
+import type { BlockRow, ChapterRow, DocumentRow, SentimentRow } from './connection';
 
 interface MockState {
   documents: DocumentRow[];
   chapters: ChapterRow[];
   blocks: BlockRow[];
+  sentiments: SentimentRow[];
   softDeleteCalls: Array<{ id: string; deletedAt: string; deletedFrom: unknown }>;
 }
 
@@ -22,6 +25,7 @@ function createMockDb(): { db: DbLike; state: MockState } {
     documents: [],
     chapters: [],
     blocks: [],
+    sentiments: [],
     softDeleteCalls: [],
   };
   const db: DbLike = {
@@ -65,6 +69,16 @@ function createMockDb(): { db: DbLike; state: MockState } {
           row.deleted_from = deletedFrom;
           row.updated_at = deletedAt;
         }
+      },
+    },
+    sentiments: {
+      async put(row) {
+        const idx = state.sentiments.findIndex((r) => r.block_id === row.block_id);
+        if (idx >= 0) state.sentiments[idx] = row;
+        else state.sentiments.push(row);
+      },
+      async getAllByDocument(documentId) {
+        return state.sentiments.filter((r) => r.document_id === documentId);
       },
     },
   };
@@ -189,6 +203,63 @@ describe('loadDocument', () => {
     __setTestDb(db);
     const result = await loadDocument('nope');
     expect(result).toBeNull();
+  });
+});
+
+describe('sentiments', () => {
+  it('saveSentiment + loadSentiments roundtrips by document', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveSentiment('doc-1', {
+      blockId: 'b1',
+      label: 'positive',
+      score: 0.83,
+      contentHash: 'abc',
+      analyzedAt: '2026-04-14T21:00:00.000Z',
+    });
+    await saveSentiment('doc-1', {
+      blockId: 'b2',
+      label: 'negative',
+      score: 0.91,
+      contentHash: 'def',
+      analyzedAt: '2026-04-14T21:00:01.000Z',
+    });
+    await saveSentiment('doc-other', {
+      blockId: 'b3',
+      label: 'neutral',
+      score: 0.55,
+      contentHash: 'ghi',
+      analyzedAt: '2026-04-14T21:00:02.000Z',
+    });
+    expect(state.sentiments).toHaveLength(3);
+
+    const doc1 = await loadSentiments('doc-1');
+    expect(doc1).toHaveLength(2);
+    expect(doc1.map((s) => s.blockId).sort()).toEqual(['b1', 'b2']);
+    const b1 = doc1.find((s) => s.blockId === 'b1');
+    expect(b1?.label).toBe('positive');
+    expect(b1?.score).toBeCloseTo(0.83);
+  });
+
+  it('saveSentiment updates rather than duplicates on rerun', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveSentiment('doc-1', {
+      blockId: 'b1',
+      label: 'positive',
+      score: 0.6,
+      contentHash: 'v1',
+      analyzedAt: '2026-04-14T21:00:00.000Z',
+    });
+    await saveSentiment('doc-1', {
+      blockId: 'b1',
+      label: 'negative',
+      score: 0.8,
+      contentHash: 'v2',
+      analyzedAt: '2026-04-14T21:00:10.000Z',
+    });
+    expect(state.sentiments).toHaveLength(1);
+    expect(state.sentiments[0].label).toBe('negative');
   });
 });
 
