@@ -1,5 +1,5 @@
 import { createAiClient, type AiClientHandle } from './client';
-import { setSentimentHook } from '@/store/document';
+import { setSentimentHook, store } from '@/store/document';
 import { scheduleSentiment } from './analyze';
 
 let singleton: AiClientHandle | null = null;
@@ -30,12 +30,39 @@ export function scheduleAiPreload(): void {
     hookInstalled = true;
   }
   const kick = () => {
-    client.preload().catch(() => undefined);
+    client
+      .preload()
+      .then(() => backfillSentiments())
+      .catch(() => undefined);
   };
   if (typeof requestIdleCallback === 'function') {
     requestIdleCallback(kick, { timeout: 2000 });
   } else {
     setTimeout(kick, 500);
+  }
+}
+
+function contentHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return h.toString(36);
+}
+
+/**
+ * After the model is ready, walk every block in the current store and
+ * analyze any that are missing a sentiment row OR whose content hash
+ * no longer matches the stored one. Runs once per boot.
+ */
+function backfillSentiments(): void {
+  const order = store.blockOrder;
+  for (const id of order) {
+    const block = store.blocks[id];
+    if (!block || block.deleted_at) continue;
+    const text = block.content.trim();
+    if (!text) continue;
+    const existing = store.sentiments[id];
+    if (existing && existing.contentHash === contentHash(block.content)) continue;
+    scheduleSentiment(id, block.content);
   }
 }
 

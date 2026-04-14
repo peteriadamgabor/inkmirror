@@ -79,8 +79,8 @@ export const RightPanel = () => {
           Story pulse
         </div>
 
-        <div class="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-200">
-          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">
+        <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
+          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">
             First block
           </div>
           <Show
@@ -93,7 +93,7 @@ export const RightPanel = () => {
           >
             {(s) => (
               <div class="flex items-baseline justify-between">
-                <span class={`text-sm font-medium ${SENTIMENT_COLORS[s().label] ?? 'text-stone-500'}`}>
+                <span class={`text-lg font-semibold capitalize ${SENTIMENT_COLORS[s().label] ?? 'text-stone-500'}`}>
                   {s().label}
                 </span>
                 <span class="font-mono text-[10px] text-stone-500 dark:text-stone-400">
@@ -104,8 +104,8 @@ export const RightPanel = () => {
           </Show>
         </div>
 
-        <div class="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-200">
-          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">
+        <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
+          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">
             Chapter mood
           </div>
           <Show
@@ -118,7 +118,7 @@ export const RightPanel = () => {
           >
             {(mood) => (
               <div class="flex items-baseline justify-between">
-                <span class={`text-sm font-medium ${SENTIMENT_COLORS[mood().label] ?? 'text-stone-500'}`}>
+                <span class={`text-lg font-semibold capitalize ${SENTIMENT_COLORS[mood().label] ?? 'text-stone-500'}`}>
                   {mood().label}
                 </span>
                 <span class="font-mono text-[10px] text-stone-500 dark:text-stone-400">
