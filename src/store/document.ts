@@ -266,6 +266,52 @@ export function renameChapter(chapterId: UUID, title: string): void {
   }
 }
 
+export function moveBlock(blockId: UUID, direction: 'up' | 'down'): boolean {
+  const current = store.blocks[blockId];
+  if (!current) return false;
+  const order = store.blockOrder;
+  const idx = order.indexOf(blockId);
+  if (idx < 0) return false;
+
+  // Find the nearest neighbor in the same chapter in the requested direction.
+  const step = direction === 'up' ? -1 : 1;
+  let neighborIdx = idx + step;
+  while (
+    neighborIdx >= 0 &&
+    neighborIdx < order.length &&
+    store.blocks[order[neighborIdx]]?.chapter_id !== current.chapter_id
+  ) {
+    neighborIdx += step;
+  }
+  if (neighborIdx < 0 || neighborIdx >= order.length) return false;
+  if (store.blocks[order[neighborIdx]]?.chapter_id !== current.chapter_id) return false;
+
+  const neighborId = order[neighborIdx];
+  const neighbor = store.blocks[neighborId];
+  if (!neighbor) return false;
+
+  const newOrder = order.slice();
+  newOrder[idx] = neighborId;
+  newOrder[neighborIdx] = blockId;
+  setStore('blockOrder', newOrder);
+
+  // Swap the persisted `order` field so loadDocument rehydrates in the
+  // correct sequence after reload.
+  const now = new Date().toISOString();
+  const currentOrderValue = current.order;
+  const neighborOrderValue = neighbor.order;
+  setStore('blocks', blockId, (b) => ({ ...b, order: neighborOrderValue, updated_at: now }));
+  setStore('blocks', neighborId, (b) => ({ ...b, order: currentOrderValue, updated_at: now }));
+
+  if (persistEnabled && store.document) {
+    const documentId = store.document.id;
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined));
+    track(repo.saveBlock(unwrap(store.blocks[neighborId]), documentId).catch(() => undefined));
+  }
+
+  return true;
+}
+
 export function deleteBlock(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!block) return;

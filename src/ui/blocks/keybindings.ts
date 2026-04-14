@@ -16,7 +16,9 @@ export type KeyIntent =
   | { type: 'merge-with-previous' }
   | { type: 'delete-empty-block' }
   | { type: 'focus-previous' }
-  | { type: 'focus-next' };
+  | { type: 'focus-next' }
+  | { type: 'move-block-up' }
+  | { type: 'move-block-down' };
 
 /**
  * Resolves a keyboard event context into a block-level intent, or null if
@@ -27,6 +29,13 @@ export type KeyIntent =
  */
 export function resolveKeyIntent(ctx: KeyContext): KeyIntent | null {
   if (ctx.isComposing) return null;
+
+  if (ctx.altKey && ctx.key === 'ArrowUp') {
+    return { type: 'move-block-up' };
+  }
+  if (ctx.altKey && ctx.key === 'ArrowDown') {
+    return { type: 'move-block-down' };
+  }
 
   if (ctx.key === 'Enter' && !ctx.shiftKey) {
     return { type: 'create-block-after' };

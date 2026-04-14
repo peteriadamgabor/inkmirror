@@ -23,6 +23,33 @@ describe('resolveKeyIntent', () => {
     expect(resolveKeyIntent(ctx({ key: ' ' }))).toBeNull();
   });
 
+  describe('Alt+Arrow reorder', () => {
+    it('Alt+ArrowUp → move-block-up', () => {
+      expect(resolveKeyIntent(ctx({ key: 'ArrowUp', altKey: true }))).toEqual({
+        type: 'move-block-up',
+      });
+    });
+
+    it('Alt+ArrowDown → move-block-down', () => {
+      expect(resolveKeyIntent(ctx({ key: 'ArrowDown', altKey: true }))).toEqual({
+        type: 'move-block-down',
+      });
+    });
+
+    it('Alt+Arrow takes precedence over focus-previous / focus-next', () => {
+      // at first line: plain ArrowUp would focus-previous, but altKey wins
+      expect(
+        resolveKeyIntent(ctx({ key: 'ArrowUp', altKey: true, atFirstLine: true })),
+      ).toEqual({ type: 'move-block-up' });
+    });
+
+    it('returns null during IME composition even with altKey', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'ArrowUp', altKey: true, isComposing: true })),
+      ).toBeNull();
+    });
+  });
+
   it('returns null while IME composition is active', () => {
     expect(resolveKeyIntent(ctx({ key: 'Enter', isComposing: true }))).toBeNull();
     expect(resolveKeyIntent(ctx({ key: 'Backspace', isComposing: true }))).toBeNull();

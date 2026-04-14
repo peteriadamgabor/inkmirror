@@ -5,6 +5,7 @@ import {
   createBlockAfter,
   mergeBlockWithPrevious,
   deleteBlock,
+  moveBlock,
   store,
 } from '@/store/document';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
@@ -219,6 +220,18 @@ export const BlockView = (props: { block: Block }) => {
         const idx = store.blockOrder.indexOf(props.block.id);
         if (idx >= 0 && idx < store.blockOrder.length - 1) {
           focusBlock(store.blockOrder[idx + 1], 'start');
+        }
+        break;
+      }
+      case 'move-block-up': {
+        if (moveBlock(props.block.id, 'up')) {
+          focusBlock(props.block.id, caret);
+        }
+        break;
+      }
+      case 'move-block-down': {
+        if (moveBlock(props.block.id, 'down')) {
+          focusBlock(props.block.id, caret);
         }
         break;
       }

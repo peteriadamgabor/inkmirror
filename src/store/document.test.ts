@@ -10,6 +10,7 @@ import {
   createChapter,
   renameChapter,
   setActiveChapter,
+  moveBlock,
 } from './document';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { Block, Chapter, Document } from '@/types';
@@ -182,6 +183,57 @@ describe('document store mutations', () => {
     it('is a no-op for unknown ids', () => {
       setActiveChapter('nope');
       expect(store.activeChapterId).toBe('ch1');
+    });
+  });
+
+  describe('moveBlock', () => {
+    it('swaps with the previous block when moving up', () => {
+      const ok = moveBlock('b2', 'up');
+      expect(ok).toBe(true);
+      expect(store.blockOrder).toEqual(['b2', 'b1', 'b3']);
+    });
+
+    it('swaps with the next block when moving down', () => {
+      const ok = moveBlock('b2', 'down');
+      expect(ok).toBe(true);
+      expect(store.blockOrder).toEqual(['b1', 'b3', 'b2']);
+    });
+
+    it('swaps the persisted order field on both blocks', () => {
+      moveBlock('b2', 'up');
+      expect(store.blocks['b1'].order).toBe(1);
+      expect(store.blocks['b2'].order).toBe(0);
+    });
+
+    it('no-op at the top when moving up', () => {
+      const ok = moveBlock('b1', 'up');
+      expect(ok).toBe(false);
+      expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+
+    it('no-op at the bottom when moving down', () => {
+      const ok = moveBlock('b3', 'down');
+      expect(ok).toBe(false);
+      expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+
+    it('is a no-op for unknown ids', () => {
+      const ok = moveBlock('nope', 'up');
+      expect(ok).toBe(false);
+    });
+
+    it('does not cross chapter boundaries', () => {
+      // Create a second chapter — its first block sits at the end of blockOrder.
+      const result = createChapter()!;
+      const lastOfCh1 = 'b3';
+      const firstOfCh2 = result.blockId;
+      // b3 is the last block of chapter 1; moving it down should NOT swap
+      // with the first block of chapter 2.
+      const ok = moveBlock(lastOfCh1, 'down');
+      expect(ok).toBe(false);
+      expect(store.blockOrder.indexOf(lastOfCh1)).toBeLessThan(
+        store.blockOrder.indexOf(firstOfCh2),
+      );
     });
   });
 
