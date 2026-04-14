@@ -1,4 +1,3 @@
-import type { Surreal } from 'surrealdb';
 import type { Block, Chapter, Document, UUID } from '@/types';
 import { getDb } from './connection';
 import { logDbError } from './errors';
@@ -67,7 +66,10 @@ function rowToBlock(row: BlockRow): Block {
   };
 }
 
-type DbLike = Pick<Surreal, 'query'>;
+export interface DbLike {
+  query(sql: string, vars?: Record<string, unknown>): Promise<unknown>;
+}
+
 let testDb: DbLike | null = null;
 
 export function __setTestDb(db: DbLike | null): void {
@@ -75,7 +77,10 @@ export function __setTestDb(db: DbLike | null): void {
 }
 
 async function db(): Promise<DbLike> {
-  return testDb ?? (await getDb());
+  if (testDb) return testDb;
+  // The real Surreal client's query signature is compatible in usage —
+  // it returns a thenable Query builder that awaits into the raw rows we expect.
+  return (await getDb()) as unknown as DbLike;
 }
 
 function firstRow<T>(result: unknown): T[] {

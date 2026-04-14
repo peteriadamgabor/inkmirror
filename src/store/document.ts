@@ -1,6 +1,8 @@
-import { createStore, produce } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
 import type { Block, Chapter, Document, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
+import type { LoadedDocument } from '@/db/repository';
+import * as repo from '@/db/repository';
 
 export interface ViewportState {
   scrollTop: number;
@@ -34,6 +36,62 @@ const initialState: AppState = {
 
 export const [store, setStore] = createStore<AppState>(initialState);
 
+// ---------- persistence plumbing ----------
+
+const CONTENT_DEBOUNCE_MS = 500;
+let persistEnabled = true;
+const pendingWrites = new Set<Promise<unknown>>();
+const pendingContentTimers = new Map<UUID, ReturnType<typeof setTimeout>>();
+const dirtyContentBlocks = new Set<UUID>();
+
+export function setPersistEnabled(enabled: boolean): void {
+  persistEnabled = enabled;
+}
+
+function track<T>(p: Promise<T>): Promise<T> {
+  pendingWrites.add(p);
+  p.finally(() => pendingWrites.delete(p));
+  return p;
+}
+
+function persistBlockNow(blockId: UUID): void {
+  const documentId = store.document?.id;
+  const block = store.blocks[blockId];
+  if (!documentId || !block) return;
+  dirtyContentBlocks.delete(blockId);
+  const timer = pendingContentTimers.get(blockId);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    pendingContentTimers.delete(blockId);
+  }
+  track(repo.saveBlock(block, documentId).catch(() => undefined));
+}
+
+function scheduleBlockContentWrite(blockId: UUID): void {
+  if (!persistEnabled) return;
+  dirtyContentBlocks.add(blockId);
+  const existing = pendingContentTimers.get(blockId);
+  if (existing !== undefined) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    pendingContentTimers.delete(blockId);
+    persistBlockNow(blockId);
+  }, CONTENT_DEBOUNCE_MS);
+  pendingContentTimers.set(blockId, timer);
+}
+
+export async function flushPendingWrites(timeoutMs = 200): Promise<void> {
+  for (const blockId of [...dirtyContentBlocks]) {
+    persistBlockNow(blockId);
+  }
+  if (pendingWrites.size === 0) return;
+  await Promise.race([
+    Promise.allSettled([...pendingWrites]),
+    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+  ]);
+}
+
+// ---------- hydration ----------
+
 export function loadSyntheticDoc(doc: SyntheticDoc): void {
   const blocks: Record<UUID, Block> = {};
   const blockOrder: UUID[] = [];
@@ -52,6 +110,26 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
   });
 }
 
+export function hydrateFromLoaded(loaded: LoadedDocument): void {
+  const blocks: Record<UUID, Block> = {};
+  const blockOrder: UUID[] = [];
+  for (const b of loaded.blocks) {
+    blocks[b.id] = b;
+    blockOrder.push(b.id);
+  }
+  setStore({
+    document: loaded.document,
+    chapters: loaded.chapters,
+    blocks,
+    blockOrder,
+    activeChapterId: loaded.chapters[0]?.id ?? null,
+    measurements: {},
+    viewport: { scrollTop: 0, viewportHeight: 0 },
+  });
+}
+
+// ---------- viewport + measurements ----------
+
 export function setViewport(scrollTop: number, viewportHeight: number): void {
   setStore('viewport', { scrollTop, viewportHeight });
 }
@@ -59,6 +137,8 @@ export function setViewport(scrollTop: number, viewportHeight: number): void {
 export function setMeasurement(blockId: UUID, measurement: BlockMeasurement): void {
   setStore('measurements', blockId, measurement);
 }
+
+// ---------- mutations ----------
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -68,6 +148,7 @@ export function updateBlockContent(blockId: UUID, content: string): void {
   if (!store.blocks[blockId]) return;
   const now = new Date().toISOString();
   setStore('blocks', blockId, (b) => ({ ...b, content, updated_at: now }));
+  scheduleBlockContentWrite(blockId);
 }
 
 export function createBlockAfter(blockId: UUID): UUID {
@@ -95,6 +176,11 @@ export function createBlockAfter(blockId: UUID): UUID {
 
   setStore('blocks', newId, newBlock);
   setStore('blockOrder', newOrder);
+
+  if (persistEnabled && store.document) {
+    track(repo.saveBlock(newBlock, store.document.id).catch(() => undefined));
+  }
+
   return newId;
 }
 
@@ -112,19 +198,37 @@ export function mergeBlockWithPrevious(
   const mergedContent = previous.content + current.content;
 
   updateBlockContent(previousId, mergedContent);
+  // ensure the merged content hits disk immediately so the soft-delete is
+  // never visible before the merge
+  persistBlockNow(previousId);
   deleteBlock(blockId);
 
   return { previousId, cursorOffset };
 }
 
 export function deleteBlock(blockId: UUID): void {
-  if (!store.blocks[blockId]) return;
-  const newOrder = store.blockOrder.filter((id) => id !== blockId);
-  setStore('blockOrder', newOrder);
+  const block = store.blocks[blockId];
+  if (!block) return;
+  const chapter = store.chapters.find((c) => c.id === block.chapter_id);
+  const position = store.blockOrder.indexOf(blockId);
+  const now = new Date().toISOString();
+  const deletedFrom: NonNullable<Block['deleted_from']> = {
+    chapter_id: block.chapter_id,
+    chapter_title: chapter?.title ?? '',
+    position,
+  };
   setStore(
-    'blocks',
-    produce((blocks) => {
-      delete blocks[blockId];
-    }),
+    'blockOrder',
+    store.blockOrder.filter((id) => id !== blockId),
   );
+  setStore('blocks', blockId, (b) => ({
+    ...b,
+    deleted_at: now,
+    deleted_from: deletedFrom,
+    updated_at: now,
+  }));
+
+  if (persistEnabled) {
+    track(repo.softDeleteBlock(blockId, deletedFrom).catch(() => undefined));
+  }
 }

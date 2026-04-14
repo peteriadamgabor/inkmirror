@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, beforeAll } from 'vitest';
 import {
   store,
   loadSyntheticDoc,
@@ -6,6 +6,7 @@ import {
   createBlockAfter,
   mergeBlockWithPrevious,
   deleteBlock,
+  setPersistEnabled,
 } from './document';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { Block, Chapter, Document } from '@/types';
@@ -61,6 +62,9 @@ function makeDoc(): SyntheticDoc {
 }
 
 describe('document store mutations', () => {
+  beforeAll(() => setPersistEnabled(false));
+  afterAll(() => setPersistEnabled(true));
+
   beforeEach(() => {
     loadSyntheticDoc(makeDoc());
   });
@@ -96,11 +100,13 @@ describe('document store mutations', () => {
   });
 
   describe('mergeBlockWithPrevious', () => {
-    it('concatenates content with the previous block and removes the merged block', () => {
+    it('concatenates content with the previous block and soft-deletes the merged block', () => {
       mergeBlockWithPrevious('b2');
-      expect(store.blocks['b2']).toBeUndefined();
       expect(store.blocks['b1'].content).toBe('firstsecond');
       expect(store.blockOrder).toEqual(['b1', 'b3']);
+      // b2 row still exists but is flagged
+      expect(store.blocks['b2']).toBeDefined();
+      expect(store.blocks['b2'].deleted_at).toBeTruthy();
     });
 
     it('returns the previous block id and the cursor offset', () => {
@@ -115,11 +121,17 @@ describe('document store mutations', () => {
     });
   });
 
-  describe('deleteBlock', () => {
-    it('removes the block from blockOrder and blocks', () => {
+  describe('deleteBlock soft-delete', () => {
+    it('removes from blockOrder but keeps the row flagged in store.blocks', () => {
       deleteBlock('b2');
-      expect(store.blocks['b2']).toBeUndefined();
       expect(store.blockOrder).toEqual(['b1', 'b3']);
+      expect(store.blocks['b2']).toBeDefined();
+      expect(store.blocks['b2'].deleted_at).toBeTruthy();
+      expect(store.blocks['b2'].deleted_from).toMatchObject({
+        chapter_id: 'ch1',
+        chapter_title: 'Chapter 1',
+        position: 1,
+      });
     });
 
     it('is a no-op for unknown ids', () => {
