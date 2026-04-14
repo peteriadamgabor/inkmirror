@@ -190,6 +190,23 @@ describe('document store mutations', () => {
   });
 
   describe('characters', () => {
+    it('createCharacter triggers rescan and detects mentions in existing blocks', () => {
+      updateBlockContent('b1', 'Márton hazaért.');
+      updateBlockContent('b2', 'Semmi érdekes itt.');
+      const c = createCharacter('Márton')!;
+      expect(store.characterMentions['b1']).toContain(c.id);
+      expect(store.characterMentions['b2'] ?? []).not.toContain(c.id);
+    });
+
+    it('deleteCharacter clears mentions', () => {
+      updateBlockContent('b1', 'Márton hazaért.');
+      const c = createCharacter('Márton')!;
+      expect(store.characterMentions['b1']).toContain(c.id);
+      deleteCharacter(c.id);
+      const remaining = store.characterMentions['b1'] ?? [];
+      expect(remaining).not.toContain(c.id);
+    });
+
     it('createCharacter appends to store.characters with a trimmed name', () => {
       const c = createCharacter('  Márton  ');
       expect(c).not.toBeNull();

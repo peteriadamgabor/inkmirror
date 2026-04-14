@@ -241,6 +241,12 @@ export const BlockView = (props: { block: Block }) => {
 
   const meta = () => TYPE_LABELS[props.block.type];
   const sentiment = () => store.sentiments[props.block.id];
+  const mentionedChars = () => {
+    const ids = store.characterMentions[props.block.id] ?? [];
+    return ids
+      .map((id) => store.characters.find((c) => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => !!c);
+  };
 
   return (
     <div class="py-2" data-block-id={props.block.id}>
@@ -255,6 +261,17 @@ export const BlockView = (props: { block: Block }) => {
             }`}
           >
             · {sentiment()!.label}
+          </span>
+        )}
+        {mentionedChars().length > 0 && (
+          <span class="flex items-center gap-1 ml-1">
+            {mentionedChars().map((c) => (
+              <span
+                class="w-2 h-2 rounded-full"
+                style={{ 'background-color': c.color }}
+                title={c.name}
+              />
+            ))}
           </span>
         )}
       </div>

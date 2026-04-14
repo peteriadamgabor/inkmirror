@@ -1,8 +1,9 @@
-import { createStore, unwrap } from 'solid-js/store';
+import { createStore, reconcile, unwrap } from 'solid-js/store';
 import type { Block, Chapter, Character, Document, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
+import { findMentions } from '@/engine/character-matcher';
 
 export interface ViewportState {
   scrollTop: number;
@@ -30,6 +31,8 @@ export interface AppState {
   measurements: Record<UUID, BlockMeasurement>;
   sentiments: Record<UUID, BlockSentiment>;
   characters: Character[];
+  /** Derived: block id → character ids mentioned in that block. */
+  characterMentions: Record<UUID, UUID[]>;
   viewport: ViewportState;
 }
 
@@ -42,6 +45,7 @@ const initialState: AppState = {
   measurements: {},
   sentiments: {},
   characters: [],
+  characterMentions: {},
   viewport: { scrollTop: 0, viewportHeight: 0 },
 };
 
@@ -86,9 +90,37 @@ function persistBlockNow(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
   track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+  rescanBlockMentions(blockId);
   if (sentimentHook && block.content.trim().length > 0) {
     sentimentHook(blockId, block.content);
   }
+}
+
+export function rescanBlockMentions(blockId: UUID): void {
+  const block = store.blocks[blockId];
+  if (!block) return;
+  if (store.characters.length === 0 || !block.content.trim()) {
+    if (store.characterMentions[blockId]?.length) {
+      setStore('characterMentions', blockId, []);
+    }
+    return;
+  }
+  const ids = findMentions(block.content, unwrap(store.characters));
+  setStore('characterMentions', blockId, ids);
+}
+
+export function rescanAllCharacterMentions(): void {
+  const mentions: Record<UUID, UUID[]> = {};
+  const chars = unwrap(store.characters);
+  for (const id of store.blockOrder) {
+    const block = store.blocks[id];
+    if (!block || !block.content.trim()) continue;
+    const found = findMentions(block.content, chars);
+    if (found.length > 0) mentions[id] = found;
+  }
+  // reconcile replaces the whole subtree; plain setStore would merge and
+  // leave stale block ids behind after a character is deleted.
+  setStore('characterMentions', reconcile(mentions));
 }
 
 function scheduleBlockContentWrite(blockId: UUID): void {
@@ -132,6 +164,7 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     measurements: {},
     sentiments: {},
     characters: [],
+    characterMentions: {},
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -152,6 +185,12 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
       analyzedAt: s.analyzedAt,
     };
   }
+  const mentions: Record<UUID, UUID[]> = {};
+  for (const b of loaded.blocks) {
+    if (!b.content.trim()) continue;
+    const ids = findMentions(b.content, loaded.characters);
+    if (ids.length > 0) mentions[b.id] = ids;
+  }
   setStore({
     document: loaded.document,
     chapters: loaded.chapters,
@@ -161,6 +200,7 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     measurements: {},
     sentiments,
     characters: loaded.characters,
+    characterMentions: mentions,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -328,6 +368,7 @@ export function createCharacter(name: string): Character | null {
     updated_at: now,
   };
   setStore('characters', (cs) => [...cs, character]);
+  rescanAllCharacterMentions();
 
   if (persistEnabled) {
     track(repo.saveCharacter(unwrap(character)).catch(() => undefined));
@@ -342,12 +383,14 @@ export function updateCharacter(
   const idx = store.characters.findIndex((c) => c.id === id);
   if (idx < 0) return;
   const now = new Date().toISOString();
+  const nameChanged = patch.name !== undefined || patch.aliases !== undefined;
   setStore('characters', idx, (c) => ({
     ...c,
     ...patch,
     name: patch.name !== undefined ? patch.name.trim() || c.name : c.name,
     updated_at: now,
   }));
+  if (nameChanged) rescanAllCharacterMentions();
 
   if (persistEnabled) {
     track(repo.saveCharacter(unwrap(store.characters[idx])).catch(() => undefined));
@@ -358,6 +401,7 @@ export function deleteCharacter(id: UUID): void {
   const idx = store.characters.findIndex((c) => c.id === id);
   if (idx < 0) return;
   setStore('characters', (cs) => cs.filter((c) => c.id !== id));
+  rescanAllCharacterMentions();
 
   if (persistEnabled) {
     track(repo.deleteCharacter(id).catch(() => undefined));
