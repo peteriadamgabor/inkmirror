@@ -1,6 +1,17 @@
 import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
 import { logDbError } from './errors';
 
+export interface CharacterRow {
+  id: string;
+  document_id: string;
+  name: string;
+  aliases: string[];
+  notes: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SentimentRow {
   block_id: string;
   document_id: string;
@@ -63,13 +74,19 @@ export interface StoryForgeSchema extends DBSchema {
     value: SentimentRow;
     indexes: { by_document: string };
   };
+  characters: {
+    key: string;
+    value: CharacterRow;
+    indexes: { by_document: string };
+  };
 }
 
 const DB_NAME = 'storyforge';
 // v1: initial stores
 // v2: idempotent upgrade after SurrealDB leftover
 // v3: add `sentiments` store for Phase 3 slice 2
-const DB_VERSION = 3;
+// v4: add `characters` store for Phase 3 slice 4
+const DB_VERSION = 4;
 
 export type StoryForgeDb = IDBPDatabase<StoryForgeSchema>;
 
@@ -97,6 +114,10 @@ export function getDb(): Promise<StoryForgeDb> {
           if (!db.objectStoreNames.contains('sentiments')) {
             const sentiments = db.createObjectStore('sentiments', { keyPath: 'block_id' });
             sentiments.createIndex('by_document', 'document_id');
+          }
+          if (!db.objectStoreNames.contains('characters')) {
+            const characters = db.createObjectStore('characters', { keyPath: 'id' });
+            characters.createIndex('by_document', 'document_id');
           }
         },
       });

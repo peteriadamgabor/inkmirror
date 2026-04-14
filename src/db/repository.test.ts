@@ -10,13 +10,20 @@ import {
   type DbLike,
 } from './repository';
 import type { Block } from '@/types';
-import type { BlockRow, ChapterRow, DocumentRow, SentimentRow } from './connection';
+import type {
+  BlockRow,
+  ChapterRow,
+  CharacterRow,
+  DocumentRow,
+  SentimentRow,
+} from './connection';
 
 interface MockState {
   documents: DocumentRow[];
   chapters: ChapterRow[];
   blocks: BlockRow[];
   sentiments: SentimentRow[];
+  characters: CharacterRow[];
   softDeleteCalls: Array<{ id: string; deletedAt: string; deletedFrom: unknown }>;
 }
 
@@ -26,6 +33,7 @@ function createMockDb(): { db: DbLike; state: MockState } {
     chapters: [],
     blocks: [],
     sentiments: [],
+    characters: [],
     softDeleteCalls: [],
   };
   const db: DbLike = {
@@ -79,6 +87,20 @@ function createMockDb(): { db: DbLike; state: MockState } {
       },
       async getAllByDocument(documentId) {
         return state.sentiments.filter((r) => r.document_id === documentId);
+      },
+    },
+    characters: {
+      async put(row) {
+        const idx = state.characters.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.characters[idx] = row;
+        else state.characters.push(row);
+      },
+      async getAllByDocument(documentId) {
+        return state.characters.filter((r) => r.document_id === documentId);
+      },
+      async delete(id) {
+        const idx = state.characters.findIndex((r) => r.id === id);
+        if (idx >= 0) state.characters.splice(idx, 1);
       },
     },
   };

@@ -11,6 +11,9 @@ import {
   renameChapter,
   setActiveChapter,
   moveBlock,
+  createCharacter,
+  updateCharacter,
+  deleteCharacter,
 } from './document';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { Block, Chapter, Document } from '@/types';
@@ -183,6 +186,49 @@ describe('document store mutations', () => {
     it('is a no-op for unknown ids', () => {
       setActiveChapter('nope');
       expect(store.activeChapterId).toBe('ch1');
+    });
+  });
+
+  describe('characters', () => {
+    it('createCharacter appends to store.characters with a trimmed name', () => {
+      const c = createCharacter('  Márton  ');
+      expect(c).not.toBeNull();
+      expect(store.characters).toHaveLength(1);
+      expect(store.characters[0].name).toBe('Márton');
+      expect(store.characters[0].color).toBeTruthy();
+      expect(store.characters[0].aliases).toEqual([]);
+    });
+
+    it('createCharacter rejects empty names', () => {
+      const c = createCharacter('   ');
+      expect(c).toBeNull();
+      expect(store.characters).toHaveLength(0);
+    });
+
+    it('createCharacter cycles through default colors', () => {
+      createCharacter('A');
+      createCharacter('B');
+      expect(store.characters[0].color).not.toBe(store.characters[1].color);
+    });
+
+    it('updateCharacter patches name/notes/color', () => {
+      const c = createCharacter('Réka')!;
+      updateCharacter(c.id, { name: 'Réka-2', notes: 'protagonist' });
+      const updated = store.characters.find((x) => x.id === c.id)!;
+      expect(updated.name).toBe('Réka-2');
+      expect(updated.notes).toBe('protagonist');
+    });
+
+    it('updateCharacter ignores empty-string name and keeps the old one', () => {
+      const c = createCharacter('Béla')!;
+      updateCharacter(c.id, { name: '   ' });
+      expect(store.characters.find((x) => x.id === c.id)!.name).toBe('Béla');
+    });
+
+    it('deleteCharacter removes from the list', () => {
+      const c = createCharacter('Doomed')!;
+      deleteCharacter(c.id);
+      expect(store.characters.find((x) => x.id === c.id)).toBeUndefined();
     });
   });
 

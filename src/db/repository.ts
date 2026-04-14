@@ -1,8 +1,9 @@
-import type { Block, Chapter, Document, UUID } from '@/types';
+import type { Block, Chapter, Character, Document, UUID } from '@/types';
 import {
   getDb,
   type BlockRow,
   type ChapterRow,
+  type CharacterRow,
   type DocumentRow,
   type SentimentRow,
   type StoryForgeDb,
@@ -56,6 +57,32 @@ function chapterToRow(c: Chapter): ChapterRow {
     order_idx: c.order,
     created_at: c.created_at,
     updated_at: c.updated_at,
+  };
+}
+
+function characterToRow(c: Character): CharacterRow {
+  return {
+    id: c.id,
+    document_id: c.document_id,
+    name: c.name,
+    aliases: c.aliases,
+    notes: c.notes,
+    color: c.color,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
+  };
+}
+
+function rowToCharacter(r: CharacterRow): Character {
+  return {
+    id: r.id,
+    document_id: r.document_id,
+    name: r.name,
+    aliases: r.aliases,
+    notes: r.notes,
+    color: r.color,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
   };
 }
 
@@ -119,6 +146,11 @@ export interface DbLike {
     put(row: SentimentRow): Promise<unknown>;
     getAllByDocument(documentId: string): Promise<SentimentRow[]>;
   };
+  characters: {
+    put(row: CharacterRow): Promise<unknown>;
+    getAllByDocument(documentId: string): Promise<CharacterRow[]>;
+    delete(id: string): Promise<unknown>;
+  };
 }
 
 let testDb: DbLike | null = null;
@@ -160,6 +192,12 @@ function realDb(idb: StoryForgeDb): DbLike {
       put: (row) => idb.put('sentiments', row),
       getAllByDocument: (documentId) =>
         idb.getAllFromIndex('sentiments', 'by_document', documentId),
+    },
+    characters: {
+      put: (row) => idb.put('characters', row),
+      getAllByDocument: (documentId) =>
+        idb.getAllFromIndex('characters', 'by_document', documentId),
+      delete: (id) => idb.delete('characters', id),
     },
   };
 }
@@ -265,11 +303,44 @@ export async function loadSentiments(documentId: UUID): Promise<SentimentEntry[]
   }
 }
 
+export async function saveCharacter(character: Character): Promise<void> {
+  try {
+    const d = await db();
+    await d.characters.put(characterToRow(character));
+  } catch (err) {
+    logDbError('repository.saveCharacter', err);
+    throw err;
+  }
+}
+
+export async function deleteCharacter(id: UUID): Promise<void> {
+  try {
+    const d = await db();
+    await d.characters.delete(id);
+  } catch (err) {
+    logDbError('repository.deleteCharacter', err);
+    throw err;
+  }
+}
+
+export async function loadCharacters(documentId: UUID): Promise<Character[]> {
+  try {
+    const d = await db();
+    const rows = await d.characters.getAllByDocument(documentId);
+    rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    return rows.map(rowToCharacter);
+  } catch (err) {
+    logDbError('repository.loadCharacters', err);
+    throw err;
+  }
+}
+
 export interface LoadedDocument {
   document: Document;
   chapters: Chapter[];
   blocks: Block[];
   sentiments: SentimentEntry[];
+  characters: Character[];
 }
 
 export async function loadDocument(documentId: UUID): Promise<LoadedDocument | null> {
@@ -287,12 +358,14 @@ export async function loadDocument(documentId: UUID): Promise<LoadedDocument | n
       .sort((a, b) => a.order_idx - b.order_idx);
 
     const sentiments = await loadSentiments(documentId);
+    const characters = await loadCharacters(documentId);
 
     return {
       document: rowToDocument(docRow),
       chapters: chapterRows.map(rowToChapter),
       blocks: visibleBlocks.map(rowToBlock),
       sentiments,
+      characters,
     };
   } catch (err) {
     logDbError('repository.loadDocument', err);

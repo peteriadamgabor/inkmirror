@@ -1,5 +1,5 @@
 import { createStore, unwrap } from 'solid-js/store';
-import type { Block, Chapter, Document, UUID } from '@/types';
+import type { Block, Chapter, Character, Document, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
@@ -29,6 +29,7 @@ export interface AppState {
   activeChapterId: UUID | null;
   measurements: Record<UUID, BlockMeasurement>;
   sentiments: Record<UUID, BlockSentiment>;
+  characters: Character[];
   viewport: ViewportState;
 }
 
@@ -40,6 +41,7 @@ const initialState: AppState = {
   activeChapterId: null,
   measurements: {},
   sentiments: {},
+  characters: [],
   viewport: { scrollTop: 0, viewportHeight: 0 },
 };
 
@@ -129,6 +131,7 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     activeChapterId: doc.chapters[0]?.id ?? null,
     measurements: {},
     sentiments: {},
+    characters: [],
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -157,6 +160,7 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     activeChapterId: loaded.chapters[0]?.id ?? null,
     measurements: {},
     sentiments,
+    characters: loaded.characters,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -296,6 +300,68 @@ export function createChapter(): { chapterId: UUID; blockId: UUID } | null {
   }
 
   return { chapterId, blockId };
+}
+
+const DEFAULT_CHARACTER_COLORS = [
+  '#7F77DD', // violet-500 (writer)
+  '#D85A30', // orange-600 (story)
+  '#1D9E75', // teal
+  '#378ADD', // blue
+  '#D4537E', // pink
+  '#639922', // green
+];
+
+export function createCharacter(name: string): Character | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  if (!store.document) return null;
+  const now = new Date().toISOString();
+  const color = DEFAULT_CHARACTER_COLORS[store.characters.length % DEFAULT_CHARACTER_COLORS.length];
+  const character: Character = {
+    id: uuid(),
+    document_id: store.document.id,
+    name: trimmed,
+    aliases: [],
+    notes: '',
+    color,
+    created_at: now,
+    updated_at: now,
+  };
+  setStore('characters', (cs) => [...cs, character]);
+
+  if (persistEnabled) {
+    track(repo.saveCharacter(unwrap(character)).catch(() => undefined));
+  }
+  return character;
+}
+
+export function updateCharacter(
+  id: UUID,
+  patch: Partial<Pick<Character, 'name' | 'notes' | 'color' | 'aliases'>>,
+): void {
+  const idx = store.characters.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  const now = new Date().toISOString();
+  setStore('characters', idx, (c) => ({
+    ...c,
+    ...patch,
+    name: patch.name !== undefined ? patch.name.trim() || c.name : c.name,
+    updated_at: now,
+  }));
+
+  if (persistEnabled) {
+    track(repo.saveCharacter(unwrap(store.characters[idx])).catch(() => undefined));
+  }
+}
+
+export function deleteCharacter(id: UUID): void {
+  const idx = store.characters.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  setStore('characters', (cs) => cs.filter((c) => c.id !== id));
+
+  if (persistEnabled) {
+    track(repo.deleteCharacter(id).catch(() => undefined));
+  }
 }
 
 export function renameChapter(chapterId: UUID, title: string): void {
