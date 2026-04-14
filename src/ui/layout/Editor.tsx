@@ -38,6 +38,15 @@ export const Editor = () => {
   let scrollEl!: HTMLDivElement;
   let ticking = false;
 
+  // Derived: only blocks belonging to the active chapter. The raw
+  // store.blockOrder still tracks the whole document; this memo is what
+  // the virtualizer, scroll anchor, and <For> render off of.
+  const activeOrder = createMemo(() => {
+    const activeId = store.activeChapterId;
+    if (!activeId) return store.blockOrder.slice();
+    return store.blockOrder.filter((id) => store.blocks[id]?.chapter_id === activeId);
+  });
+
   // Initial measurement pass: use pretext as a hint, but FLOOR at the
   // INITIAL_BLOCK_HEIGHT estimate so the scrollbar starts too big rather
   // than too small. ResizeObserver then shrinks measurements to match the
@@ -73,7 +82,7 @@ export const Editor = () => {
     if (!scrollEl) return null;
     const scrollTop = scrollEl.scrollTop;
     let accTop = 0;
-    const order = store.blockOrder;
+    const order = activeOrder();
     for (let i = 0; i < order.length; i++) {
       const h = store.measurements[order[i]]?.height ?? INITIAL_BLOCK_HEIGHT;
       if (accTop + h > scrollTop) {
@@ -87,7 +96,7 @@ export const Editor = () => {
   function restoreAnchor(anchor: { index: number; offsetWithinBlock: number }): void {
     if (!scrollEl) return;
     let accTop = 0;
-    const order = store.blockOrder;
+    const order = activeOrder();
     for (let i = 0; i < anchor.index && i < order.length; i++) {
       accTop += store.measurements[order[i]]?.height ?? INITIAL_BLOCK_HEIGHT;
     }
@@ -132,7 +141,7 @@ export const Editor = () => {
   });
 
   const orderedHeights = createMemo(() =>
-    store.blockOrder.map((id) => store.measurements[id]?.height ?? 0),
+    activeOrder().map((id) => store.measurements[id]?.height ?? 0),
   );
 
   const visible = createMemo(() =>
@@ -147,7 +156,7 @@ export const Editor = () => {
   const visibleBlocks = createMemo<Block[]>(() => {
     const v = visible();
     if (v.lastIndex < v.firstIndex) return [];
-    const ids = store.blockOrder.slice(v.firstIndex, v.lastIndex + 1);
+    const ids = activeOrder().slice(v.firstIndex, v.lastIndex + 1);
     return ids.map((id) => store.blocks[id]).filter((b): b is Block => Boolean(b));
   });
 

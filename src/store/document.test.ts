@@ -7,6 +7,9 @@ import {
   mergeBlockWithPrevious,
   deleteBlock,
   setPersistEnabled,
+  createChapter,
+  renameChapter,
+  setActiveChapter,
 } from './document';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { Block, Chapter, Document } from '@/types';
@@ -118,6 +121,67 @@ describe('document store mutations', () => {
       const result = mergeBlockWithPrevious('b1');
       expect(result).toBeNull();
       expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+  });
+
+  describe('createChapter', () => {
+    it('appends a chapter, creates one empty block inside it, and sets it active', () => {
+      const result = createChapter();
+      expect(result).not.toBeNull();
+      const { chapterId, blockId } = result!;
+      expect(store.chapters).toHaveLength(2);
+      const ch = store.chapters.find((c) => c.id === chapterId);
+      expect(ch?.title).toBe('Chapter 2');
+      expect(ch?.order).toBe(1);
+      expect(store.blocks[blockId]).toBeDefined();
+      expect(store.blocks[blockId].chapter_id).toBe(chapterId);
+      expect(store.blocks[blockId].content).toBe('');
+      expect(store.blockOrder).toContain(blockId);
+      expect(store.activeChapterId).toBe(chapterId);
+    });
+
+    it('auto-numbers based on existing chapter count', () => {
+      createChapter();
+      createChapter();
+      const titles = store.chapters.map((c) => c.title);
+      expect(titles).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
+    });
+  });
+
+  describe('renameChapter', () => {
+    it('updates the title in place', () => {
+      renameChapter('ch1', 'Opening');
+      expect(store.chapters[0].title).toBe('Opening');
+    });
+
+    it('trims whitespace', () => {
+      renameChapter('ch1', '  Opening  ');
+      expect(store.chapters[0].title).toBe('Opening');
+    });
+
+    it('ignores empty titles', () => {
+      renameChapter('ch1', '   ');
+      expect(store.chapters[0].title).toBe('Chapter 1');
+    });
+
+    it('is a no-op for unknown ids', () => {
+      renameChapter('nope', 'Nope');
+      expect(store.chapters[0].title).toBe('Chapter 1');
+    });
+  });
+
+  describe('setActiveChapter', () => {
+    it('updates activeChapterId when the chapter exists', () => {
+      const result = createChapter()!;
+      setActiveChapter('ch1');
+      expect(store.activeChapterId).toBe('ch1');
+      setActiveChapter(result.chapterId);
+      expect(store.activeChapterId).toBe(result.chapterId);
+    });
+
+    it('is a no-op for unknown ids', () => {
+      setActiveChapter('nope');
+      expect(store.activeChapterId).toBe('ch1');
     });
   });
 

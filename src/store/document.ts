@@ -207,6 +207,65 @@ export function mergeBlockWithPrevious(
   return { previousId, cursorOffset };
 }
 
+export function setActiveChapter(chapterId: UUID): void {
+  if (!store.chapters.some((c) => c.id === chapterId)) return;
+  setStore('activeChapterId', chapterId);
+}
+
+export function createChapter(): { chapterId: UUID; blockId: UUID } | null {
+  if (!store.document) return null;
+  const now = new Date().toISOString();
+  const chapterId = uuid();
+  const blockId = uuid();
+  const existingCount = store.chapters.length;
+  const chapter: Chapter = {
+    id: chapterId,
+    document_id: store.document.id,
+    title: `Chapter ${existingCount + 1}`,
+    order: existingCount,
+    created_at: now,
+    updated_at: now,
+  };
+  const block: Block = {
+    id: blockId,
+    chapter_id: chapterId,
+    type: 'text',
+    content: '',
+    order: 0,
+    metadata: { type: 'text' },
+    deleted_at: null,
+    deleted_from: null,
+    created_at: now,
+    updated_at: now,
+  };
+  setStore('chapters', (chs) => [...chs, chapter]);
+  setStore('blocks', blockId, block);
+  setStore('blockOrder', (order) => [...order, blockId]);
+  setStore('activeChapterId', chapterId);
+
+  if (persistEnabled && store.document) {
+    const documentId = store.document.id;
+    track(repo.saveChapter(unwrap(chapter)).catch(() => undefined));
+    track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+  }
+
+  return { chapterId, blockId };
+}
+
+export function renameChapter(chapterId: UUID, title: string): void {
+  const trimmed = title.trim();
+  if (!trimmed) return;
+  const idx = store.chapters.findIndex((c) => c.id === chapterId);
+  if (idx < 0) return;
+  const now = new Date().toISOString();
+  setStore('chapters', idx, (c) => ({ ...c, title: trimmed, updated_at: now }));
+
+  if (persistEnabled) {
+    const chapter = store.chapters[idx];
+    track(repo.saveChapter(unwrap(chapter)).catch(() => undefined));
+  }
+}
+
 export function deleteBlock(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!block) return;
