@@ -45,6 +45,43 @@ Observed: pasting from a wiki page loses the wiki's formatting (intended) but al
 - **Write an ADR-007** for the ResizeObserver + scroll-anchoring pattern. The library author explicitly calls this out as a target use case for pretext, and the combination is worth documenting as a first-class pattern for Phase 2+ work.
 - **Add a short pretext API cheat sheet** to `docs/pretext-research.md` covering `prepareWithSegments`, `layoutWithLines`, `walkLineRanges`, and the `rich-inline` helper — material we'll want when Dual Pulse and character @mentions come online.
 
+## Book page types (front matter + back matter)
+
+Add standard publishing page types so a StoryForge document can look like a real book, not just a stack of chapters.
+
+**Model:** extend `Chapter` with a `kind` field:
+```ts
+kind: 'standard' | 'cover' | 'title' | 'dedication' | 'epigraph' | 'toc' | 'acknowledgments' | 'afterword' | 'about-author'
+```
+Default is `standard` (existing behavior). Migration is trivial — missing field reads as `standard`.
+
+**Sidebar UX:** the `+` button becomes a small dropdown:
+- New chapter *(default)*
+- Cover
+- Dedication
+- Epigraph
+- Acknowledgments
+- Afterword
+
+Each template creates a chapter with a pre-filled starter block appropriate to the kind (e.g. a centered title placeholder for Cover, a short centered paragraph for Dedication).
+
+**Rendering differences for non-standard kinds:**
+- Centered layout (not left-aligned 680px column)
+- Bigger typography for Cover + Title
+- No per-block TEXT/DIALOGUE label (suppress the type tag — these pages aren't "text blocks" in the authorial sense)
+- Ideally a subtle visual marker in the sidebar (icon or italic)
+
+**Scope for the first pass:** Cover, Dedication, Epigraph, Acknowledgments, Afterword. Five authored kinds, no derived ones. TOC is deferred because it's *computed* from the chapter list (either a reactive view that can drift or a "generate once, manually edit" snapshot — separate design decision).
+
+**Estimated effort:** half a session. Most of the work is the rendering variants in BlockView + Editor; the data model change is a one-line union extension and a IDB schema v5 that just adds the field with a default.
+
+**Not to do in this slice:**
+- TOC auto-generation (its own slice)
+- Half-title page (rarely matters for digital-first novels)
+- Title page separate from cover (merge for now)
+- Copyright page (wait until export exists — it's really for the EPUB/PDF pipeline)
+- Index, glossary, appendix (back matter for non-fiction; defer until StoryForge cares about non-fiction)
+
 ## Phase 3+ hooks
 
 - **Sentence rhythm via `walkLineRanges`** for Story Pulse. Real per-line breakpoints from pretext instead of guessing from sentence lengths.
