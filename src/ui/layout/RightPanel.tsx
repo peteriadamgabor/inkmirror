@@ -2,32 +2,11 @@ import { createMemo, Show } from 'solid-js';
 import { useTheme } from '@/ui/theme';
 import { store } from '@/store/document';
 import { getAiClient } from '@/ai';
-
-const SENTIMENT_COLORS: Record<string, string> = {
-  positive: 'text-emerald-500',
-  neutral: 'text-stone-400',
-  negative: 'text-red-500',
-};
+import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 
 export const RightPanel = () => {
   const { theme, toggleTheme } = useTheme();
   const ai = getAiClient();
-
-  const firstBlockId = createMemo(() => {
-    const activeId = store.activeChapterId;
-    if (!activeId) return null;
-    return (
-      store.blockOrder.find(
-        (id) => store.blocks[id]?.chapter_id === activeId && !store.blocks[id]?.deleted_at,
-      ) ?? null
-    );
-  });
-
-  const firstBlockSentiment = createMemo(() => {
-    const id = firstBlockId();
-    if (!id) return null;
-    return store.sentiments[id] ?? null;
-  });
 
   const chapterMood = createMemo(() => {
     const activeId = store.activeChapterId;
@@ -77,31 +56,6 @@ export const RightPanel = () => {
       <div class="flex flex-col gap-2 mt-2">
         <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
           Story pulse
-        </div>
-
-        <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
-          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">
-            First block
-          </div>
-          <Show
-            when={firstBlockSentiment()}
-            fallback={
-              <div class="text-xs text-stone-400">
-                {ai.isReady() ? 'no analysis yet' : 'model loading…'}
-              </div>
-            }
-          >
-            {(s) => (
-              <div class="flex items-baseline justify-between">
-                <span class={`text-lg font-semibold capitalize ${SENTIMENT_COLORS[s().label] ?? 'text-stone-500'}`}>
-                  {s().label}
-                </span>
-                <span class="font-mono text-[10px] text-stone-500 dark:text-stone-400">
-                  {Math.round(s().score * 100)}%
-                </span>
-              </div>
-            )}
-          </Show>
         </div>
 
         <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">

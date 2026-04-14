@@ -10,6 +10,7 @@ import {
 } from '@/store/document';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
+import { SENTIMENT_COLORS } from './sentiment-colors';
 
 const TYPE_LABELS: Record<Block['type'], { label: string; className: string }> = {
   text:     { label: 'TEXT',     className: 'text-violet-500' },
@@ -239,11 +240,23 @@ export const BlockView = (props: { block: Block }) => {
   };
 
   const meta = () => TYPE_LABELS[props.block.type];
+  const sentiment = () => store.sentiments[props.block.id];
 
   return (
     <div class="py-2" data-block-id={props.block.id}>
-      <div class={`text-[10px] uppercase tracking-wider font-medium mb-1 ${meta().className}`}>
-        {meta().label}
+      <div class="flex items-center gap-2 mb-1">
+        <span class={`text-[10px] uppercase tracking-wider font-medium ${meta().className}`}>
+          {meta().label}
+        </span>
+        {sentiment() && (
+          <span
+            class={`text-[10px] uppercase tracking-wider font-medium ${
+              SENTIMENT_COLORS[sentiment()!.label] ?? 'text-stone-400'
+            }`}
+          >
+            · {sentiment()!.label}
+          </span>
+        )}
       </div>
       <div
         ref={el}
