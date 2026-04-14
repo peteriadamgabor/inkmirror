@@ -243,7 +243,7 @@ export const BlockView = (props: { block: Block }) => {
         onCompositionEnd={onCompositionEnd}
         onPaste={onPaste}
         onKeyDown={onKeyDown}
-        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none"
+        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/60 focus:border-stone-300 dark:focus:border-stone-600 transition-colors"
       />
     </div>
   );
