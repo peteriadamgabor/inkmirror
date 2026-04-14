@@ -6,7 +6,7 @@
 
 **Architecture:** New `src/db/` module owns the database. Boot is blocking (≤500ms per ADR-003). Store mutations synchronously update the in-memory store, then fire-and-forget a repository call into a `pendingWrites` pool. Content edits are debounced 500ms + flushed on blur and `beforeunload`; structural mutations (create/soft-delete) flush immediately. UI never imports from `db/` — the `ui → store → db` layering rule holds.
 
-**Tech Stack:** SurrealDB Wasm (new), `fake-indexeddb` (new, dev), plus existing Solid + TypeScript + Vitest + Playwright harness from Phase 1.
+**Tech Stack:** `surrealdb@2` + `@surrealdb/wasm@3` (new unified SDK — the older `surrealdb.wasm` package is deprecated and broken against current `surrealdb.js`), `fake-indexeddb` (new, dev), plus existing Solid + TypeScript + Vitest + Playwright harness from Phase 1.
 
 ---
 
@@ -76,30 +76,31 @@ Files created or modified in this plan:
 **Files:**
 - Modify: `package.json`
 
+**Note:** Repo uses **npm**, not pnpm. All package commands in this plan use npm.
+
+**Note:** The older `surrealdb.wasm@1.0.0-beta.15` package is broken — it imports `AbstractEngine` from `surrealdb.js` but that export no longer exists. SurrealDB split into `surrealdb` (SDK) + `@surrealdb/wasm` (browser engine). Use the new packages.
+
 - [ ] **Step 1: Install runtime and dev deps**
 
 ```bash
-pnpm add surrealdb.wasm
-pnpm add -D fake-indexeddb
+npm install surrealdb @surrealdb/wasm
+npm install -D fake-indexeddb
 ```
 
-- [ ] **Step 2: Sanity-check import**
+- [ ] **Step 2: Verified import pattern (already probed during planning)**
 
-Create a throwaway file `scratch.mjs` at repo root:
-
-```js
-import { Surreal } from 'surrealdb.wasm';
-console.log('Surreal class:', typeof Surreal);
+```ts
+import { Surreal } from 'surrealdb';
+import { createWasmEngines } from '@surrealdb/wasm';
+const db = new Surreal({ engines: createWasmEngines() });
+await db.connect('indxdb://storyforge', { namespace: 'storyforge', database: 'main' });
 ```
-
-Run: `node scratch.mjs`
-Expected: `Surreal class: function` (or `undefined` if ESM export is default — in that case, switch to `import Surreal from 'surrealdb.wasm'` and re-run). Record which import form works in your notes for Task 3. Delete `scratch.mjs` after.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add package.json pnpm-lock.yaml
-git commit -m "chore(db): add surrealdb.wasm and fake-indexeddb"
+git add package.json package-lock.json
+git commit -m "chore(db): add surrealdb and @surrealdb/wasm"
 ```
 
 ---
@@ -151,7 +152,8 @@ git commit -m "feat(db): error ring buffer and console routing"
 
 ```ts
 // src/db/connection.ts
-import { Surreal } from 'surrealdb.wasm';
+import { Surreal } from 'surrealdb';
+import { createWasmEngines } from '@surrealdb/wasm';
 import { logDbError } from './errors';
 import { runMigrations } from './migrations';
 
@@ -163,11 +165,12 @@ let dbPromise: Promise<Surreal> | null = null;
 export function getDb(): Promise<Surreal> {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
-    const db = new Surreal();
     try {
-      // IndexedDB-backed in-browser engine
-      await db.connect('indxdb://storyforge');
-      await db.use({ namespace: NAMESPACE, database: DATABASE });
+      const db = new Surreal({ engines: createWasmEngines() });
+      await db.connect('indxdb://storyforge', {
+        namespace: NAMESPACE,
+        database: DATABASE,
+      });
       await runMigrations(db);
       return db;
     } catch (err) {
@@ -182,8 +185,6 @@ export function __resetDbForTests(): void {
   dbPromise = null;
 }
 ```
-
-**Note:** If Task 1's import form was default (`import Surreal from ...`), use that here instead.
 
 - [ ] **Step 2: Commit**
 
@@ -203,7 +204,7 @@ git commit -m "feat(db): surrealdb wasm connection with memoized boot"
 
 ```ts
 // src/db/migrations.ts
-import type { Surreal } from 'surrealdb.wasm';
+import type { Surreal } from 'surrealdb';
 import { logDbError } from './errors';
 
 const SCHEMA_VERSION = 1;
@@ -300,7 +301,7 @@ git commit -m "feat(db): schema v1 with order_idx field and meta version row"
 
 ```ts
 // src/db/repository.ts
-import type { Surreal } from 'surrealdb.wasm';
+import type { Surreal } from 'surrealdb';
 import type { Block, Chapter, Document, UUID } from '@/types';
 import { getDb } from './connection';
 import { logDbError } from './errors';
