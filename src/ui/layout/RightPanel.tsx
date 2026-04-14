@@ -1,13 +1,16 @@
-import { createMemo, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, Show } from 'solid-js';
 import { useTheme } from '@/ui/theme';
 import { store } from '@/store/document';
 import { getAiClient } from '@/ai';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
+import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 
 export const RightPanel = () => {
   const { theme, toggleTheme } = useTheme();
   const ai = getAiClient();
+  const sono = getSonificationEngine();
+  const [sonoOn, setSonoOn] = createSignal(false);
 
   const chapterMood = createMemo(() => {
     const activeId = store.activeChapterId;
@@ -36,6 +39,37 @@ export const RightPanel = () => {
       total: ids.length,
     };
   });
+
+  // Reactively drive the sonification engine from chapterMood.
+  createEffect(() => {
+    if (!sonoOn()) return;
+    const mood = chapterMood();
+    if (!mood) return;
+    const label = mood.label as MoodLabel;
+    if (label === 'positive' || label === 'neutral' || label === 'negative') {
+      sono.setMood(label);
+    }
+  });
+
+  const toggleSono = async () => {
+    if (sonoOn()) {
+      sono.stop();
+      setSonoOn(false);
+    } else {
+      const mood = chapterMood();
+      const initial: MoodLabel =
+        mood && (mood.label === 'positive' || mood.label === 'negative')
+          ? (mood.label as MoodLabel)
+          : 'neutral';
+      try {
+        await sono.start(initial);
+        setSonoOn(true);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('sonification start failed:', err);
+      }
+    }
+  };
 
   return (
     <div class="h-full bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-4 flex flex-col gap-4 overflow-auto">
@@ -96,6 +130,27 @@ export const RightPanel = () => {
           Document mood
         </div>
         <MoodHeatmap />
+      </div>
+
+      <div class="flex flex-col gap-2 mt-2">
+        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+          Sonification
+        </div>
+        <button
+          type="button"
+          onClick={toggleSono}
+          class="flex items-center justify-between px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/50 transition-colors"
+        >
+          <span>{sonoOn() ? 'Stop ambient tone' : 'Play ambient tone'}</span>
+          <span class="font-mono text-[10px] text-stone-500 dark:text-stone-400">
+            {sonoOn() ? '■' : '▶'}
+          </span>
+        </button>
+        <Show when={sonoOn()}>
+          <div class="text-[10px] text-stone-400 px-1">
+            tracking chapter mood · click stop to silence
+          </div>
+        </Show>
       </div>
     </div>
   );
