@@ -52,7 +52,10 @@ export interface StoryForgeSchema extends DBSchema {
 }
 
 const DB_NAME = 'storyforge';
-const DB_VERSION = 1;
+// Version 2: bumped from 1 to force the upgrade handler to run against any
+// leftover DB created during the SurrealDB Wasm experiment (which left a
+// same-named IDB with no object stores).
+const DB_VERSION = 2;
 
 export type StoryForgeDb = IDBPDatabase<StoryForgeSchema>;
 
@@ -63,11 +66,16 @@ export function getDb(): Promise<StoryForgeDb> {
   dbPromise = (async () => {
     try {
       return await openDB<StoryForgeSchema>(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion) {
-          if (oldVersion < 1) {
+        upgrade(db) {
+          // Idempotent: create any store/index that doesn't already exist.
+          if (!db.objectStoreNames.contains('documents')) {
             db.createObjectStore('documents', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('chapters')) {
             const chapters = db.createObjectStore('chapters', { keyPath: 'id' });
             chapters.createIndex('by_document', 'document_id');
+          }
+          if (!db.objectStoreNames.contains('blocks')) {
             const blocks = db.createObjectStore('blocks', { keyPath: 'id' });
             blocks.createIndex('by_document', 'document_id');
             blocks.createIndex('by_chapter', 'chapter_id');
