@@ -175,15 +175,23 @@ src/
 
 ---
 
-### ADR-003: Why SurrealDB Wasm and not raw IndexedDB?
+### ADR-003: Why plain IndexedDB (via `idb`) and not SurrealDB Wasm?
 
-**Context:** The document structure is relational (chapter → block → character), and graph relationships are also needed.
+**Context:** The document structure is relational (chapter → block → character), and graph relationships are also needed in later phases.
 
-**Decision:** SurrealDB Wasm, using IndexedDB as the storage engine.
+**Decision:** Plain IndexedDB via the `idb` npm wrapper. Repository layer in `src/db/repository.ts` is the seam — internals can be swapped without touching callers.
 
-**Rationale:** IndexedDB is a key-value store — building relational queries and graph traversal by hand would be complex and bug-prone. SurrealDB gives SQL, graph edges, and full-text search for free.
+**History:** This ADR originally chose **SurrealDB Wasm**, reasoning that hand-rolled relational queries would be complex and bug-prone and that SurrealQL + graph edges + full-text search would be "free." That bet did not survive first contact. Phase 2 implementation hit a confirmed upstream bug in `@surrealdb/wasm@3.0.3` (`surrealdb/indxdb#9`, `surrealdb/surrealdb.js#571`, both open): every `.use({namespace, database})` call throws an IndexedDB transaction error in every browser tested (Firefox, Vivaldi/Chromium, also reproduced by third parties in Chrome and Safari). The bug affects SurrealDB's own Surrealist tool against their cloud. Not fixable from our side.
 
-**Risk:** The size of SurrealDB Wasm (~2MB) and its memory footprint. Browser memory must be tested at 100,000+ words.
+**Rationale for plain IndexedDB:**
+- **It actually works.** Mature, stable, every browser.
+- **Phase 2's query needs are trivial.** One filter (`document_id` + `deleted_at IS NULL`) + one sort (`order_idx`). An IDB index + in-memory filter handles this in microseconds on the scale we care about.
+- **The repository abstraction is the right seam.** Public API (`saveBlock`, `softDeleteBlock`, `loadDocument`, …) is unchanged. Store, UI, and boot code never knew we pivoted.
+- **Bundle size dropped from ~12 MB (Wasm) + 219 KB JS to 92 KB total.** 100× smaller. Boot latency is now invisible.
+
+**What we lose:** SurrealQL, graph traversal, full-text search. All Phase 3+ concerns. Character mentions and relationships (the main relational use case beyond blocks) will be handled in-memory against the Solid store for Phase 3, and if we outgrow that, we can revisit SurrealDB when the upstream bug is fixed — or pick a different relational/graph DB with a working browser story.
+
+**Risk:** If Phase 3+ character/relationship queries become expensive, we'll need a secondary index strategy. Acceptable — we'll have real data at that point and can measure.
 
 ---
 

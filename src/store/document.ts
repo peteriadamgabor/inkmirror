@@ -1,4 +1,4 @@
-import { createStore } from 'solid-js/store';
+import { createStore, unwrap } from 'solid-js/store';
 import type { Block, Chapter, Document, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { LoadedDocument } from '@/db/repository';
@@ -65,7 +65,7 @@ function persistBlockNow(blockId: UUID): void {
   const documentId = store.document?.id;
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
-  track(repo.saveBlock(block, documentId).catch(() => undefined));
+  track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
 }
 
 function scheduleBlockContentWrite(blockId: UUID): void {
@@ -179,7 +179,7 @@ export function createBlockAfter(blockId: UUID): UUID {
   setStore('blockOrder', newOrder);
 
   if (persistEnabled && store.document) {
-    track(repo.saveBlock(newBlock, store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(newBlock), store.document.id).catch(() => undefined));
   }
 
   return newId;

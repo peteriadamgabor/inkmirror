@@ -6,7 +6,9 @@
 
 **Architecture:** New `src/db/` module owns the database. Boot is blocking (≤500ms per ADR-003). Store mutations synchronously update the in-memory store, then fire-and-forget a repository call into a `pendingWrites` pool. Content edits are debounced 500ms + flushed on blur and `beforeunload`; structural mutations (create/soft-delete) flush immediately. UI never imports from `db/` — the `ui → store → db` layering rule holds.
 
-**Tech Stack:** `surrealdb@2` + `@surrealdb/wasm@3` (new unified SDK — the older `surrealdb.wasm` package is deprecated and broken against current `surrealdb.js`), `fake-indexeddb` (new, dev), plus existing Solid + TypeScript + Vitest + Playwright harness from Phase 1.
+**Tech Stack:** `idb` (plain IndexedDB wrapper), plus existing Solid + TypeScript + Vitest + Playwright harness from Phase 1.
+
+> **Pivot note (mid-implementation, 2026-04-14):** This plan originally installed `surrealdb` + `@surrealdb/wasm`. Tasks 1-10 were executed against SurrealDB Wasm until confirmed upstream bug `surrealdb/indxdb#9` (open, affects all browsers) made `.use()` unusable. Pivoted to plain IDB in commit `375a14c`. The completed tasks (db module, repository, store wiring, boot) are still valid — only the internals of `src/db/connection.ts` and `src/db/repository.ts` changed; the repository's public API, store code, boot sequence, and tests are unchanged. Task 1's instructions below no longer match the actual install but are left for historical context. Tasks 11-14 (manual QA, smoke, perf, ship) are the remaining work and do not depend on the DB backend choice.
 
 ---
 

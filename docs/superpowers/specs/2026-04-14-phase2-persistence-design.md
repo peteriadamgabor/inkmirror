@@ -2,7 +2,9 @@
 
 **Date:** 2026-04-14
 **Phase:** 2 (Editor + Database)
-**Scope:** Persistence only — SurrealDB Wasm boot, schema, repository, store integration, first-run experience. Everything else in Phase 2 (drag-drop, chapter sidebar CRUD, graveyard UI, scene metadata editor, pulse worker, focus mode) is out of scope and will be covered in separate specs.
+**Scope:** Persistence only — IndexedDB boot, schema, repository, store integration, first-run experience. Everything else in Phase 2 (drag-drop, chapter sidebar CRUD, graveyard UI, scene metadata editor, pulse worker, focus mode) is out of scope and will be covered in separate specs.
+
+> **Pivot note (2026-04-14, mid-implementation):** This spec originally targeted SurrealDB Wasm per ADR-003. During implementation we hit a confirmed upstream bug in `@surrealdb/wasm@3.0.3` (`surrealdb/indxdb#9`, `surrealdb/surrealdb.js#571`) that makes `.use()` fail in every browser. ADR-003 was revised to plain IndexedDB via the `idb` package. The architecture, store integration, first-run behavior, and exit criteria all still apply as written — only the schema section and the queries in the data-flow diagram are now IDB object stores and `getAllFromIndex` calls instead of SurrealQL. See commit `375a14c` for the diff. The repository layer's public API is unchanged, which is why the pivot only touched `src/db/`.
 
 ---
 
