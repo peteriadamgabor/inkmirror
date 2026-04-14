@@ -144,7 +144,7 @@ hydrate store (same shape as loadSyntheticDoc)
 
 Every write: `store mutation → repository call → tracked promise`. Store updates synchronously. Repo call is fire-and-forget into a `pendingWrites: Set<Promise>` pool. `beforeunload` awaits the pool with a short timeout (≤200ms).
 
-**Reorder semantics:** `order` is a dense integer sequence. On insert/delete, affected siblings in the same chapter are re-numbered and batch-saved in a single transaction. Chapters have ~50 blocks; this is not a hot path.
+**Reorder semantics:** `order` is a dense integer sequence. On insert/soft-delete, affected siblings in the same chapter are re-numbered and enqueued as multiple writes into the `pendingWrites` pool. Not wrapped in a SurrealDB transaction (Wasm build's transaction support is unverified — to be checked at implementation time and upgraded if trivial). Chapters have ~50 blocks; this is not a hot path.
 
 **Crash window:** up to 500ms of typing can be lost. Accepted.
 
