@@ -7,6 +7,7 @@ import { PerfHarnessRoute } from '@/routes/perf-harness';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
+import { scheduleAiPreload } from '@/ai';
 import { BootSplash } from '@/ui/layout/BootSplash';
 import type { Document, Chapter, Block, UUID } from '@/types';
 import './index.css';
@@ -111,8 +112,12 @@ render(
 );
 
 void boot().then((result) => {
-  if (result.ok) setBootState({ kind: 'ready' });
-  else setBootState({ kind: 'error', message: result.error });
+  if (result.ok) {
+    setBootState({ kind: 'ready' });
+    scheduleAiPreload();
+  } else {
+    setBootState({ kind: 'error', message: result.error });
+  }
 });
 
 window.addEventListener('beforeunload', () => {
