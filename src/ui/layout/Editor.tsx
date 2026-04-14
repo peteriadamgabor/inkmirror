@@ -1,5 +1,6 @@
 import { createEffect, createMemo, For, onCleanup, onMount } from 'solid-js';
 import { BlockView } from '@/ui/blocks/BlockView';
+import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
 import { store, setViewport, setMeasurement } from '@/store/document';
@@ -189,26 +190,29 @@ export const Editor = () => {
   });
 
   return (
-    <div
-      ref={scrollEl}
-      onScroll={onScroll}
-      data-scroll-root="editor"
-      class="h-full overflow-auto bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700"
-      style={{ 'padding-top': `${SCROLL_PADDING}px`, 'padding-bottom': `${SCROLL_PADDING}px` }}
-    >
+    <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
+      <StoryPulseEcg />
       <div
-        style={{
-          height: `${visible().totalHeight}px`,
-          position: 'relative',
-          'max-width': `${EDITOR_WIDTH}px`,
-          'margin-left': 'auto',
-          'margin-right': 'auto',
-        }}
+        ref={scrollEl}
+        onScroll={onScroll}
+        data-scroll-root="editor"
+        class="flex-1 overflow-auto"
+        style={{ 'padding-top': `${SCROLL_PADDING}px`, 'padding-bottom': `${SCROLL_PADDING}px` }}
       >
-        <div style={{ transform: `translateY(${visible().offsetTop}px)` }}>
-          <For each={visibleBlocks()} fallback={<div class="p-8 text-stone-500">No document loaded</div>}>
-            {(block) => <BlockView block={block} />}
-          </For>
+        <div
+          style={{
+            height: `${visible().totalHeight}px`,
+            position: 'relative',
+            'max-width': `${EDITOR_WIDTH}px`,
+            'margin-left': 'auto',
+            'margin-right': 'auto',
+          }}
+        >
+          <div style={{ transform: `translateY(${visible().offsetTop}px)` }}>
+            <For each={visibleBlocks()} fallback={<div class="p-8 text-stone-500">No document loaded</div>}>
+              {(block) => <BlockView block={block} />}
+            </For>
+          </div>
         </div>
       </div>
     </div>
