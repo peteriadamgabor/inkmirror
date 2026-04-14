@@ -13,9 +13,8 @@
   "dependencies": {
     "@chenglou/pretext": "^0.0.5",
     "@solidjs/router": "^0.13.0",
-    "@surrealdb/wasm": "^3.0.3",
-    "solid-js": "^1.8.0",
-    "surrealdb": "^2.0.3"
+    "idb": "^8.0.3",
+    "solid-js": "^1.8.0"
   },
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.0",

@@ -1,39 +1,6 @@
 import type { Block, Chapter, Document, UUID } from '@/types';
-import { getDb } from './connection';
+import { getDb, type BlockRow, type ChapterRow, type DocumentRow, type StoryForgeDb } from './connection';
 import { logDbError } from './errors';
-
-interface BlockRow {
-  id: string;
-  document_id: string;
-  chapter_id: string;
-  type: string;
-  content: string;
-  order_idx: number;
-  metadata: unknown;
-  deleted_at: string | null;
-  deleted_from: unknown | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ChapterRow {
-  id: string;
-  document_id: string;
-  title: string;
-  order_idx: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface DocumentRow {
-  id: string;
-  title: string;
-  author: string;
-  synopsis: string;
-  settings: Document['settings'];
-  created_at: string;
-  updated_at: string;
-}
 
 function blockToRow(b: Block, documentId: UUID): BlockRow {
   return {
@@ -66,8 +33,73 @@ function rowToBlock(row: BlockRow): Block {
   };
 }
 
+function chapterToRow(c: Chapter): ChapterRow {
+  return {
+    id: c.id,
+    document_id: c.document_id,
+    title: c.title,
+    order_idx: c.order,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
+  };
+}
+
+function rowToChapter(r: ChapterRow): Chapter {
+  return {
+    id: r.id,
+    document_id: r.document_id,
+    title: r.title,
+    order: r.order_idx,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  };
+}
+
+function documentToRow(d: Document): DocumentRow {
+  return {
+    id: d.id,
+    title: d.title,
+    author: d.author,
+    synopsis: d.synopsis,
+    settings: d.settings,
+    created_at: d.created_at,
+    updated_at: d.updated_at,
+  };
+}
+
+function rowToDocument(r: DocumentRow): Document {
+  return {
+    id: r.id,
+    title: r.title,
+    author: r.author,
+    synopsis: r.synopsis,
+    settings: r.settings as Document['settings'],
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  };
+}
+
+// ---------- dependency injection for tests ----------
+
 export interface DbLike {
-  query(sql: string, vars?: Record<string, unknown>): Promise<unknown>;
+  documents: {
+    put(row: DocumentRow): Promise<unknown>;
+    getAll(): Promise<DocumentRow[]>;
+    get(id: string): Promise<DocumentRow | undefined>;
+  };
+  chapters: {
+    put(row: ChapterRow): Promise<unknown>;
+    getAllByDocument(documentId: string): Promise<ChapterRow[]>;
+  };
+  blocks: {
+    put(row: BlockRow): Promise<unknown>;
+    getAllByDocument(documentId: string): Promise<BlockRow[]>;
+    softDelete(
+      id: string,
+      deletedAt: string,
+      deletedFrom: NonNullable<Block['deleted_from']>,
+    ): Promise<void>;
+  };
 }
 
 let testDb: DbLike | null = null;
@@ -76,35 +108,49 @@ export function __setTestDb(db: DbLike | null): void {
   testDb = db;
 }
 
-async function db(): Promise<DbLike> {
-  if (testDb) return testDb;
-  // The real Surreal client's query signature is compatible in usage —
-  // it returns a thenable Query builder that awaits into the raw rows we expect.
-  return (await getDb()) as unknown as DbLike;
+function realDb(idb: StoryForgeDb): DbLike {
+  return {
+    documents: {
+      put: (row) => idb.put('documents', row),
+      getAll: () => idb.getAll('documents'),
+      get: (id) => idb.get('documents', id),
+    },
+    chapters: {
+      put: (row) => idb.put('chapters', row),
+      getAllByDocument: (documentId) =>
+        idb.getAllFromIndex('chapters', 'by_document', documentId),
+    },
+    blocks: {
+      put: (row) => idb.put('blocks', row),
+      getAllByDocument: (documentId) =>
+        idb.getAllFromIndex('blocks', 'by_document', documentId),
+      softDelete: async (id, deletedAt, deletedFrom) => {
+        const tx = idb.transaction('blocks', 'readwrite');
+        const store = tx.objectStore('blocks');
+        const row = await store.get(id);
+        if (row) {
+          row.deleted_at = deletedAt;
+          row.deleted_from = deletedFrom;
+          row.updated_at = deletedAt;
+          await store.put(row);
+        }
+        await tx.done;
+      },
+    },
+  };
 }
 
-function firstRow<T>(result: unknown): T[] {
-  // Surreal .query returns an array of result sets (one per statement)
-  if (Array.isArray(result) && result.length > 0) {
-    const first = result[0];
-    if (Array.isArray(first)) return first as T[];
-  }
-  return [];
+async function db(): Promise<DbLike> {
+  if (testDb) return testDb;
+  return realDb(await getDb());
 }
+
+// ---------- public API ----------
 
 export async function saveDocument(doc: Document): Promise<void> {
   try {
-    const row: DocumentRow = {
-      id: doc.id,
-      title: doc.title,
-      author: doc.author,
-      synopsis: doc.synopsis,
-      settings: doc.settings,
-      created_at: doc.created_at,
-      updated_at: doc.updated_at,
-    };
     const d = await db();
-    await d.query(`UPDATE type::thing('document', $id) CONTENT $row`, { id: row.id, row });
+    await d.documents.put(documentToRow(doc));
   } catch (err) {
     logDbError('repository.saveDocument', err);
     throw err;
@@ -113,16 +159,8 @@ export async function saveDocument(doc: Document): Promise<void> {
 
 export async function saveChapter(chapter: Chapter): Promise<void> {
   try {
-    const row: ChapterRow = {
-      id: chapter.id,
-      document_id: chapter.document_id,
-      title: chapter.title,
-      order_idx: chapter.order,
-      created_at: chapter.created_at,
-      updated_at: chapter.updated_at,
-    };
     const d = await db();
-    await d.query(`UPDATE type::thing('chapter', $id) CONTENT $row`, { id: row.id, row });
+    await d.chapters.put(chapterToRow(chapter));
   } catch (err) {
     logDbError('repository.saveChapter', err);
     throw err;
@@ -131,9 +169,8 @@ export async function saveChapter(chapter: Chapter): Promise<void> {
 
 export async function saveBlock(block: Block, documentId: UUID): Promise<void> {
   try {
-    const row = blockToRow(block, documentId);
     const d = await db();
-    await d.query(`UPDATE type::thing('block', $id) CONTENT $row`, { id: row.id, row });
+    await d.blocks.put(blockToRow(block, documentId));
   } catch (err) {
     logDbError('repository.saveBlock', err);
     throw err;
@@ -147,10 +184,7 @@ export async function softDeleteBlock(
   try {
     const now = new Date().toISOString();
     const d = await db();
-    await d.query(
-      `UPDATE type::thing('block', $id) SET deleted_at = $now, deleted_from = $df, updated_at = $now`,
-      { id: blockId, now, df: deletedFrom },
-    );
+    await d.blocks.softDelete(blockId, now, deletedFrom);
   } catch (err) {
     logDbError('repository.softDeleteBlock', err);
     throw err;
@@ -160,17 +194,9 @@ export async function softDeleteBlock(
 export async function listDocuments(): Promise<Document[]> {
   try {
     const d = await db();
-    const result = await d.query('SELECT * FROM document ORDER BY created_at ASC');
-    const rows = firstRow<DocumentRow>(result);
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      author: r.author,
-      synopsis: r.synopsis,
-      settings: r.settings,
-      created_at: r.created_at,
-      updated_at: r.updated_at,
-    }));
+    const rows = await d.documents.getAll();
+    rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    return rows.map(rowToDocument);
   } catch (err) {
     logDbError('repository.listDocuments', err);
     throw err;
@@ -186,41 +212,21 @@ export interface LoadedDocument {
 export async function loadDocument(documentId: UUID): Promise<LoadedDocument | null> {
   try {
     const d = await db();
-    const docResult = await d.query(`SELECT * FROM document WHERE id = $id`, { id: documentId });
-    const docRow = firstRow<DocumentRow>(docResult)[0];
+    const docRow = await d.documents.get(documentId);
     if (!docRow) return null;
 
-    const chapResult = await d.query(
-      `SELECT * FROM chapter WHERE document_id = $id ORDER BY order_idx ASC`,
-      { id: documentId },
-    );
-    const chapters: Chapter[] = firstRow<ChapterRow>(chapResult).map((r) => ({
-      id: r.id,
-      document_id: r.document_id,
-      title: r.title,
-      order: r.order_idx,
-      created_at: r.created_at,
-      updated_at: r.updated_at,
-    }));
+    const chapterRows = await d.chapters.getAllByDocument(documentId);
+    chapterRows.sort((a, b) => a.order_idx - b.order_idx);
 
-    const blockResult = await d.query(
-      `SELECT * FROM block WHERE document_id = $id AND deleted_at IS NONE ORDER BY order_idx ASC`,
-      { id: documentId },
-    );
-    const blocks = firstRow<BlockRow>(blockResult).map(rowToBlock);
+    const blockRows = await d.blocks.getAllByDocument(documentId);
+    const visibleBlocks = blockRows
+      .filter((r) => r.deleted_at === null)
+      .sort((a, b) => a.order_idx - b.order_idx);
 
     return {
-      document: {
-        id: docRow.id,
-        title: docRow.title,
-        author: docRow.author,
-        synopsis: docRow.synopsis,
-        settings: docRow.settings,
-        created_at: docRow.created_at,
-        updated_at: docRow.updated_at,
-      },
-      chapters,
-      blocks,
+      document: rowToDocument(docRow),
+      chapters: chapterRows.map(rowToChapter),
+      blocks: visibleBlocks.map(rowToBlock),
     };
   } catch (err) {
     logDbError('repository.loadDocument', err);

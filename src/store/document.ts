@@ -55,15 +55,16 @@ function track<T>(p: Promise<T>): Promise<T> {
 }
 
 function persistBlockNow(blockId: UUID): void {
-  const documentId = store.document?.id;
-  const block = store.blocks[blockId];
-  if (!documentId || !block) return;
   dirtyContentBlocks.delete(blockId);
   const timer = pendingContentTimers.get(blockId);
   if (timer !== undefined) {
     clearTimeout(timer);
     pendingContentTimers.delete(blockId);
   }
+  if (!persistEnabled) return;
+  const documentId = store.document?.id;
+  const block = store.blocks[blockId];
+  if (!documentId || !block) return;
   track(repo.saveBlock(block, documentId).catch(() => undefined));
 }
 

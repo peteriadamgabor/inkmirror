@@ -5,28 +5,70 @@ import {
   softDeleteBlock,
   loadDocument,
   listDocuments,
+  type DbLike,
 } from './repository';
 import type { Block } from '@/types';
+import type { BlockRow, ChapterRow, DocumentRow } from './connection';
 
-interface Call {
-  sql: string;
-  vars: Record<string, unknown>;
+interface MockState {
+  documents: DocumentRow[];
+  chapters: ChapterRow[];
+  blocks: BlockRow[];
+  softDeleteCalls: Array<{ id: string; deletedAt: string; deletedFrom: unknown }>;
 }
 
-function mockDb(responses: Record<string, unknown>) {
-  const calls: Call[] = [];
-  return {
-    calls,
-    db: {
-      async query(sql: string, vars: Record<string, unknown> = {}) {
-        calls.push({ sql, vars });
-        for (const [needle, value] of Object.entries(responses)) {
-          if (sql.includes(needle)) return value;
+function createMockDb(): { db: DbLike; state: MockState } {
+  const state: MockState = {
+    documents: [],
+    chapters: [],
+    blocks: [],
+    softDeleteCalls: [],
+  };
+  const db: DbLike = {
+    documents: {
+      async put(row) {
+        const idx = state.documents.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.documents[idx] = row;
+        else state.documents.push(row);
+      },
+      async getAll() {
+        return state.documents.slice();
+      },
+      async get(id) {
+        return state.documents.find((r) => r.id === id);
+      },
+    },
+    chapters: {
+      async put(row) {
+        const idx = state.chapters.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.chapters[idx] = row;
+        else state.chapters.push(row);
+      },
+      async getAllByDocument(documentId) {
+        return state.chapters.filter((r) => r.document_id === documentId);
+      },
+    },
+    blocks: {
+      async put(row) {
+        const idx = state.blocks.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.blocks[idx] = row;
+        else state.blocks.push(row);
+      },
+      async getAllByDocument(documentId) {
+        return state.blocks.filter((r) => r.document_id === documentId);
+      },
+      async softDelete(id, deletedAt, deletedFrom) {
+        state.softDeleteCalls.push({ id, deletedAt, deletedFrom });
+        const row = state.blocks.find((r) => r.id === id);
+        if (row) {
+          row.deleted_at = deletedAt;
+          row.deleted_from = deletedFrom;
+          row.updated_at = deletedAt;
         }
-        return [[]];
       },
     },
   };
+  return { db, state };
 }
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
@@ -49,57 +91,101 @@ function makeBlock(overrides: Partial<Block> = {}): Block {
 afterEach(() => __setTestDb(null));
 
 describe('saveBlock', () => {
-  it('sends UPDATE with block row including order_idx', async () => {
-    const { calls, db } = mockDb({});
+  it('writes block row with order_idx and document_id', async () => {
+    const { db, state } = createMockDb();
     __setTestDb(db);
     await saveBlock(makeBlock({ order: 3 }), 'doc-1');
-    expect(calls).toHaveLength(1);
-    expect(calls[0].sql).toContain("type::thing('block'");
-    expect(calls[0].vars.row).toMatchObject({ order_idx: 3, document_id: 'doc-1' });
+    expect(state.blocks).toHaveLength(1);
+    expect(state.blocks[0]).toMatchObject({
+      id: 'block-1',
+      order_idx: 3,
+      document_id: 'doc-1',
+    });
   });
 });
 
 describe('softDeleteBlock', () => {
-  it('sets deleted_at and deleted_from without removing the row', async () => {
-    const { calls, db } = mockDb({});
+  it('records deletion metadata without removing the row', async () => {
+    const { db, state } = createMockDb();
     __setTestDb(db);
+    await saveBlock(makeBlock(), 'doc-1');
     await softDeleteBlock('block-1', {
       chapter_id: 'chap-1',
       chapter_title: 'Ch 1',
       position: 0,
     });
-    expect(calls[0].sql).toContain('deleted_at = $now');
-    expect(calls[0].sql).toContain('deleted_from = $df');
-    expect(calls[0].vars.df).toMatchObject({ chapter_id: 'chap-1', position: 0 });
+    expect(state.blocks).toHaveLength(1);
+    expect(state.blocks[0].deleted_at).toBeTruthy();
+    expect(state.blocks[0].deleted_from).toMatchObject({
+      chapter_id: 'chap-1',
+      position: 0,
+    });
+    expect(state.softDeleteCalls).toHaveLength(1);
   });
 });
 
 describe('loadDocument', () => {
-  it('filters soft-deleted blocks in SQL', async () => {
-    const docRow = {
+  it('filters soft-deleted blocks and sorts by order_idx', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    const now = '2026-04-14T12:00:00.000Z';
+    state.documents.push({
       id: 'doc-1',
       title: 'T',
       author: '',
       synopsis: '',
       settings: {},
-      created_at: 'x',
-      updated_at: 'x',
-    };
-    const { calls, db } = mockDb({
-      'FROM document WHERE': [[docRow]],
-      'FROM chapter WHERE': [[]],
-      'FROM block WHERE': [[]],
+      created_at: now,
+      updated_at: now,
     });
-    __setTestDb(db);
-    const result = await loadDocument('doc-1');
-    expect(result).not.toBeNull();
-    const blockCall = calls.find((c) => c.sql.includes('FROM block WHERE'));
-    expect(blockCall?.sql).toContain('deleted_at IS NONE');
-    expect(blockCall?.sql).toContain('ORDER BY order_idx ASC');
+    state.blocks.push(
+      {
+        id: 'b2',
+        document_id: 'doc-1',
+        chapter_id: 'c1',
+        type: 'text',
+        content: 'second',
+        order_idx: 1,
+        metadata: { type: 'text' },
+        deleted_at: null,
+        deleted_from: null,
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'b1',
+        document_id: 'doc-1',
+        chapter_id: 'c1',
+        type: 'text',
+        content: 'first',
+        order_idx: 0,
+        metadata: { type: 'text' },
+        deleted_at: null,
+        deleted_from: null,
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'b3-gone',
+        document_id: 'doc-1',
+        chapter_id: 'c1',
+        type: 'text',
+        content: 'deleted',
+        order_idx: 2,
+        metadata: { type: 'text' },
+        deleted_at: now,
+        deleted_from: { chapter_id: 'c1', chapter_title: '', position: 2 },
+        created_at: now,
+        updated_at: now,
+      },
+    );
+    const loaded = await loadDocument('doc-1');
+    expect(loaded).not.toBeNull();
+    expect(loaded!.blocks.map((b) => b.id)).toEqual(['b1', 'b2']);
   });
 
   it('returns null when document row missing', async () => {
-    const { db } = mockDb({ 'FROM document WHERE': [[]] });
+    const { db } = createMockDb();
     __setTestDb(db);
     const result = await loadDocument('nope');
     expect(result).toBeNull();
@@ -107,20 +193,30 @@ describe('loadDocument', () => {
 });
 
 describe('listDocuments', () => {
-  it('returns mapped documents', async () => {
-    const row = {
-      id: 'd1',
-      title: 'Novel',
-      author: 'me',
-      synopsis: '',
-      settings: {},
-      created_at: 'a',
-      updated_at: 'b',
-    };
-    const { db } = mockDb({ 'SELECT * FROM document': [[row]] });
+  it('returns documents sorted by created_at ascending', async () => {
+    const { db, state } = createMockDb();
     __setTestDb(db);
+    state.documents.push(
+      {
+        id: 'd2',
+        title: 'Second',
+        author: '',
+        synopsis: '',
+        settings: {},
+        created_at: '2026-04-14T12:00:02.000Z',
+        updated_at: '2026-04-14T12:00:02.000Z',
+      },
+      {
+        id: 'd1',
+        title: 'First',
+        author: '',
+        synopsis: '',
+        settings: {},
+        created_at: '2026-04-14T12:00:01.000Z',
+        updated_at: '2026-04-14T12:00:01.000Z',
+      },
+    );
     const docs = await listDocuments();
-    expect(docs).toHaveLength(1);
-    expect(docs[0].title).toBe('Novel');
+    expect(docs.map((d) => d.title)).toEqual(['First', 'Second']);
   });
 });
