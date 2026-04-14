@@ -3,6 +3,7 @@ import { useTheme } from '@/ui/theme';
 import { store } from '@/store/document';
 import { getAiClient } from '@/ai';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
+import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 
 export const RightPanel = () => {
   const { theme, toggleTheme } = useTheme();
@@ -88,6 +89,13 @@ export const RightPanel = () => {
             {ai.loadError()}
           </div>
         </Show>
+      </div>
+
+      <div class="flex flex-col gap-2 mt-2">
+        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+          Document mood
+        </div>
+        <MoodHeatmap />
       </div>
     </div>
   );
