@@ -66,7 +66,7 @@ export const HotkeysModal = () => {
         onClick={() => setHotkeysModalOpen(false)}
       >
         <div
-          class="w-[560px] max-w-[92vw] max-h-[80vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden"
+          class="w-[640px] max-w-[92vw] max-h-[80vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
@@ -94,29 +94,36 @@ export const HotkeysModal = () => {
           </div>
 
           <div class="flex-1 overflow-auto px-5 py-4">
-            <div class="text-xs text-stone-500 dark:text-stone-400 mb-3 leading-relaxed">
-              Click any combo to rebind. Press <code class="font-mono text-[10px] px-1 rounded bg-stone-100 dark:bg-stone-700">Esc</code> to cancel. Clashes swap bindings between actions.
+            <div class="text-sm text-stone-600 dark:text-stone-300 mb-4 leading-relaxed">
+              Click any combo to rebind. Press{' '}
+              <code class="font-mono text-xs px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200">
+                Esc
+              </code>{' '}
+              to cancel. Clashes swap bindings between actions.
             </div>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-0.5">
               <For each={BINDING_META}>
                 {(meta) => {
                   const isCapturing = () => capturing() === meta.action;
                   return (
-                    <div class="flex items-center justify-between gap-3 py-2 border-b border-stone-100 dark:border-stone-700/50 last:border-b-0">
+                    <div class="flex items-center justify-between gap-4 py-3 border-b border-stone-200 dark:border-stone-700 last:border-b-0">
                       <div class="flex-1 min-w-0">
-                        <div class="text-sm text-stone-800 dark:text-stone-100">
+                        <div class="text-sm font-medium text-stone-900 dark:text-stone-50">
                           {meta.label}
                         </div>
-                        <div class="text-[11px] text-stone-500 dark:text-stone-400">
+                        <div class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                           {meta.description}
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => startCapture(meta.action)}
-                        class="font-mono text-[11px] px-2 py-1 rounded border border-stone-200 dark:border-stone-700 hover:border-violet-500 hover:text-violet-500 transition-colors shrink-0 min-w-[110px] text-center"
+                        class="font-mono text-xs px-3 py-1.5 rounded-lg border-2 transition-colors shrink-0 min-w-[130px] text-center bg-stone-50 dark:bg-stone-900/50"
                         classList={{
-                          'border-violet-500 text-violet-500 animate-pulse': isCapturing(),
+                          'border-violet-500 text-violet-500 bg-violet-50 dark:bg-violet-950/30 animate-pulse':
+                            isCapturing(),
+                          'border-stone-200 dark:border-stone-600 text-stone-800 dark:text-stone-100 hover:border-violet-500 hover:text-violet-500':
+                            !isCapturing(),
                         }}
                       >
                         {isCapturing() ? 'press key…' : hotkeys[meta.action]}
