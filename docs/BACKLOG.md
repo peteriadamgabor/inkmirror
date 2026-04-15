@@ -48,6 +48,74 @@ This makes dialogue a dead feature in practice. Rework it into a first-class blo
 
 **Estimated effort:** 1–2 sessions. Speaker picker UI + auto-detect + rename propagation is the core; the rest is polish.
 
+## Hotkey settings
+
+App-wide rebindable keyboard shortcuts, separate from the per-block editor keys (Enter / Backspace / arrows / Alt+↑↓) which are caret-aware and should stay as-is.
+
+**Scope:**
+- Typed `AppAction` registry: `focus.toggle`, `zen.toggle`, `graveyard.toggle`, `timeline.toggle`, `chapter.new`, `spellcheck.toggle`, `hotkeys.show`, plus export shortcuts (`export.markdown`, `export.epub`, …) if we want them.
+- Default combos using `Alt+Shift+*` to avoid clashing with browser shortcuts (Ctrl+B/I/Z/S are all reserved for future formatting / undo work).
+- localStorage-backed binding store with `loadBindings / setBinding / resetBindings`.
+- Global `window` keydown listener in a new `installGlobalHotkeys()` helper, called from `index.tsx` boot. Ignores events where `e.target` is inside a contenteditable *unless* the binding is explicitly global (so we don't intercept keys mid-typing).
+- Settings modal (`HotkeysModal.tsx`) listing every binding in a table with:
+  - Current combo shown in a `<kbd>` chip
+  - "Click to rebind" → enters capture mode → next non-modifier keydown becomes the new binding
+  - Esc in capture mode cancels
+  - Clash detection: if the new combo is already assigned, show an inline warning and either swap or refuse (decide during impl)
+  - Reset-to-defaults button
+- Entry points: an "Hotkeys" button in RightPanel Settings, and the `F1` default binding to open the modal itself.
+
+**Non-goals (first pass):**
+- Rebinding the editor per-block keys (Enter, Backspace, etc.) — those are caret-context-aware and don't fit the global model.
+- Per-document hotkeys (global is enough).
+- Chord bindings (`Cmd+K Cmd+F`-style) — single-combo only until we see a need.
+- Exporting/importing hotkey profiles.
+
+**Estimated effort:** half a session. Store + listener + modal are each ~50 lines.
+
+## Block left-click context menu
+
+Replace the "hover to reveal chrome + dropdown" pattern on blocks with a proper context menu triggered by left-click on the block header (or a dedicated `⋯` affordance). Avoids the jitter of hover-revealed controls and discoverability problems with the current type-picker select.
+
+**Why left-click and not right-click:** right-click still needs to work for the browser's spellcheck suggestions, so we can't hijack it. A left-click on a dedicated trigger (or on the block's left gutter / bullet) is cleaner and leaves the OS menu alone.
+
+**Menu items (per-block):**
+- **Change type →** (submenu: Text / Dialogue / Scene / Note)
+- **Duplicate block**
+- **Move up** / **Move down**
+- **Copy block content** (plain text)
+- **Delete block** → confirm modal, goes to graveyard
+- **History →** opens the existing `BlockHistory` popover
+- **Assign speaker →** (dialogue blocks only — ties into Dialogue rework)
+- **Edit scene metadata** (scene blocks only — opens existing inline editor)
+
+**UX:**
+- Shared `ContextMenu` component under `src/ui/shared/` so chapters, characters, and the plot timeline can reuse it later.
+- Positioning: anchor to trigger, flip on edge collisions (reuse the logic from the history popover — which currently has the same problem).
+- Keyboard-navigable: ↑/↓ to move, Enter to pick, Esc to close.
+- Dismiss on outside click or Esc.
+- One open menu at a time globally.
+
+**Chapter-row variant:**
+- Left-click trigger on chapter title: **Rename**, **Change kind →**, **Delete** (same confirm flow we already have), **Move up / down** (not yet wired).
+
+**Character-row variant:**
+- **Rename**, **Change color**, **Edit notes**, **Delete**.
+
+**Data model:** no changes. All the actions already exist in the store; this is purely a UI consolidation layer.
+
+**Interaction with existing controls:**
+- The inline type dropdown on block headers becomes redundant and should be removed in the same pass — the context menu is now the canonical type-change path.
+- The `⟲` history button stays (it's a read-mostly surface, and the menu can also open it).
+- The hover `×` on chapters and characters becomes redundant too; replaced by the context menu's Delete item.
+
+**Estimated effort:** one session. Core ContextMenu component + block variant is ~half; chapter + character variants are the rest.
+
+**Not in this slice:**
+- Right-click capture (leave alone)
+- Nested submenus deeper than one level
+- Touch long-press equivalent (can come later for mobile)
+
 ## UI polish
 
 - **RightPanel further polish.** Current stack: settings, chapter mood, document mood heatmap, pulse dashboard, word count, sonification. Still room for: block type filter, session notes, reading-time estimate.
