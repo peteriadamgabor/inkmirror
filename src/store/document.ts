@@ -364,34 +364,6 @@ export function createBlockAfter(blockId: UUID, type: BlockType = 'text'): UUID 
 }
 
 /**
- * Split a block at the given caret offset. The head stays in the current
- * block, the tail moves into a new block that follows. Used by Enter when
- * the caret is mid-content; when the caret is at the end, this degenerates
- * to createBlockAfter.
- */
-export function splitBlockAtCaret(
-  blockId: UUID,
-  caretOffset: number,
-): UUID | null {
-  const block = store.blocks[blockId];
-  if (!block) return null;
-  const content = block.content;
-  const head = content.slice(0, caretOffset);
-  const tail = content.slice(caretOffset);
-  // Inherit the source block's type so pressing Enter inside a dialogue
-  // block gives you another dialogue line (with an empty speaker, ready
-  // for the next turn) instead of kicking back to text.
-  const newId = createBlockAfter(blockId, block.type);
-  if (tail.length > 0) {
-    updateBlockContent(newId, tail);
-  }
-  if (head !== content) {
-    updateBlockContent(blockId, head);
-  }
-  return newId;
-}
-
-/**
  * Insert a chunk of text that contains paragraph breaks (\n\n+) into the
  * current block, splitting into multiple blocks so each pasted paragraph
  * lands in its own block. Respects the caret position inside the current

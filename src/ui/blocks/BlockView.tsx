@@ -7,7 +7,6 @@ import {
   matchLeadingSpeaker,
   createBlockAfter,
   duplicateBlock,
-  splitBlockAtCaret,
   insertPastedParagraphs,
   deleteBlock,
   moveBlock,
@@ -280,15 +279,20 @@ export const BlockView = (props: { block: Block }) => {
 
     switch (intent.type) {
       case 'create-block-after': {
-        // If the caret is mid-content, split: head stays, tail moves to
-        // the new block, caret jumps to the start of the new block.
-        // If it's at the end, this is equivalent to the old "create empty".
-        const newId = splitBlockAtCaret(props.block.id, caret);
-        if (newId) focusBlock(newId, 'start');
-        else {
-          const fallback = createBlockAfter(props.block.id);
-          focusBlock(fallback, 'start');
-        }
+        // Split at caret. We can't rely on splitBlockAtCaret alone
+        // because the current block is still focused, and BlockView's
+        // DOM-sync effect skips contenteditable writes while focus is
+        // on it — the source block would keep the full text in the DOM
+        // while the store only has the head. Set the DOM directly
+        // before dispatching the store update to avoid the ghost copy.
+        const fullText = el.innerText;
+        const head = fullText.slice(0, caret);
+        const tail = fullText.slice(caret);
+        el.innerText = head;
+        updateBlockContent(props.block.id, head);
+        const newId = createBlockAfter(props.block.id, props.block.type);
+        if (tail.length > 0) updateBlockContent(newId, tail);
+        focusBlock(newId, 'start');
         break;
       }
       case 'delete-empty-block': {

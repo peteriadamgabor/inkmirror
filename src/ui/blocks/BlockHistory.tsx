@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from 'solid-js';
+import { createResource, createSignal, For, Show, createEffect, onCleanup } from 'solid-js';
 import type { UUID } from '@/types';
 import { loadBlockRevisions, restoreBlockContent, store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
@@ -35,6 +35,29 @@ function charDelta(current: string, prev: string): string {
 export const BlockHistory = (props: { blockId: UUID }) => {
   const [open, setOpen] = createSignal(false);
   const [version, setVersion] = createSignal(0);
+  let popoverEl: HTMLDivElement | undefined;
+
+  // Dismiss on outside click, scroll, or Esc — anchoring to the block
+  // wrapper means any scroll would drift the popover, so we just close.
+  createEffect(() => {
+    if (!open()) return;
+    const onOutside = (e: MouseEvent) => {
+      if (popoverEl && e.target instanceof Node && popoverEl.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onWheel = () => setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('mousedown', onOutside, true);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('keydown', onKey);
+    onCleanup(() => {
+      window.removeEventListener('mousedown', onOutside, true);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKey);
+    });
+  });
 
   const [revisions] = createResource(
     () => (open() ? [props.blockId, version()] : null),
@@ -69,6 +92,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
       </button>
       <Show when={open()}>
         <div
+          ref={popoverEl}
           class="absolute left-0 top-5 z-20 w-[340px] max-h-[320px] overflow-auto rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xl p-1.5"
           onClick={(e) => e.stopPropagation()}
         >
