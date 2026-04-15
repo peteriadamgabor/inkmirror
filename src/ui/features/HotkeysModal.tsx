@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, Show } from 'solid-js';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import { uiState, setHotkeysModalOpen } from '@/store/ui-state';
 import {
   BINDING_META,
@@ -13,8 +13,12 @@ import { toast } from '@/ui/shared/toast';
 
 export const HotkeysModal = () => {
   const [capturing, setCapturing] = createSignal<AppAction | null>(null);
+  let currentFinish: (() => void) | null = null;
 
   const startCapture = (action: AppAction) => {
+    // If another capture is already in flight, cancel it first so we
+    // don't pile up window listeners.
+    currentFinish?.();
     setCapturing(action);
     document.body.dataset.hotkeyCapture = '1';
 
@@ -45,11 +49,22 @@ export const HotkeysModal = () => {
       setCapturing(null);
       delete document.body.dataset.hotkeyCapture;
       window.removeEventListener('keydown', onKey, true);
+      currentFinish = null;
     };
 
+    currentFinish = finish;
     window.addEventListener('keydown', onKey, true);
-    onCleanup(finish);
   };
+
+  // Closing the modal while a capture is in flight used to leak the
+  // capturing state — the window listener stayed attached and reopening
+  // the modal found the old pill still in "press key…" mode. Watch the
+  // open flag and finish any active capture when it flips off.
+  createEffect(() => {
+    if (!uiState.hotkeysModalOpen && currentFinish) {
+      currentFinish();
+    }
+  });
 
   const labelFor = (action: AppAction) =>
     BINDING_META.find((m) => m.action === action)?.label ?? action;
