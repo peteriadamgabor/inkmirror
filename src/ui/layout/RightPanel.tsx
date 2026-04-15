@@ -4,6 +4,7 @@ import { store } from '@/store/document';
 import { getAiClient } from '@/ai';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
+import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 
 export const RightPanel = () => {
@@ -130,6 +131,10 @@ export const RightPanel = () => {
           Document mood
         </div>
         <MoodHeatmap />
+      </div>
+
+      <div class="mt-2">
+        <PulseDashboard />
       </div>
 
       <div class="flex flex-col gap-2 mt-2">

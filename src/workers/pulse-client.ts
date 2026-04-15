@@ -3,6 +3,8 @@
 
 import type { PulseMetrics, PulseReply } from './pulse-tracker';
 
+export type { PulseMetrics };
+
 let worker: Worker | null = null;
 let lastMetrics: PulseMetrics | null = null;
 let failed = false;

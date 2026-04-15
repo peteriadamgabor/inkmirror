@@ -1,9 +1,51 @@
 import { defineConfig } from 'vite';
 import solid from 'vite-plugin-solid';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
 export default defineConfig({
-  plugins: [solid()],
+  plugins: [
+    solid(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,svg}'],
+        // Heavy chunks are fetched on demand — don't precache them.
+        globIgnores: [
+          '**/ai-worker-*.js',
+          '**/ort-wasm-*.wasm',
+          '**/jszip*.js',
+          '**/jspdf*.js',
+          '**/html2canvas*.js',
+          '**/docx*.js',
+          '**/index.es-*.js',
+          '**/purify.es-*.js',
+        ],
+      },
+      manifest: {
+        name: 'StoryForge',
+        short_name: 'StoryForge',
+        description:
+          'Offline-first novel writing app. Two hearts, one soul — the writer and the story.',
+        theme_color: '#7F77DD',
+        background_color: '#f5f5f4',
+        display: 'standalone',
+        orientation: 'any',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          {
+            src: 'icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+        ],
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

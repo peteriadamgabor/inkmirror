@@ -78,7 +78,7 @@ export const StoryPulseEcg = () => {
       when={bars().length > 0}
       fallback={
         <div
-          class="px-4 py-2 text-[10px] uppercase tracking-wider text-stone-400 border-b border-stone-200 dark:border-stone-700"
+          class="storyforge-ecg px-4 py-2 text-[10px] uppercase tracking-wider text-stone-400 border-b border-stone-200 dark:border-stone-700"
           style={{ height: `${STRIP_HEIGHT}px` }}
         >
           story pulse
@@ -86,7 +86,7 @@ export const StoryPulseEcg = () => {
       }
     >
       <div
-        class="flex items-center gap-3 px-4 border-b border-stone-200 dark:border-stone-700 overflow-x-auto"
+        class="storyforge-ecg flex items-center gap-3 px-4 border-b border-stone-200 dark:border-stone-700 overflow-x-auto"
         style={{ height: `${STRIP_HEIGHT}px` }}
       >
         <div class="text-[9px] uppercase tracking-wider text-stone-400 shrink-0 select-none">

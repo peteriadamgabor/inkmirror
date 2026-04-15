@@ -8,7 +8,12 @@ import {
   updateCharacter,
   deleteCharacter,
 } from '@/store/document';
-import { toggleFocusMode, toggleGraveyard } from '@/store/ui-state';
+import {
+  toggleFocusMode,
+  toggleZenMode,
+  toggleGraveyard,
+  togglePlotTimeline,
+} from '@/store/ui-state';
 import type { UUID } from '@/types';
 import { jsonExporter } from '@/exporters/json';
 import { markdownExporter } from '@/exporters/markdown';
@@ -289,6 +294,24 @@ export const Sidebar = () => {
         >
           <span>Focus mode</span>
           <span class="font-mono text-[10px] text-stone-400">⌘·</span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleZenMode}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+          title="Strip all chrome — just prose"
+        >
+          <span>Zen mode</span>
+          <span class="font-mono text-[10px] text-stone-400">∅</span>
+        </button>
+        <button
+          type="button"
+          onClick={togglePlotTimeline}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+          title="Timeline of all scene blocks"
+        >
+          <span>Plot timeline</span>
+          <span class="font-mono text-[10px] text-stone-400">~</span>
         </button>
         <button
           type="button"
