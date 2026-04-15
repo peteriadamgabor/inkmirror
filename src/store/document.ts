@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
-import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, Document, SceneMetadata, UUID } from '@/types';
+import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, SceneMetadata, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
@@ -250,10 +250,83 @@ function uuid(): string {
   return crypto.randomUUID();
 }
 
-export function updateBlockContent(blockId: UUID, content: string): void {
-  if (!store.blocks[blockId]) return;
+/**
+ * Match a leading "Name:" pattern against existing characters. Returns the
+ * matched character and the rest of the content with the prefix stripped,
+ * or null if nothing matches.
+ *
+ * The pattern accepts up to three words before the colon (to allow "John
+ * the Baker" but not an entire sentence) and requires the name to match a
+ * character's main name or one of their aliases, case-insensitively.
+ */
+function matchLeadingSpeaker(
+  content: string,
+  characters: readonly Character[],
+): { character: Character; rest: string } | null {
+  if (!content) return null;
+  const match = /^([^\n:]{1,40}):\s*/.exec(content);
+  if (!match) return null;
+  const prefix = match[1].trim();
+  // Require prefix to look like a name — no lowercase-only single words,
+  // no leading punctuation, reasonable length.
+  if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,40}$/.test(prefix)) return null;
+  const key = prefix.toLowerCase();
+  for (const c of characters) {
+    if (c.name.toLowerCase() === key) {
+      return { character: c, rest: content.slice(match[0].length) };
+    }
+    for (const alias of c.aliases) {
+      if (alias.toLowerCase() === key) {
+        return { character: c, rest: content.slice(match[0].length) };
+      }
+    }
+  }
+  return null;
+}
+
+export interface UpdateBlockContentOptions {
+  /**
+   * Run the dialogue leading-"Name:" auto-detect. Only callers that know
+   * the block is at an idle commit point (blur, type conversion) should
+   * pass this, because auto-detect can strip the content prefix — and
+   * doing that while the contenteditable is focused would desync the
+   * DOM from the store.
+   */
+  detectSpeaker?: boolean;
+}
+
+export function updateBlockContent(
+  blockId: UUID,
+  content: string,
+  opts: UpdateBlockContentOptions = {},
+): void {
+  const existing = store.blocks[blockId];
+  if (!existing) return;
   const now = new Date().toISOString();
-  setStore('blocks', blockId, (b) => ({ ...b, content, updated_at: now }));
+  let nextContent = content;
+  let nextMetadata: BlockMetadata | null = null;
+
+  if (
+    opts.detectSpeaker &&
+    existing.metadata.type === 'dialogue' &&
+    !(existing.metadata.data as DialogueMetadata).speaker_id
+  ) {
+    const match = matchLeadingSpeaker(content, unwrap(store.characters));
+    if (match) {
+      nextContent = match.rest;
+      nextMetadata = {
+        type: 'dialogue',
+        data: { speaker_id: match.character.id, speaker_name: match.character.name },
+      };
+    }
+  }
+
+  setStore('blocks', blockId, (b) => ({
+    ...b,
+    content: nextContent,
+    metadata: nextMetadata ?? b.metadata,
+    updated_at: now,
+  }));
   scheduleBlockContentWrite(blockId);
 }
 
@@ -521,7 +594,10 @@ export function updateCharacter(
     name: patch.name !== undefined ? patch.name.trim() || c.name : c.name,
     updated_at: now,
   }));
-  if (nameChanged) rescanAllCharacterMentions();
+  if (nameChanged) {
+    rescanAllCharacterMentions();
+    propagateCharacterRename(id, store.characters[idx].name);
+  }
 
   if (persistEnabled) {
     track(repo.saveCharacter(unwrap(store.characters[idx])).catch(() => undefined));
@@ -533,6 +609,7 @@ export function deleteCharacter(id: UUID): void {
   if (idx < 0) return;
   setStore('characters', (cs) => cs.filter((c) => c.id !== id));
   rescanAllCharacterMentions();
+  propagateCharacterDelete(id);
 
   if (persistEnabled) {
     track(repo.deleteCharacter(id).catch(() => undefined));
@@ -673,10 +750,117 @@ export function updateBlockType(blockId: UUID, type: BlockType): void {
   const block = store.blocks[blockId];
   if (!block || block.type === type) return;
   const now = new Date().toISOString();
-  const metadata = defaultMetadataFor(type);
-  setStore('blocks', blockId, (b) => ({ ...b, type, metadata, updated_at: now }));
+  let metadata = defaultMetadataFor(type);
+  let content = block.content;
+
+  // Converting to dialogue is an idle commit point — try to auto-detect a
+  // leading "Name:" prefix so the writer who typed "Alice: Hello" and then
+  // switched the block type gets the speaker populated for free.
+  if (type === 'dialogue') {
+    const match = matchLeadingSpeaker(content, unwrap(store.characters));
+    if (match) {
+      content = match.rest;
+      metadata = {
+        type: 'dialogue',
+        data: { speaker_id: match.character.id, speaker_name: match.character.name },
+      };
+    }
+  }
+
+  setStore('blocks', blockId, (b) => ({
+    ...b,
+    type,
+    metadata,
+    content,
+    updated_at: now,
+  }));
   if (persistEnabled && store.document) {
     track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+  }
+}
+
+/**
+ * Assign or clear the speaker on a dialogue block. Pass `null` to unassign.
+ * No-op for blocks that aren't of type dialogue.
+ */
+export function updateDialogueSpeaker(
+  blockId: UUID,
+  characterId: UUID | null,
+): void {
+  const block = store.blocks[blockId];
+  if (!block || block.metadata.type !== 'dialogue') return;
+  const now = new Date().toISOString();
+  let next: BlockMetadata;
+  if (characterId === null) {
+    next = { type: 'dialogue', data: { speaker_id: '', speaker_name: '' } };
+  } else {
+    const character = store.characters.find((c) => c.id === characterId);
+    if (!character) return;
+    next = {
+      type: 'dialogue',
+      data: { speaker_id: character.id, speaker_name: character.name },
+    };
+  }
+  setStore('blocks', blockId, (b) => ({ ...b, metadata: next, updated_at: now }));
+  if (persistEnabled && store.document) {
+    track(
+      repo
+        .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
+        .catch(() => undefined),
+    );
+  }
+}
+
+/**
+ * Keep denormalized dialogue speaker_name fields in sync when a character
+ * is renamed. Called from updateCharacter — avoids one-off drift between
+ * the character card and the dialogue blocks that reference it.
+ */
+function propagateCharacterRename(characterId: UUID, newName: string): void {
+  if (!store.document) return;
+  const documentId = store.document.id;
+  for (const blockId of store.blockOrder) {
+    const block = store.blocks[blockId];
+    if (!block || block.metadata.type !== 'dialogue') continue;
+    const data = block.metadata.data as DialogueMetadata;
+    if (data.speaker_id !== characterId) continue;
+    if (data.speaker_name === newName) continue;
+    const next: BlockMetadata = {
+      type: 'dialogue',
+      data: { ...data, speaker_name: newName },
+    };
+    setStore('blocks', blockId, (b) => ({ ...b, metadata: next }));
+    if (persistEnabled) {
+      track(
+        repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined),
+      );
+    }
+  }
+}
+
+/**
+ * When a character is deleted, any dialogue block that referenced them
+ * is downgraded to unassigned. The block's content is preserved so the
+ * writer loses nothing.
+ */
+function propagateCharacterDelete(characterId: UUID): void {
+  if (!store.document) return;
+  const documentId = store.document.id;
+  for (const blockId of store.blockOrder) {
+    const block = store.blocks[blockId];
+    if (!block || block.metadata.type !== 'dialogue') continue;
+    const data = block.metadata.data as DialogueMetadata;
+    if (data.speaker_id !== characterId) continue;
+    const next: BlockMetadata = {
+      type: 'dialogue',
+      data: { speaker_id: '', speaker_name: '' },
+    };
+    setStore('blocks', blockId, (b) => ({ ...b, metadata: next }));
+    if (persistEnabled) {
+      track(
+        repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined),
+      );
+    }
   }
 }
 

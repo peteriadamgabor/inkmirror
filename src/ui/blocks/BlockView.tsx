@@ -20,6 +20,7 @@ import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
+import { DialogueSpeakerEditor } from './DialogueSpeakerEditor';
 import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
 
@@ -140,7 +141,10 @@ export const BlockView = (props: { block: Block }) => {
   const onBlur = () => {
     isFocused = false;
     if (!el) return;
-    updateBlockContent(props.block.id, el.innerText);
+    // detectSpeaker is safe here: blur means the DOM is no longer being
+    // actively typed, so the content-sync effect in the store→DOM path
+    // will pick up any speaker-strip side effect without a caret fight.
+    updateBlockContent(props.block.id, el.innerText, { detectSpeaker: true });
   };
 
   const onInput = () => {
@@ -274,6 +278,12 @@ export const BlockView = (props: { block: Block }) => {
 
   const meta = () => TYPE_LABELS[props.block.type];
   const sentiment = () => store.sentiments[props.block.id];
+  const dialogueSpeakerColor = () => {
+    if (props.block.metadata.type !== 'dialogue') return null;
+    const speakerId = props.block.metadata.data.speaker_id;
+    if (!speakerId) return null;
+    return store.characters.find((c) => c.id === speakerId)?.color ?? null;
+  };
   const mentionedChars = () => {
     const ids = store.characterMentions[props.block.id] ?? [];
     return ids
@@ -384,6 +394,7 @@ export const BlockView = (props: { block: Block }) => {
         )}
       </div>
       {props.block.type === 'scene' && <SceneMetadataEditor block={props.block} />}
+      {props.block.type === 'dialogue' && <DialogueSpeakerEditor block={props.block} />}
       <div
         ref={el}
         data-editable
@@ -397,6 +408,11 @@ export const BlockView = (props: { block: Block }) => {
         onPaste={onPaste}
         onKeyDown={onKeyDown}
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/30 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
+        style={
+          dialogueSpeakerColor()
+            ? { 'border-left': `3px solid ${dialogueSpeakerColor()}` }
+            : undefined
+        }
       />
     </div>
   );
