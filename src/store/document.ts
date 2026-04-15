@@ -1,7 +1,8 @@
+import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
-import type { Block, Chapter, Character, Document, UUID } from '@/types';
+import type { Block, BlockType, BlockMetadata, Chapter, Character, Document, SceneMetadata, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
-import type { LoadedDocument, SentimentEntry } from '@/db/repository';
+import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
 import { findMentions } from '@/engine/character-matcher';
 
@@ -90,6 +91,20 @@ function persistBlockNow(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
   track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+  // Snapshot a revision on every persistence pulse. The repo layer dedups
+  // identical content so no-op commits don't bloat history.
+  if (block.content.trim().length > 0) {
+    track(
+      repo
+        .saveRevision({
+          blockId,
+          documentId,
+          content: block.content,
+          snapshotAt: block.updated_at,
+        })
+        .catch(() => undefined),
+    );
+  }
   rescanBlockMentions(blockId);
   if (sentimentHook && block.content.trim().length > 0) {
     sentimentHook(blockId, block.content);
@@ -468,6 +483,124 @@ export function moveBlock(blockId: UUID, direction: 'up' | 'down'): boolean {
   return true;
 }
 
+function defaultMetadataFor(type: BlockType): BlockMetadata {
+  switch (type) {
+    case 'text':     return { type: 'text' };
+    case 'dialogue': return { type: 'dialogue', data: { speaker_id: '', speaker_name: '' } };
+    case 'scene':    return { type: 'scene', data: { location: '', time: '', character_ids: [], mood: '' } };
+    case 'note':     return { type: 'note', data: {} };
+  }
+}
+
+export function updateBlockType(blockId: UUID, type: BlockType): void {
+  const block = store.blocks[blockId];
+  if (!block || block.type === type) return;
+  const now = new Date().toISOString();
+  const metadata = defaultMetadataFor(type);
+  setStore('blocks', blockId, (b) => ({ ...b, type, metadata, updated_at: now }));
+  if (persistEnabled && store.document) {
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+  }
+}
+
+export function updateSceneMetadata(blockId: UUID, patch: Partial<SceneMetadata>): void {
+  const block = store.blocks[blockId];
+  if (!block || block.metadata.type !== 'scene') return;
+  const now = new Date().toISOString();
+  const next: BlockMetadata = {
+    type: 'scene',
+    data: { ...block.metadata.data, ...patch },
+  };
+  setStore('blocks', blockId, (b) => ({ ...b, metadata: next, updated_at: now }));
+  if (persistEnabled && store.document) {
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+  }
+}
+
+// ---------- graveyard ----------
+
+const [graveyard, setGraveyard] = createSignal<Block[]>([]);
+
+export const graveyardBlocks = graveyard;
+
+// ---------- per-block revision history ----------
+
+export async function loadBlockRevisions(blockId: UUID): Promise<BlockRevision[]> {
+  try {
+    return await repo.loadRevisions(blockId);
+  } catch {
+    return [];
+  }
+}
+
+export function restoreBlockContent(blockId: UUID, content: string): void {
+  const block = store.blocks[blockId];
+  if (!block) return;
+  const now = new Date().toISOString();
+  setStore('blocks', blockId, (b) => ({ ...b, content, updated_at: now }));
+  // Persist immediately — don't debounce — so the restored content is safe.
+  persistBlockNow(blockId);
+}
+
+async function recoverLastNonEmpty(blockId: UUID): Promise<string | null> {
+  const revs = await repo.loadRevisions(blockId);
+  const latest = revs.find((r) => r.content.trim().length > 0);
+  return latest?.content ?? null;
+}
+
+export async function refreshGraveyard(): Promise<void> {
+  if (!store.document) return;
+  try {
+    const rows = await repo.loadDeletedBlocks(store.document.id);
+    // Blocks are typically deleted only after their content was backspaced
+    // to empty, so the row itself is empty. Join with the revision store
+    // to surface the last non-empty version for display.
+    const enriched = await Promise.all(
+      rows.map(async (b) => {
+        if (b.content.trim().length > 0) return b;
+        const recovered = await recoverLastNonEmpty(b.id);
+        return recovered ? { ...b, content: recovered } : b;
+      }),
+    );
+    setGraveyard(enriched);
+  } catch {
+    /* swallow — non-critical */
+  }
+}
+
+export async function restoreBlock(blockId: UUID): Promise<void> {
+  if (!store.document) return;
+  const documentId = store.document.id;
+  const restored = await repo.restoreBlock(blockId, documentId);
+  if (!restored) return;
+  // If the stored row is empty (the usual case — deleted_at flipped after
+  // the user had already backspaced the text), recover the last non-empty
+  // revision so the user gets their writing back, not an empty shell.
+  let content = restored.content;
+  if (content.trim().length === 0) {
+    const recovered = await recoverLastNonEmpty(blockId);
+    if (recovered) content = recovered;
+  }
+  // Attach to its original chapter if it still exists, else to the active one.
+  const chapterId =
+    store.chapters.some((c) => c.id === restored.chapter_id)
+      ? restored.chapter_id
+      : store.activeChapterId ?? store.chapters[0]?.id;
+  if (!chapterId) return;
+  const rehydrated: Block = {
+    ...restored,
+    chapter_id: chapterId,
+    content,
+    deleted_at: null,
+    deleted_from: null,
+  };
+  setStore('blocks', rehydrated.id, rehydrated);
+  setStore('blockOrder', (order) => [...order, rehydrated.id]);
+  // Persist the enriched row back so reloads see the recovered content.
+  track(repo.saveBlock(unwrap(store.blocks[rehydrated.id]), documentId).catch(() => undefined));
+  await refreshGraveyard();
+}
+
 export function deleteBlock(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!block) return;
@@ -490,7 +623,17 @@ export function deleteBlock(blockId: UUID): void {
     updated_at: now,
   }));
 
-  if (persistEnabled) {
-    track(repo.softDeleteBlock(blockId, deletedFrom).catch(() => undefined));
+  if (persistEnabled && store.document) {
+    // Cancel any pending debounced content write — we're about to persist
+    // the full row below, so the debounced write would only race with it.
+    dirtyContentBlocks.delete(blockId);
+    const timer = pendingContentTimers.get(blockId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      pendingContentTimers.delete(blockId);
+    }
+    // Write content + deleted_at in one op so the graveyard preserves
+    // whatever the user typed right up to the moment of deletion.
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
   }
 }

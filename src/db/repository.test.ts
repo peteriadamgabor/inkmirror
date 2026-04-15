@@ -7,10 +7,13 @@ import {
   listDocuments,
   saveSentiment,
   loadSentiments,
+  saveRevision,
+  loadRevisions,
   type DbLike,
 } from './repository';
 import type { Block } from '@/types';
 import type {
+  BlockRevisionRow,
   BlockRow,
   ChapterRow,
   CharacterRow,
@@ -24,6 +27,7 @@ interface MockState {
   blocks: BlockRow[];
   sentiments: SentimentRow[];
   characters: CharacterRow[];
+  blockRevisions: BlockRevisionRow[];
   softDeleteCalls: Array<{ id: string; deletedAt: string; deletedFrom: unknown }>;
 }
 
@@ -34,6 +38,7 @@ function createMockDb(): { db: DbLike; state: MockState } {
     blocks: [],
     sentiments: [],
     characters: [],
+    blockRevisions: [],
     softDeleteCalls: [],
   };
   const db: DbLike = {
@@ -103,6 +108,20 @@ function createMockDb(): { db: DbLike; state: MockState } {
         if (idx >= 0) state.characters.splice(idx, 1);
       },
     },
+    blockRevisions: {
+      async put(row) {
+        const idx = state.blockRevisions.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.blockRevisions[idx] = row;
+        else state.blockRevisions.push(row);
+      },
+      async getAllByBlock(blockId) {
+        return state.blockRevisions.filter((r) => r.block_id === blockId);
+      },
+      async delete(id) {
+        const idx = state.blockRevisions.findIndex((r) => r.id === id);
+        if (idx >= 0) state.blockRevisions.splice(idx, 1);
+      },
+    },
   };
   return { db, state };
 }
@@ -157,6 +176,64 @@ describe('softDeleteBlock', () => {
       position: 0,
     });
     expect(state.softDeleteCalls).toHaveLength(1);
+  });
+});
+
+describe('block revisions', () => {
+  it('dedups identical consecutive content', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveRevision({
+      blockId: 'b1',
+      documentId: 'd1',
+      content: 'hello',
+      snapshotAt: '2026-04-14T12:00:00.000Z',
+    });
+    await saveRevision({
+      blockId: 'b1',
+      documentId: 'd1',
+      content: 'hello',
+      snapshotAt: '2026-04-14T12:00:01.000Z',
+    });
+    expect(state.blockRevisions).toHaveLength(1);
+  });
+
+  it('caps per-block history at 20 entries', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    for (let i = 0; i < 25; i++) {
+      await saveRevision({
+        blockId: 'b1',
+        documentId: 'd1',
+        content: `v${i}`,
+        snapshotAt: `2026-04-14T12:00:${String(i).padStart(2, '0')}.000Z`,
+      });
+    }
+    expect(state.blockRevisions).toHaveLength(20);
+    // Oldest entries trimmed; newest preserved.
+    const contents = state.blockRevisions.map((r) => r.content).sort();
+    expect(contents).toContain('v24');
+    expect(contents).not.toContain('v0');
+  });
+
+  it('loadRevisions returns newest first', async () => {
+    const { db } = createMockDb();
+    __setTestDb(db);
+    await saveRevision({
+      blockId: 'b1',
+      documentId: 'd1',
+      content: 'first',
+      snapshotAt: '2026-04-14T12:00:00.000Z',
+    });
+    await saveRevision({
+      blockId: 'b1',
+      documentId: 'd1',
+      content: 'second',
+      snapshotAt: '2026-04-14T12:00:01.000Z',
+    });
+    const revs = await loadRevisions('b1');
+    expect(revs[0].content).toBe('second');
+    expect(revs[1].content).toBe('first');
   });
 });
 

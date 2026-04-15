@@ -8,6 +8,7 @@ import {
   updateCharacter,
   deleteCharacter,
 } from '@/store/document';
+import { toggleFocusMode, toggleGraveyard } from '@/store/ui-state';
 import type { UUID } from '@/types';
 
 export const Sidebar = () => {
@@ -182,6 +183,7 @@ export const Sidebar = () => {
         <div class="flex items-center gap-1 pt-1">
           <input
             type="text"
+            aria-label="New character name"
             value={newCharDraft()}
             onInput={(e) => setNewCharDraft(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -194,6 +196,28 @@ export const Sidebar = () => {
             class="flex-1 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-xs text-stone-800 dark:text-stone-200 py-1 placeholder-stone-400"
           />
         </div>
+      </div>
+
+      {/* --- Workspace actions --- */}
+      <div class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-700 flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={toggleFocusMode}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+          title="Hide sidebars, dim surrounding blocks"
+        >
+          <span>Focus mode</span>
+          <span class="font-mono text-[10px] text-stone-400">⌘·</span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleGraveyard}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+          title="Review and restore deleted blocks"
+        >
+          <span>Dead text graveyard</span>
+          <span class="font-mono text-[10px] text-stone-400">†</span>
+        </button>
       </div>
     </div>
   );

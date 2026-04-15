@@ -1,16 +1,21 @@
 import { createEffect, onMount } from 'solid-js';
-import type { Block } from '@/types';
+import type { Block, BlockType } from '@/types';
 import {
   updateBlockContent,
+  updateBlockType,
   createBlockAfter,
   mergeBlockWithPrevious,
   deleteBlock,
   moveBlock,
   store,
 } from '@/store/document';
+import { uiState } from '@/store/ui-state';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
+import { SceneMetadataEditor } from './SceneMetadataEditor';
+import { BlockHistory } from './BlockHistory';
+import { recordKeystroke } from '@/workers/pulse-client';
 
 const TYPE_LABELS: Record<Block['type'], { label: string; className: string }> = {
   text:     { label: 'TEXT',     className: 'text-violet-500' },
@@ -134,6 +139,7 @@ export const BlockView = (props: { block: Block }) => {
 
   const onInput = () => {
     if (isComposing) return;
+    recordKeystroke();
     commitDebounced();
   };
 
@@ -248,12 +254,32 @@ export const BlockView = (props: { block: Block }) => {
       .filter((c): c is NonNullable<typeof c> => !!c);
   };
 
+  const onTypeChange = (e: Event & { currentTarget: HTMLSelectElement }) => {
+    const next = e.currentTarget.value as BlockType;
+    updateBlockType(props.block.id, next);
+  };
+
   return (
-    <div class="py-2" data-block-id={props.block.id}>
+    <div
+      class="py-2 transition-opacity duration-150"
+      classList={{
+        'opacity-30 hover:opacity-100 focus-within:opacity-100': uiState.focusMode,
+      }}
+      data-block-id={props.block.id}
+    >
       <div class="flex items-center gap-2 mb-1">
-        <span class={`text-[10px] uppercase tracking-wider font-medium ${meta().className}`}>
-          {meta().label}
-        </span>
+        <select
+          value={props.block.type}
+          onChange={onTypeChange}
+          onMouseDown={(e) => e.stopPropagation()}
+          class={`bg-transparent text-[10px] uppercase tracking-wider font-medium outline-none cursor-pointer border-none ${meta().className}`}
+          title="Change block type"
+        >
+          <option value="text">TEXT</option>
+          <option value="dialogue">DIALOGUE</option>
+          <option value="scene">SCENE</option>
+          <option value="note">NOTE</option>
+        </select>
         {sentiment() && (
           <span
             class={`text-[10px] uppercase tracking-wider font-medium ${
@@ -263,6 +289,7 @@ export const BlockView = (props: { block: Block }) => {
             · {sentiment()!.label}
           </span>
         )}
+        <BlockHistory blockId={props.block.id} />
         {mentionedChars().length > 0 && (
           <span class="flex items-center gap-1 ml-1">
             {mentionedChars().map((c) => (
@@ -275,6 +302,7 @@ export const BlockView = (props: { block: Block }) => {
           </span>
         )}
       </div>
+      {props.block.type === 'scene' && <SceneMetadataEditor block={props.block} />}
       <div
         ref={el}
         data-editable

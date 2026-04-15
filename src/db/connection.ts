@@ -12,6 +12,14 @@ export interface CharacterRow {
   updated_at: string;
 }
 
+export interface BlockRevisionRow {
+  id: string; // `${block_id}|${snapshot_at}` — ordered, unique
+  block_id: string;
+  document_id: string;
+  content: string;
+  snapshot_at: string;
+}
+
 export interface SentimentRow {
   block_id: string;
   document_id: string;
@@ -79,6 +87,11 @@ export interface StoryForgeSchema extends DBSchema {
     value: CharacterRow;
     indexes: { by_document: string };
   };
+  block_revisions: {
+    key: string;
+    value: BlockRevisionRow;
+    indexes: { by_block: string };
+  };
 }
 
 const DB_NAME = 'storyforge';
@@ -86,7 +99,8 @@ const DB_NAME = 'storyforge';
 // v2: idempotent upgrade after SurrealDB leftover
 // v3: add `sentiments` store for Phase 3 slice 2
 // v4: add `characters` store for Phase 3 slice 4
-const DB_VERSION = 4;
+// v5: add `block_revisions` store for per-block history
+const DB_VERSION = 5;
 
 export type StoryForgeDb = IDBPDatabase<StoryForgeSchema>;
 
@@ -118,6 +132,10 @@ export function getDb(): Promise<StoryForgeDb> {
           if (!db.objectStoreNames.contains('characters')) {
             const characters = db.createObjectStore('characters', { keyPath: 'id' });
             characters.createIndex('by_document', 'document_id');
+          }
+          if (!db.objectStoreNames.contains('block_revisions')) {
+            const revs = db.createObjectStore('block_revisions', { keyPath: 'id' });
+            revs.createIndex('by_block', 'block_id');
           }
         },
       });
