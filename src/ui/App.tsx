@@ -5,6 +5,7 @@ import { RightPanel } from './layout/RightPanel';
 import { FpsOverlay } from './perf/FpsOverlay';
 import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
+import { BlockTypesHelp } from './features/BlockTypesHelp';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
@@ -79,6 +80,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <FpsOverlay />
     <Graveyard />
     <PlotTimeline />
+    <BlockTypesHelp />
     <ConfirmHost />
     <ContextMenuHost />
     <ToastHost />

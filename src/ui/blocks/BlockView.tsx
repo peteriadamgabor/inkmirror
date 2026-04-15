@@ -26,11 +26,11 @@ import { SceneMetadataEditor } from './SceneMetadataEditor';
 import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
 
-const TYPE_LABELS: Record<Block['type'], { label: string; className: string }> = {
-  text:     { label: 'TEXT',     className: 'text-violet-500' },
-  dialogue: { label: 'DIALOGUE', className: 'text-teal-600' },
-  scene:    { label: 'SCENE',    className: 'text-orange-600' },
-  note:     { label: 'NOTE',     className: 'text-stone-400' },
+const TYPE_LABELS: Record<Block['type'], { label: string; className: string; hint: string }> = {
+  text:     { label: 'TEXT',     className: 'text-violet-500', hint: 'Plain prose — narration, description, action.' },
+  dialogue: { label: 'DIALOGUE', className: 'text-teal-600',   hint: 'Character speech. Pick a speaker or type "Name: Hi" to auto-assign.' },
+  scene:    { label: 'SCENE',    className: 'text-orange-600', hint: 'Scene heading with location / time / mood / cast. Feeds the Plot Timeline.' },
+  note:     { label: 'NOTE',     className: 'text-stone-400',  hint: 'Private notes. Not exported, not counted in word count.' },
 };
 
 const COMMIT_DEBOUNCE_MS = 300;
@@ -452,7 +452,10 @@ export const BlockView = (props: { block: Block }) => {
       data-block-type={props.block.type}
     >
       <div class="flex items-center gap-2 mb-1 group/header">
-        <span class={`text-[10px] uppercase tracking-wider font-medium ${meta().className}`}>
+        <span
+          class={`text-[10px] uppercase tracking-wider font-medium cursor-help ${meta().className}`}
+          title={meta().hint}
+        >
           {meta().label}
         </span>
         {props.block.type === 'dialogue' && (

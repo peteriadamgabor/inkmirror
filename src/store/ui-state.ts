@@ -6,6 +6,7 @@ export interface UiState {
   spellcheck: boolean;
   graveyardOpen: boolean;
   plotTimelineOpen: boolean;
+  blockTypesHelpOpen: boolean;
 }
 
 const SPELLCHECK_KEY = 'storyforge.spellcheck';
@@ -23,6 +24,7 @@ const [uiState, setUiState] = createStore<UiState>({
   spellcheck: loadInitialSpellcheck(),
   graveyardOpen: false,
   plotTimelineOpen: false,
+  blockTypesHelpOpen: false,
 });
 
 export { uiState };
@@ -65,4 +67,12 @@ export function togglePlotTimeline(): void {
 
 export function setPlotTimelineOpen(open: boolean): void {
   setUiState('plotTimelineOpen', open);
+}
+
+export function toggleBlockTypesHelp(): void {
+  setUiState('blockTypesHelpOpen', (v) => !v);
+}
+
+export function setBlockTypesHelpOpen(open: boolean): void {
+  setUiState('blockTypesHelpOpen', open);
 }

@@ -14,6 +14,7 @@ import {
   toggleZenMode,
   toggleGraveyard,
   togglePlotTimeline,
+  toggleBlockTypesHelp,
 } from '@/store/ui-state';
 import type { ChapterKind, UUID } from '@/types';
 
@@ -476,6 +477,15 @@ export const Sidebar = () => {
         >
           <span>Dead text graveyard</span>
           <span class="font-mono text-[10px] text-stone-400">†</span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleBlockTypesHelp}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+          title="What are text / dialogue / scene / note blocks?"
+        >
+          <span>Block types help</span>
+          <span class="font-mono text-[10px] text-stone-400">?</span>
         </button>
       </div>
     </div>
