@@ -4,6 +4,7 @@ import {
   updateBlockContent,
   updateBlockType,
   updateDialogueSpeaker,
+  matchLeadingSpeaker,
   createBlockAfter,
   duplicateBlock,
   splitBlockAtCaret,
@@ -13,6 +14,7 @@ import {
   moveBlock,
   store,
 } from '@/store/document';
+import { unwrap } from 'solid-js/store';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { askConfirm } from '@/ui/shared/confirm';
@@ -150,6 +152,24 @@ export const BlockView = (props: { block: Block }) => {
   const onInput = () => {
     if (isComposing) return;
     recordKeystroke();
+
+    // Live dialogue leading-"Name: " detect. When the user types
+    // "Alice: " inside a dialogue block with no speaker yet, strip the
+    // prefix and assign Alice immediately — same feel as a chat app.
+    // DOM, store, and caret all get updated together so there's no
+    // mid-typing desync.
+    if (props.block.type === 'dialogue' && !dialogueSpeakerId()) {
+      const current = el.innerText;
+      const match = matchLeadingSpeaker(current, unwrap(store.characters));
+      if (match) {
+        el.innerText = match.rest;
+        setCaretOffset(el, match.rest.length);
+        updateDialogueSpeaker(props.block.id, match.character.id);
+        updateBlockContent(props.block.id, match.rest);
+        return;
+      }
+    }
+
     commitDebounced();
   };
 
@@ -289,21 +309,64 @@ export const BlockView = (props: { block: Block }) => {
   };
   const dialogueSpeakerColor = () => dialogueSpeaker()?.color ?? null;
 
+  // Walk backward from this block within the same chapter and find the
+  // nearest preceding scene block. If it defines a cast, return those
+  // character ids — the speaker picker will narrow itself to this cast
+  // so dialogue in a scene only suggests the characters actually present.
+  const sceneCastIds = (): string[] | null => {
+    const chapterId = props.block.chapter_id;
+    const idx = store.blockOrder.indexOf(props.block.id);
+    for (let i = idx - 1; i >= 0; i--) {
+      const b = store.blocks[store.blockOrder[i]];
+      if (!b || b.chapter_id !== chapterId) break;
+      if (b.type === 'scene' && b.metadata.type === 'scene') {
+        const ids = b.metadata.data.character_ids;
+        return ids.length > 0 ? ids : null;
+      }
+    }
+    return null;
+  };
+
   const openSpeakerMenu = (e: MouseEvent) => {
     e.stopPropagation();
     const trigger = e.currentTarget as HTMLElement;
     const currentId = dialogueSpeakerId();
+    const castIds = sceneCastIds();
     const items: ContextMenuItem[] = [
-      { kind: 'header', label: 'Speaker' },
+      { kind: 'header', label: castIds ? 'Speaker (scene cast)' : 'Speaker' },
       {
         label: 'Unassigned',
         active: !currentId,
         onSelect: () => updateDialogueSpeaker(props.block.id, null),
       },
     ];
-    if (store.characters.length > 0) {
+
+    const allChars = store.characters;
+    const castChars = castIds
+      ? castIds
+          .map((id) => allChars.find((c) => c.id === id))
+          .filter((c): c is NonNullable<typeof c> => !!c)
+      : [];
+    const restChars = castIds
+      ? allChars.filter((c) => !castIds.includes(c.id))
+      : allChars;
+
+    if (castChars.length > 0) {
       items.push({ kind: 'divider' });
-      for (const c of store.characters) {
+      for (const c of castChars) {
+        items.push({
+          label: c.name,
+          active: c.id === currentId,
+          onSelect: () => updateDialogueSpeaker(props.block.id, c.id),
+        });
+      }
+    }
+    if (restChars.length > 0) {
+      items.push({ kind: 'divider' });
+      if (castChars.length > 0) {
+        items.push({ kind: 'header', label: 'All characters' });
+      }
+      for (const c of restChars) {
         items.push({
           label: c.name,
           active: c.id === currentId,
@@ -467,7 +530,10 @@ export const BlockView = (props: { block: Block }) => {
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/30 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
         style={
           dialogueSpeakerColor()
-            ? { 'border-left': `3px solid ${dialogueSpeakerColor()}` }
+            ? {
+                'border-left': `3px solid ${dialogueSpeakerColor()}`,
+                background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
+              }
             : undefined
         }
       />

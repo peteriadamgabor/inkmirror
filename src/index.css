@@ -47,20 +47,26 @@ html, body, #root {
   padding-top: 20vh;
 }
 
-/* Dialogue blocks get a subtle tint on the content area so they feel
-   like a chat thread inside a run of normal prose. The left-border
-   color accent (writer-driven via character color) stays on top. */
+/* Dialogue blocks render as chat bubbles. The per-speaker background
+   tint comes from an inline color-mix style in BlockView; this block
+   only handles shape, spacing, and the "unassigned" fallback. */
 [data-block-type="dialogue"] [data-editable] {
+  border-radius: 18px;
+  padding: 10px 16px;
+  max-width: 78%;
+}
+/* Unassigned fallback tint (no character color yet). */
+[data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
   background: rgba(20, 184, 166, 0.06);
 }
-.dark [data-block-type="dialogue"] [data-editable] {
-  background: rgba(20, 184, 166, 0.08);
+.dark [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
+  background: rgba(20, 184, 166, 0.1);
 }
 /* Tighten vertical spacing between consecutive dialogue blocks so
    back-and-forth conversations feel grouped rather than paragraphed. */
 [data-block-type="dialogue"] + [data-block-type="dialogue"] {
-  padding-top: 2px;
+  padding-top: 0;
 }
 [data-block-type="dialogue"] + [data-block-type="dialogue"] > div:first-child {
-  margin-top: -2px;
+  margin-top: -4px;
 }

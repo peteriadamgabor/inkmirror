@@ -259,7 +259,7 @@ function uuid(): string {
  * the Baker" but not an entire sentence) and requires the name to match a
  * character's main name or one of their aliases, case-insensitively.
  */
-function matchLeadingSpeaker(
+export function matchLeadingSpeaker(
   content: string,
   characters: readonly Character[],
 ): { character: Character; rest: string } | null {
