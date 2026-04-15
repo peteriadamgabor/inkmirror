@@ -5,6 +5,8 @@ import { getAiClient } from '@/ai';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
+import { WordCount } from '@/ui/features/WordCount';
+import { uiState, toggleSpellcheck } from '@/store/ui-state';
 import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 
 export const RightPanel = () => {
@@ -88,6 +90,21 @@ export const RightPanel = () => {
           {theme() === 'dark' ? '🌙 dark' : '☀ light'}
         </span>
       </button>
+      <button
+        type="button"
+        onClick={toggleSpellcheck}
+        class="flex items-center justify-between px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/50 transition-colors"
+        aria-label="Toggle spellcheck"
+      >
+        <span>Spellcheck</span>
+        <span class="font-mono text-xs text-stone-500 dark:text-stone-400">
+          {uiState.spellcheck ? 'on' : 'off'}
+        </span>
+      </button>
+
+      <div class="mt-2">
+        <WordCount />
+      </div>
 
       <div class="flex flex-col gap-2 mt-2">
         <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">

@@ -48,6 +48,7 @@ export interface ChapterRow {
   document_id: string;
   title: string;
   order_idx: number;
+  kind?: string;
   created_at: string;
   updated_at: string;
 }

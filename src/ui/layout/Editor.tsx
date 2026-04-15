@@ -189,6 +189,12 @@ export const Editor = () => {
     if (scrollEl) setViewport(scrollEl.scrollTop, scrollEl.clientHeight);
   });
 
+  const activeChapterKind = createMemo(() => {
+    const id = store.activeChapterId;
+    if (!id) return 'standard';
+    return store.chapters.find((c) => c.id === id)?.kind ?? 'standard';
+  });
+
   return (
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
       <StoryPulseEcg />
@@ -196,7 +202,8 @@ export const Editor = () => {
         ref={scrollEl}
         onScroll={onScroll}
         data-scroll-root="editor"
-        class="flex-1 overflow-auto"
+        data-chapter-kind={activeChapterKind()}
+        class="flex-1 overflow-auto scroll-smooth"
         style={{ 'padding-top': `${SCROLL_PADDING}px`, 'padding-bottom': `${SCROLL_PADDING}px` }}
       >
         <div

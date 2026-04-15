@@ -3,13 +3,24 @@ import { createStore } from 'solid-js/store';
 export interface UiState {
   focusMode: boolean;
   zenMode: boolean;
+  spellcheck: boolean;
   graveyardOpen: boolean;
   plotTimelineOpen: boolean;
+}
+
+const SPELLCHECK_KEY = 'storyforge.spellcheck';
+
+function loadInitialSpellcheck(): boolean {
+  if (typeof localStorage === 'undefined') return true;
+  const v = localStorage.getItem(SPELLCHECK_KEY);
+  if (v === null) return true;
+  return v === '1';
 }
 
 const [uiState, setUiState] = createStore<UiState>({
   focusMode: false,
   zenMode: false,
+  spellcheck: loadInitialSpellcheck(),
   graveyardOpen: false,
   plotTimelineOpen: false,
 });
@@ -38,6 +49,14 @@ export function toggleGraveyard(): void {
 
 export function setGraveyardOpen(open: boolean): void {
   setUiState('graveyardOpen', open);
+}
+
+export function toggleSpellcheck(): void {
+  const next = !uiState.spellcheck;
+  setUiState('spellcheck', next);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(SPELLCHECK_KEY, next ? '1' : '0');
+  }
 }
 
 export function togglePlotTimeline(): void {

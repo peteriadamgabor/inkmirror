@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
-import type { Block, BlockType, BlockMetadata, Chapter, Character, Document, SceneMetadata, UUID } from '@/types';
+import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, Document, SceneMetadata, UUID } from '@/types';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
@@ -290,6 +290,81 @@ export function createBlockAfter(blockId: UUID): UUID {
   return newId;
 }
 
+/**
+ * Split a block at the given caret offset. The head stays in the current
+ * block, the tail moves into a new block that follows. Used by Enter when
+ * the caret is mid-content; when the caret is at the end, this degenerates
+ * to createBlockAfter.
+ */
+export function splitBlockAtCaret(
+  blockId: UUID,
+  caretOffset: number,
+): UUID | null {
+  const block = store.blocks[blockId];
+  if (!block) return null;
+  const content = block.content;
+  const head = content.slice(0, caretOffset);
+  const tail = content.slice(caretOffset);
+  const newId = createBlockAfter(blockId);
+  if (tail.length > 0) {
+    updateBlockContent(newId, tail);
+  }
+  if (head !== content) {
+    updateBlockContent(blockId, head);
+  }
+  return newId;
+}
+
+/**
+ * Insert a chunk of text that contains paragraph breaks (\n\n+) into the
+ * current block, splitting into multiple blocks so each pasted paragraph
+ * lands in its own block. Respects the caret position inside the current
+ * block — the text before the caret stays, the first pasted paragraph is
+ * appended, subsequent paragraphs become new blocks, and any text that
+ * was after the caret ends up at the tail of the last new block.
+ *
+ * Returns the id of the block the caret should land in, and the offset
+ * within it.
+ */
+export function insertPastedParagraphs(
+  blockId: UUID,
+  caretOffset: number,
+  text: string,
+): { targetBlockId: UUID; caretOffset: number } {
+  const block = store.blocks[blockId];
+  if (!block) return { targetBlockId: blockId, caretOffset };
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\r/g, ''))
+    .filter((p) => p.length > 0);
+  if (paragraphs.length <= 1) {
+    // Falls back to simple in-place insertion by the caller.
+    return { targetBlockId: blockId, caretOffset };
+  }
+  const head = block.content.slice(0, caretOffset);
+  const tail = block.content.slice(caretOffset);
+
+  // First paragraph joins the existing head.
+  const firstContent = head + paragraphs[0];
+  updateBlockContent(blockId, firstContent);
+
+  let previousId = blockId;
+  // Middle paragraphs each become their own block.
+  for (let i = 1; i < paragraphs.length - 1; i++) {
+    const newId = createBlockAfter(previousId);
+    updateBlockContent(newId, paragraphs[i]);
+    previousId = newId;
+  }
+  // Last paragraph gets the pre-paste tail appended to it.
+  const lastText = paragraphs[paragraphs.length - 1] + tail;
+  const lastId = createBlockAfter(previousId);
+  updateBlockContent(lastId, lastText);
+  return {
+    targetBlockId: lastId,
+    caretOffset: paragraphs[paragraphs.length - 1].length,
+  };
+}
+
 export function mergeBlockWithPrevious(
   blockId: UUID,
 ): { previousId: UUID; cursorOffset: number } | null {
@@ -317,17 +392,32 @@ export function setActiveChapter(chapterId: UUID): void {
   setStore('activeChapterId', chapterId);
 }
 
-export function createChapter(): { chapterId: UUID; blockId: UUID } | null {
+const CHAPTER_KIND_DEFAULTS: Record<ChapterKind, { title: string; content: string }> = {
+  standard:        { title: '',                content: '' },
+  cover:           { title: 'Cover',           content: '' },
+  dedication:      { title: 'Dedication',      content: 'For …' },
+  epigraph:        { title: 'Epigraph',        content: '"…"\n\n— Author' },
+  acknowledgments: { title: 'Acknowledgments', content: 'Thanks to …' },
+  afterword:       { title: 'Afterword',       content: '' },
+};
+
+export function createChapter(
+  kind: ChapterKind = 'standard',
+): { chapterId: UUID; blockId: UUID } | null {
   if (!store.document) return null;
   const now = new Date().toISOString();
   const chapterId = uuid();
   const blockId = uuid();
   const existingCount = store.chapters.length;
+  const defaults = CHAPTER_KIND_DEFAULTS[kind];
+  const title =
+    kind === 'standard' ? `Chapter ${existingCount + 1}` : defaults.title;
   const chapter: Chapter = {
     id: chapterId,
     document_id: store.document.id,
-    title: `Chapter ${existingCount + 1}`,
+    title,
     order: existingCount,
+    kind,
     created_at: now,
     updated_at: now,
   };
@@ -335,7 +425,7 @@ export function createChapter(): { chapterId: UUID; blockId: UUID } | null {
     id: blockId,
     chapter_id: chapterId,
     type: 'text',
-    content: '',
+    content: defaults.content,
     order: 0,
     metadata: { type: 'text' },
     deleted_at: null,

@@ -39,6 +39,7 @@ function makeDoc(): SyntheticDoc {
     document_id: 'd1',
     title: 'Chapter 1',
     order: 0,
+    kind: 'standard',
     created_at: '2026-04-12T00:00:00.000Z',
     updated_at: '2026-04-12T00:00:00.000Z',
   };

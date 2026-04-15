@@ -23,8 +23,8 @@ function makeInput(): ExportInput {
     updated_at: now,
   };
   const chapters: Chapter[] = [
-    { id: 'c1', document_id: 'd1', title: 'Chapter 1', order: 0, created_at: now, updated_at: now },
-    { id: 'c2', document_id: 'd1', title: 'Chapter 2', order: 1, created_at: now, updated_at: now },
+    { id: 'c1', document_id: 'd1', title: 'Chapter 1', order: 0, kind: 'standard', created_at: now, updated_at: now },
+    { id: 'c2', document_id: 'd1', title: 'Chapter 2', order: 1, kind: 'standard', created_at: now, updated_at: now },
   ];
   const blocks: Block[] = [
     {

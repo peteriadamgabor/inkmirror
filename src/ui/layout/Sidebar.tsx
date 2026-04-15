@@ -14,7 +14,25 @@ import {
   toggleGraveyard,
   togglePlotTimeline,
 } from '@/store/ui-state';
-import type { UUID } from '@/types';
+import type { ChapterKind, UUID } from '@/types';
+
+const CHAPTER_KIND_MENU: Array<{ kind: ChapterKind; label: string }> = [
+  { kind: 'standard',        label: 'New chapter' },
+  { kind: 'cover',           label: 'Cover' },
+  { kind: 'dedication',      label: 'Dedication' },
+  { kind: 'epigraph',        label: 'Epigraph' },
+  { kind: 'acknowledgments', label: 'Acknowledgments' },
+  { kind: 'afterword',       label: 'Afterword' },
+];
+
+const CHAPTER_KIND_GLYPH: Record<ChapterKind, string> = {
+  standard:        '',
+  cover:           '◆',
+  dedication:      '♡',
+  epigraph:        '“',
+  acknowledgments: '✦',
+  afterword:       '·',
+};
 import { jsonExporter } from '@/exporters/json';
 import { markdownExporter } from '@/exporters/markdown';
 import { fountainExporter } from '@/exporters/fountain';
@@ -73,6 +91,7 @@ export const Sidebar = () => {
   const [editingCharacterId, setEditingCharacterId] = createSignal<UUID | null>(null);
   const [draft, setDraft] = createSignal('');
   const [newCharDraft, setNewCharDraft] = createSignal('');
+  const [chapterMenuOpen, setChapterMenuOpen] = createSignal(false);
 
   const startRenameChapter = (id: UUID, currentTitle: string) => {
     setEditingChapterId(id);
@@ -96,7 +115,10 @@ export const Sidebar = () => {
     setEditingCharacterId(null);
   };
 
-  const handleNewChapter = () => createChapter();
+  const handleNewChapter = (kind: ChapterKind = 'standard') => {
+    createChapter(kind);
+    setChapterMenuOpen(false);
+  };
 
   const handleNewCharacter = () => {
     const name = newCharDraft().trim();
@@ -113,14 +135,37 @@ export const Sidebar = () => {
           <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
             Chapters
           </div>
-          <button
-            type="button"
-            onClick={handleNewChapter}
-            title="New chapter"
-            class="text-stone-500 hover:text-violet-500 dark:text-stone-400 dark:hover:text-violet-400 text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-          >
-            +
-          </button>
+          <div class="relative">
+            <button
+              type="button"
+              onClick={() => setChapterMenuOpen((v) => !v)}
+              title="New chapter or front/back matter"
+              class="text-stone-500 hover:text-violet-500 dark:text-stone-400 dark:hover:text-violet-400 text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+            >
+              +
+            </button>
+            <Show when={chapterMenuOpen()}>
+              <div
+                class="absolute right-0 top-7 z-20 w-[170px] rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xl p-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <For each={CHAPTER_KIND_MENU}>
+                  {(item) => (
+                    <button
+                      type="button"
+                      onClick={() => handleNewChapter(item.kind)}
+                      class="w-full text-left px-2 py-1.5 text-xs text-stone-700 dark:text-stone-200 rounded hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2 transition-colors"
+                    >
+                      <span class="w-3 text-[10px] text-stone-400">
+                        {CHAPTER_KIND_GLYPH[item.kind]}
+                      </span>
+                      <span>{item.label}</span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
         </div>
 
         <div class="flex flex-col gap-0.5">
@@ -143,7 +188,19 @@ export const Sidebar = () => {
                     'border-left': isActive() ? '2px solid #7F77DD' : '2px solid transparent',
                   }}
                 >
-                  <Show when={isEditing()} fallback={<span>{c.title}</span>}>
+                  <Show
+                    when={isEditing()}
+                    fallback={
+                      <span class="flex items-center gap-1.5">
+                        <Show when={c.kind !== 'standard'}>
+                          <span class="text-[10px] text-stone-400 italic">
+                            {CHAPTER_KIND_GLYPH[c.kind]}
+                          </span>
+                        </Show>
+                        <span>{c.title}</span>
+                      </span>
+                    }
+                  >
                     <input
                       type="text"
                       value={draft()}

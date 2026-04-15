@@ -4,6 +4,8 @@ import {
   updateBlockContent,
   updateBlockType,
   createBlockAfter,
+  splitBlockAtCaret,
+  insertPastedParagraphs,
   mergeBlockWithPrevious,
   deleteBlock,
   moveBlock,
@@ -156,22 +158,36 @@ export const BlockView = (props: { block: Block }) => {
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
     if (!text) return;
-    // Manual Range-based insertion: Firefox's execCommand('insertText') can
-    // preserve the clipboard's source styling even for the plain-text path,
-    // which shows up as pasted text suddenly having the wiki's font. Raw
-    // DOM insertion gives us a bare text node with no formatting of any kind.
+
+    // Smart paste: if the clipboard contains paragraph breaks (\n\n or more),
+    // split into multiple blocks so pasted wiki/article text keeps its
+    // paragraph structure. Single-paragraph pastes fall through to the
+    // in-place path below.
+    if (/\n{2,}/.test(text)) {
+      // Sync whatever's currently in the DOM into the store before the split,
+      // so insertPastedParagraphs sees an accurate head/tail around the caret.
+      updateBlockContent(props.block.id, el.innerText);
+      const caret = getCaretOffset(el);
+      const result = insertPastedParagraphs(props.block.id, caret, text);
+      focusBlock(result.targetBlockId, result.caretOffset);
+      return;
+    }
+
+    // Single-paragraph path: manual Range-based insertion. Firefox's
+    // execCommand('insertText') can preserve the clipboard's source styling
+    // even for the plain-text path, which shows up as pasted text suddenly
+    // having the wiki's font. Raw DOM insertion gives us a bare text node
+    // with no formatting.
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     range.deleteContents();
     const textNode = document.createTextNode(text);
     range.insertNode(textNode);
-    // Move caret to the end of the inserted text.
     range.setStartAfter(textNode);
     range.collapse(true);
     sel.removeAllRanges();
     sel.addRange(range);
-    // Trigger a commit pulse so the store catches up.
     commitDebounced();
   };
 
@@ -202,8 +218,15 @@ export const BlockView = (props: { block: Block }) => {
 
     switch (intent.type) {
       case 'create-block-after': {
-        const newId = createBlockAfter(props.block.id);
-        focusBlock(newId, 'start');
+        // If the caret is mid-content, split: head stays, tail moves to
+        // the new block, caret jumps to the start of the new block.
+        // If it's at the end, this is equivalent to the old "create empty".
+        const newId = splitBlockAtCaret(props.block.id, caret);
+        if (newId) focusBlock(newId, 'start');
+        else {
+          const fallback = createBlockAfter(props.block.id);
+          focusBlock(fallback, 'start');
+        }
         break;
       }
       case 'merge-with-previous': {
@@ -307,6 +330,7 @@ export const BlockView = (props: { block: Block }) => {
         ref={el}
         data-editable
         contentEditable
+        spellcheck={uiState.spellcheck}
         onFocus={onFocus}
         onBlur={onBlur}
         onInput={onInput}

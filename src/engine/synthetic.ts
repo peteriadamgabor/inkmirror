@@ -133,6 +133,7 @@ export function generateSyntheticDoc(opts: SyntheticDocOptions): SyntheticDoc {
       document_id: document.id,
       title: `Chapter ${c + 1}`,
       order: c,
+      kind: 'standard',
       created_at: now,
       updated_at: now,
     };

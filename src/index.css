@@ -21,3 +21,28 @@ html, body, #root {
   padding-bottom: 15vh !important;
 }
 .storyforge-zen .storyforge-ecg { display: none; }
+
+/* Non-standard chapter kinds (cover / dedication / epigraph / …) use
+   centered layout with the block chrome suppressed, so a Dedication
+   page renders as just the text in the middle of the page. Standard
+   chapters are untouched. */
+[data-chapter-kind]:not([data-chapter-kind="standard"]) [data-block-id] {
+  text-align: center;
+}
+[data-chapter-kind]:not([data-chapter-kind="standard"]) [data-block-id] > div:first-child {
+  display: none;
+}
+[data-chapter-kind]:not([data-chapter-kind="standard"]) [data-block-id] [data-editable] {
+  border-color: transparent !important;
+  text-align: center;
+}
+[data-chapter-kind="cover"] [data-block-id] [data-editable] {
+  font-size: 1.6em;
+  line-height: 1.4;
+  padding-top: 20vh;
+}
+[data-chapter-kind="dedication"] [data-block-id] [data-editable],
+[data-chapter-kind="epigraph"] [data-block-id] [data-editable] {
+  font-style: italic;
+  padding-top: 20vh;
+}

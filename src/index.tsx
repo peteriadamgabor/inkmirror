@@ -41,6 +41,7 @@ function emptyStarter(): { doc: Document; chapter: Chapter; block: Block } {
       document_id: docId,
       title: 'Chapter 1',
       order: 0,
+      kind: 'standard',
       created_at: now,
       updated_at: now,
     },
@@ -63,6 +64,16 @@ type BootResult = { ok: true } | { ok: false; error: string };
 
 async function boot(): Promise<BootResult> {
   try {
+    // Wait for web fonts to finish loading before we hand off to pretext.
+    // The initial measurement pass uses font metrics; if Georgia hasn't
+    // loaded yet, the scrollbar starts off sized for the fallback font and
+    // jumps on first paint. Bounded so a stalled font never blocks boot.
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    }
     await getDb();
     const existing = await repo.listDocuments();
     let docId: UUID;

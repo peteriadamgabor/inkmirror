@@ -69,6 +69,7 @@ function chapterToRow(c: Chapter): ChapterRow {
     document_id: c.document_id,
     title: c.title,
     order_idx: c.order,
+    kind: c.kind,
     created_at: c.created_at,
     updated_at: c.updated_at,
   };
@@ -106,6 +107,8 @@ function rowToChapter(r: ChapterRow): Chapter {
     document_id: r.document_id,
     title: r.title,
     order: r.order_idx,
+    // Legacy rows (written before ChapterKind existed) default to standard.
+    kind: (r.kind as Chapter['kind'] | undefined) ?? 'standard',
     created_at: r.created_at,
     updated_at: r.updated_at,
   };
