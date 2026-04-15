@@ -102,7 +102,13 @@ export const Sidebar = () => {
 
   const commitChapterRename = () => {
     const id = editingChapterId();
-    if (id) renameChapter(id, draft());
+    if (id) {
+      if (!draft().trim()) {
+        toast.error('Chapter title cannot be empty');
+      } else {
+        renameChapter(id, draft());
+      }
+    }
     setEditingChapterId(null);
   };
 
@@ -113,18 +119,32 @@ export const Sidebar = () => {
 
   const commitCharacterRename = () => {
     const id = editingCharacterId();
-    if (id) updateCharacter(id, { name: draft() });
+    if (id) {
+      if (!draft().trim()) {
+        toast.error('Character name cannot be empty');
+      } else {
+        updateCharacter(id, { name: draft() });
+      }
+    }
     setEditingCharacterId(null);
   };
 
   const handleNewChapter = (kind: ChapterKind = 'standard') => {
-    createChapter(kind);
+    const result = createChapter(kind);
     setChapterMenuOpen(false);
+    if (!result) return;
+    if (kind !== 'standard') {
+      const label = CHAPTER_KIND_MENU.find((m) => m.kind === kind)?.label ?? kind;
+      toast.info(`${label} added`);
+    }
   };
 
   const handleNewCharacter = () => {
     const name = newCharDraft().trim();
-    if (!name) return;
+    if (!name) {
+      toast.error('Character name required');
+      return;
+    }
     createCharacter(name);
     setNewCharDraft('');
   };

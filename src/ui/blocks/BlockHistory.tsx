@@ -1,6 +1,7 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
 import type { UUID } from '@/types';
 import { loadBlockRevisions, restoreBlockContent, store } from '@/store/document';
+import { toast } from '@/ui/shared/toast';
 
 function formatRelative(iso: string, now: number): string {
   const t = new Date(iso).getTime();
@@ -51,6 +52,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
   const onRestore = (content: string) => {
     restoreBlockContent(props.blockId, content);
     setOpen(false);
+    toast.success('Block reverted to earlier version');
   };
 
   return (
