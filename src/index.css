@@ -71,6 +71,16 @@ html, body, #root {
   margin-top: -4px;
 }
 
+/* Alt+↑↓ block move: flash a soft violet glow on the moved block so
+   the eye can track where it landed without re-scanning the column. */
+@keyframes block-move-flash {
+  0%   { box-shadow: 0 0 0 3px rgba(127, 119, 221, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(127, 119, 221, 0); }
+}
+[data-block-id][data-just-moved="1"] [data-editable] {
+  animation: block-move-flash 350ms ease-out;
+}
+
 /* Drag-and-drop reorder affordances. The source block dims while
    it's in flight; the hover target gets a violet line above or
    below depending on which half the pointer sits in. */

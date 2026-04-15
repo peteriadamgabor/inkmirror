@@ -587,6 +587,23 @@ export function deleteCharacter(id: UUID): void {
  * Set (or clear) the document's POV character. Dialogue blocks by this
  * speaker render right-aligned; everyone else stays left-aligned.
  */
+/**
+ * Patch one or more user-visible Document fields (title, author,
+ * synopsis). Keeps the Document row in sync with the settings modal
+ * and persists immediately.
+ */
+export function updateDocumentMeta(
+  patch: Partial<Pick<Document, 'title' | 'author' | 'synopsis'>>,
+): void {
+  if (!store.document) return;
+  const now = new Date().toISOString();
+  setStore('document', (d) => (d ? { ...d, ...patch, updated_at: now } : d));
+  if (persistEnabled) {
+    const doc = unwrap(store.document);
+    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+  }
+}
+
 export function setPovCharacter(characterId: UUID | null): void {
   if (!store.document) return;
   if (characterId !== null && !store.characters.some((c) => c.id === characterId)) {

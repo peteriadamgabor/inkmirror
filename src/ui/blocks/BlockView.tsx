@@ -309,12 +309,14 @@ export const BlockView = (props: { block: Block }) => {
       case 'move-block-up': {
         if (moveBlock(props.block.id, 'up')) {
           focusBlock(props.block.id, caret);
+          flashMoved();
         }
         break;
       }
       case 'move-block-down': {
         if (moveBlock(props.block.id, 'down')) {
           focusBlock(props.block.id, caret);
+          flashMoved();
         }
         break;
       }
@@ -484,6 +486,20 @@ export const BlockView = (props: { block: Block }) => {
     if (targetIdx < 0) return;
     const insertAt = before ? targetIdx : targetIdx + 1;
     moveBlockToPosition(sourceId, insertAt);
+  };
+
+  const flashMoved = () => {
+    // Solid's For re-renders visible blocks while the store mutates, so
+    // the wrapperEl ref may not point at the same DOM node right after
+    // a move. Query fresh from the block id to be safe.
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        `[data-block-id="${props.block.id}"]`,
+      );
+      if (!el) return;
+      el.dataset.justMoved = '1';
+      setTimeout(() => delete el.dataset.justMoved, 350);
+    });
   };
 
   const onInsertBelow = (e: MouseEvent) => {

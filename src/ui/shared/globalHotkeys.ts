@@ -13,6 +13,7 @@ import {
   toggleBlockTypesHelp,
   toggleHotkeysModal,
   toggleCommandPalette,
+  toggleDocumentSettings,
   uiState,
 } from '@/store/ui-state';
 import { createChapter } from '@/store/document';
@@ -28,6 +29,7 @@ export function runAction(action: AppAction): void {
     case 'help.show':         toggleBlockTypesHelp();break;
     case 'hotkeys.show':      toggleHotkeysModal();  break;
     case 'palette.show':      toggleCommandPalette();break;
+    case 'document.settings': toggleDocumentSettings(); break;
   }
 }
 

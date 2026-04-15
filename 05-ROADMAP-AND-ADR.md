@@ -4,18 +4,18 @@
 
 ## Phases
 
-### Phase 1: Proof of Concept ⬅ CURRENT
+### Phase 1: Proof of Concept ✅ COMPLETE (2026-04-13)
 
 **Goal:** Prove that the block-based editor runs at 60 FPS on the `pretext` + Solid.js stack.
 
 **Deliverables:**
-- [ ] Project initialization (Vite + Solid.js + TypeScript + Tailwind)
-- [ ] TypeScript interfaces (Block, Chapter, Document)
-- [ ] Basic UI: floating island layout (sidebar + editor + right panel)
-- [ ] `pretext` integration: text measurement with Canvas/Wasm
-- [ ] Block editor component (`contenteditable` — temporary)
-- [ ] Soft-delete infrastructure in the data model
-- [ ] Performance test: 500 blocks, scrolling, FPS measurement
+- [x] Project initialization (Vite + Solid.js + TypeScript + Tailwind)
+- [x] TypeScript interfaces (Block, Chapter, Document)
+- [x] Basic UI: floating island layout (sidebar + editor + right panel)
+- [x] `pretext` integration: text measurement (pure JS over `measureText` — see ADR-002 note)
+- [x] Block editor component (`contenteditable` — still temporary, see ADR-006)
+- [x] Soft-delete infrastructure in the data model
+- [x] Performance test: `/perf` route with 500 blocks / 100k words, 60 FPS confirmed
 
 **Critical questions:**
 - Is the `pretext` API stable enough for our needs?
@@ -48,19 +48,21 @@ src/
 
 ---
 
-### Phase 2: Editor + Database
+### Phase 2: Editor + Database ✅ COMPLETE (2026-04-15)
 
-**Goal:** A working, saveable editor with SurrealDB and the graveyard visualization.
+**Goal:** A working, saveable editor with persistent storage and the graveyard visualization.
 
 **Deliverables:**
-- [ ] SurrealDB Wasm integration + IndexedDB persistence
-- [ ] CRUD operations on blocks (create, read, update, soft-delete)
-- [ ] Chapter navigation in the sidebar (create, rename, reorder)
-- [ ] Drag-and-drop block reordering
-- [ ] Scene block type + metadata editor
-- [ ] Dead Text Graveyard visualization (floating island)
-- [ ] Start keystroke tracking (Web Worker, data collection)
-- [ ] Focus mode basics
+- [x] Persistence (pivoted from SurrealDB Wasm to plain IDB via `idb` — see ADR-003)
+- [x] CRUD operations on blocks (create, read, update, soft-delete)
+- [x] Chapter navigation in the sidebar (create, rename, delete, auto-numbered)
+- [x] Drag-and-drop block reordering (HTML5 DnD + hover gutter handle + drop indicator)
+- [x] Scene block type + inline metadata editor (location / time / mood / cast)
+- [x] Dead Text Graveyard (modal, restore individual blocks, content recovery via revision history)
+- [x] Keystroke tracking Web Worker with WPM / burst / session metrics
+- [x] Focus mode (hide panels + dim non-active blocks) and Zen mode (+ strip block chrome)
+
+**Also shipped in Phase 2:** per-block revision history (IDB v5 `block_revisions` store, dedup + 20-cap), custom confirm modal + toast system, chapter delete with cascade-to-graveyard, book page types (cover / dedication / epigraph / acknowledgments / afterword) via `Chapter.kind`.
 
 **File structure additions:**
 ```
@@ -79,20 +81,23 @@ src/
 
 ---
 
-### Phase 3: AI + Characters
+### Phase 3: AI + Characters ✅ COMPLETE (2026-04-14, minus 2 deferred items)
 
 **Goal:** Local AI integration, character card system, and story pulse analysis.
 
 **Deliverables:**
-- [ ] Transformers.js setup in a Web Worker
-- [ ] Model selection and quantization (ONNX)
-- [ ] Sentiment analysis per block (tension, pace, emotion)
-- [ ] Story pulse ECG visualization
-- [ ] Character card CRUD (create, edit, delete)
-- [ ] Character auto-detection in text
-- [ ] Inconsistency detection (character description comparison)
-- [ ] Mood heatmap (full novel view)
-- [ ] Text sonification baseline (Tone.js + sentiment)
+- [x] Transformers.js setup in a Web Worker with ring-buffer error tracking
+- [x] Model selection + quantization (multilingual sentiment model)
+- [x] Sentiment analysis per block, persisted in IDB v3 `sentiments` store
+- [x] Story Pulse ECG visualization (horizontal timeline above the editor)
+- [x] Character card CRUD with color palette, IDB v4 `characters` store
+- [x] Character auto-detection in text with Unicode-aware word boundaries (Hungarian-friendly)
+- [ ] **Inconsistency detection** (character description comparison) — deferred, needs a second AI pipeline
+- [x] Mood heatmap (full novel view, proportional chapter bars)
+- [x] Text sonification baseline (Tone.js + sentiment → chord mapping)
+- [ ] **Rich moods via zero-shot classification** — deferred, needs bigger model
+
+**Also shipped in Phase 3 follow-ups:** dialogue rework (speaker picker, live auto-detect, colored chat bubbles, scene cast filter, POV alignment, Tab-to-cycle, parentheticals, Fountain CONT'D), character deletion cascade to dialogue blocks.
 
 **File structure additions:**
 ```
@@ -115,21 +120,23 @@ src/
 
 ---
 
-### Phase 4: Experience + Polish
+### Phase 4: Experience + Polish ⬅ CURRENT (non-AI items complete)
 
 **Goal:** The "wow-factor" features, export, and fine-tuning the user experience.
 
 **Deliverables:**
-- [ ] Ghost reader implementation
-- [ ] Character simulator ("What if...")
-- [ ] Plot timeline view
-- [ ] Writer pulse dashboard (long-term patterns, session summaries)
-- [ ] Full text sonification engine (real-time ambient generation)
-- [ ] Focus mode animations (islands sinking)
-- [ ] Zen mode
-- [ ] Export: EPUB, DOCX, PDF, Fountain, Markdown, JSON
-- [ ] PWA: Service Worker, offline cache, installability
-- [ ] Performance optimization: 100,000+ word test
+- [ ] **Ghost reader implementation** — AI, deferred
+- [ ] **Character simulator** ("What if…") — AI, deferred
+- [x] Plot timeline view (modal, scenes grouped by chapter with cast chips)
+- [x] Writer pulse dashboard (WPM / burst / keys / session in the right panel)
+- [ ] **Full text sonification engine** — baseline shipped, real-time ambient generation pending
+- [x] Focus mode animations (grid column collapse + opacity fade)
+- [x] Zen mode (strips block chrome, hides ECG, 15vh scroll padding)
+- [x] Export: EPUB, DOCX, PDF, Fountain, Markdown, JSON (all via lazy-loaded dynamic imports)
+- [x] PWA: Service Worker via vite-plugin-pwa, installable, offline-ready
+- [x] Performance: `/perf` route hits 100k words at 60 FPS
+
+**Also shipped in Phase 4:** block left-click context menu, shared confirm modal + toast system, global rebindable hotkeys with F1 settings + Ctrl+K command palette, block drag-and-drop, smart paste, Enter-splits-at-end, document metadata settings modal, block move flash animation, solid-icons swap, block types help modal.
 
 ---
 

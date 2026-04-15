@@ -9,6 +9,7 @@ export interface UiState {
   blockTypesHelpOpen: boolean;
   hotkeysModalOpen: boolean;
   commandPaletteOpen: boolean;
+  documentSettingsOpen: boolean;
 }
 
 const SPELLCHECK_KEY = 'storyforge.spellcheck';
@@ -29,6 +30,7 @@ const [uiState, setUiState] = createStore<UiState>({
   blockTypesHelpOpen: false,
   hotkeysModalOpen: false,
   commandPaletteOpen: false,
+  documentSettingsOpen: false,
 });
 
 export { uiState };
@@ -95,4 +97,12 @@ export function toggleCommandPalette(): void {
 
 export function setCommandPaletteOpen(open: boolean): void {
   setUiState('commandPaletteOpen', open);
+}
+
+export function toggleDocumentSettings(): void {
+  setUiState('documentSettingsOpen', (v) => !v);
+}
+
+export function setDocumentSettingsOpen(open: boolean): void {
+  setUiState('documentSettingsOpen', open);
 }

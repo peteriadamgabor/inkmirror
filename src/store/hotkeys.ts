@@ -14,7 +14,8 @@ export type AppAction =
   | 'chapter.new'
   | 'help.show'
   | 'hotkeys.show'
-  | 'palette.show';
+  | 'palette.show'
+  | 'document.settings';
 
 export interface BindingMeta {
   action: AppAction;
@@ -33,6 +34,7 @@ export const BINDING_META: BindingMeta[] = [
   { action: 'timeline.toggle',   label: 'Plot timeline',       description: 'Scene timeline grouped by chapter',     defaultCombo: 'Alt+Shift+L' },
   { action: 'chapter.new',       label: 'New chapter',         description: 'Create a standard chapter',             defaultCombo: 'Alt+Shift+N' },
   { action: 'spellcheck.toggle', label: 'Spellcheck',          description: 'Toggle browser red-squiggle spellcheck',defaultCombo: 'Alt+Shift+K' },
+  { action: 'document.settings',label: 'Document settings',   description: 'Edit title, author, synopsis',          defaultCombo: 'Alt+Shift+D' },
 ];
 
 const STORAGE_KEY = 'storyforge.hotkeys';
