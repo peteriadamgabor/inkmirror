@@ -2,6 +2,7 @@ import { createResource, createSignal, For, Show } from 'solid-js';
 import type { UUID } from '@/types';
 import { loadBlockRevisions, restoreBlockContent, store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
+import { IconHistory } from '@/ui/shared/icons';
 
 function formatRelative(iso: string, now: number): string {
   const t = new Date(iso).getTime();
@@ -61,9 +62,10 @@ export const BlockHistory = (props: { blockId: UUID }) => {
         type="button"
         onClick={onToggle}
         title="Block revision history"
-        class="text-[10px] text-stone-400 hover:text-violet-500 px-1 leading-none"
+        class="text-stone-400 hover:text-violet-500 px-1 leading-none"
+        aria-label="Block history"
       >
-        ⟲
+        <IconHistory size={13} />
       </button>
       <Show when={open()}>
         <div

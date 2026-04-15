@@ -17,6 +17,7 @@ import {
 import { unwrap } from 'solid-js/store';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
+import { IconDots, IconTrash, IconDrag, IconChevron } from '@/ui/shared/icons';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
@@ -577,7 +578,7 @@ export const BlockView = (props: { block: Block }) => {
         title="Drag to reorder"
         aria-label="Drag handle"
       >
-        ⠿
+        <IconDrag size={14} />
       </div>
       <div class="flex items-center gap-2 mb-1 group/header">
         <button
@@ -613,26 +614,26 @@ export const BlockView = (props: { block: Block }) => {
               }}
             />
             <span>{dialogueSpeaker()?.name ?? 'speaker'}</span>
-            <span class="text-stone-400 text-[8px]">▾</span>
+            <IconChevron size={10} class="text-stone-400" />
           </button>
         )}
         <button
           type="button"
           onClick={openBlockMenu}
           title="Block actions"
-          class="text-stone-400 hover:text-violet-500 text-xs px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          class="text-stone-400 hover:text-violet-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
           aria-label="Open block menu"
         >
-          ⋯
+          <IconDots size={14} />
         </button>
         <button
           type="button"
           onClick={onTrash}
           title="Delete block"
-          class="text-stone-400 hover:text-red-500 text-xs px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          class="text-stone-400 hover:text-red-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
           aria-label="Delete block"
         >
-          🗑
+          <IconTrash size={13} />
         </button>
         {sentiment() && (
           <span

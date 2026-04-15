@@ -51,6 +51,7 @@ import {
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
+import { IconDots, IconStar } from '@/ui/shared/icons';
 
 const EXPORTERS: Exporter[] = [
   markdownExporter,
@@ -297,9 +298,9 @@ export const Sidebar = () => {
                       type="button"
                       onClick={openMenu}
                       title="Chapter actions"
-                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
+                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
                     >
-                      ⋯
+                      <IconDots size={14} />
                     </button>
                   </Show>
                 </div>
@@ -368,10 +369,10 @@ export const Sidebar = () => {
                       <span>{c.name}</span>
                       <Show when={isPov()}>
                         <span
-                          class="text-[10px] text-violet-500"
+                          class="text-violet-500 inline-flex"
                           title="POV character — dialogue aligns right"
                         >
-                          ★
+                          <IconStar size={11} />
                         </span>
                       </Show>
                     </span>
@@ -404,9 +405,9 @@ export const Sidebar = () => {
                       type="button"
                       onClick={openCharacterMenu}
                       title="Character actions"
-                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity"
+                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 w-5 h-5 flex items-center justify-center rounded transition-opacity"
                     >
-                      ⋯
+                      <IconDots size={14} />
                     </button>
                   </Show>
                 </div>

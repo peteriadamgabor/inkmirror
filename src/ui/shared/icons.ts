@@ -1,0 +1,16 @@
+// Central icon re-exports so the rest of the app picks icons from one
+// place and we can swap icon packs later without touching every file.
+// Using Tabler outline glyphs from solid-icons.
+
+export {
+  TbOutlineDots as IconDots,
+  TbOutlineTrash as IconTrash,
+  TbOutlineGripVertical as IconDrag,
+  TbOutlineHistory as IconHistory,
+  TbOutlineChevronDown as IconChevron,
+  TbOutlineStar as IconStar,
+  TbOutlineInfoCircle as IconInfo,
+  TbOutlineCheck as IconCheck,
+  TbOutlineAlertCircle as IconAlert,
+  TbOutlineQuestionMark as IconQuestion,
+} from 'solid-icons/tb';
