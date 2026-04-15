@@ -16,7 +16,7 @@ import {
 import { unwrap } from 'solid-js/store';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
-import { IconDots, IconTrash, IconDrag, IconChevron } from '@/ui/shared/icons';
+import { IconDots, IconTrash, IconDrag, IconChevron, IconPlus } from '@/ui/shared/icons';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
@@ -279,19 +279,10 @@ export const BlockView = (props: { block: Block }) => {
 
     switch (intent.type) {
       case 'create-block-after': {
-        // Split at caret. We can't rely on splitBlockAtCaret alone
-        // because the current block is still focused, and BlockView's
-        // DOM-sync effect skips contenteditable writes while focus is
-        // on it — the source block would keep the full text in the DOM
-        // while the store only has the head. Set the DOM directly
-        // before dispatching the store update to avoid the ghost copy.
-        const fullText = el.innerText;
-        const head = fullText.slice(0, caret);
-        const tail = fullText.slice(caret);
-        el.innerText = head;
-        updateBlockContent(props.block.id, head);
+        // Enter only fires this intent when the caret is at the end of
+        // the block (see keybindings.ts), so there's nothing to split.
+        // Inherit the source block's type to keep dialogue runs flowing.
         const newId = createBlockAfter(props.block.id, props.block.type);
-        if (tail.length > 0) updateBlockContent(newId, tail);
         focusBlock(newId, 'start');
         break;
       }
@@ -490,6 +481,12 @@ export const BlockView = (props: { block: Block }) => {
     moveBlockToPosition(sourceId, insertAt);
   };
 
+  const onInsertBelow = (e: MouseEvent) => {
+    e.stopPropagation();
+    const newId = createBlockAfter(props.block.id, 'text');
+    focusBlock(newId, 'start');
+  };
+
   const onTrash = async (e: MouseEvent) => {
     e.stopPropagation();
     const ok = await askConfirm({
@@ -621,6 +618,15 @@ export const BlockView = (props: { block: Block }) => {
             <IconChevron size={10} class="text-stone-400" />
           </button>
         )}
+        <button
+          type="button"
+          onClick={onInsertBelow}
+          title="Insert a new text block below"
+          class="text-stone-400 hover:text-violet-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          aria-label="Insert block below"
+        >
+          <IconPlus size={14} />
+        </button>
         <button
           type="button"
           onClick={openBlockMenu}

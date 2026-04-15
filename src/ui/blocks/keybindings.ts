@@ -36,7 +36,15 @@ export function resolveKeyIntent(ctx: KeyContext): KeyIntent | null {
     return { type: 'move-block-down' };
   }
 
-  if (ctx.key === 'Enter' && !ctx.shiftKey) {
+  // Enter only creates a new block when the caret is at the very end of
+  // the current one. Mid-content Enter falls through to the browser's
+  // default (a soft line break inside the block) so writers can write a
+  // multi-line paragraph without getting their text split in half.
+  if (
+    ctx.key === 'Enter' &&
+    !ctx.shiftKey &&
+    ctx.caretOffset === ctx.contentLength
+  ) {
     return { type: 'create-block-after' };
   }
 

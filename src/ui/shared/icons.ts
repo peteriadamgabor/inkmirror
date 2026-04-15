@@ -13,4 +13,5 @@ export {
   TbOutlineCheck as IconCheck,
   TbOutlineAlertCircle as IconAlert,
   TbOutlineQuestionMark as IconQuestion,
+  TbOutlinePlus as IconPlus,
 } from 'solid-icons/tb';

@@ -56,8 +56,16 @@ describe('resolveKeyIntent', () => {
   });
 
   describe('Enter', () => {
-    it('returns create-block-after intent', () => {
-      expect(resolveKeyIntent(ctx({ key: 'Enter' }))).toEqual({ type: 'create-block-after' });
+    it('returns create-block-after intent when caret is at the end', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'Enter', caretOffset: 10, contentLength: 10 })),
+      ).toEqual({ type: 'create-block-after' });
+    });
+
+    it('returns null mid-content (falls through to browser soft newline)', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'Enter', caretOffset: 4, contentLength: 10 })),
+      ).toBeNull();
     });
 
     it('returns null for Shift+Enter (soft line break)', () => {
