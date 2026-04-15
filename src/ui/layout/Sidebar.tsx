@@ -46,6 +46,8 @@ import {
   type Exporter,
   type ExportInput,
 } from '@/exporters';
+import { askConfirm } from '@/ui/shared/confirm';
+import { toast } from '@/ui/shared/toast';
 
 const EXPORTERS: Exporter[] = [
   markdownExporter,
@@ -67,19 +69,18 @@ function currentExportInput(): ExportInput | null {
 }
 
 const [exportingFormat, setExportingFormat] = createSignal<string | null>(null);
-const [exportError, setExportError] = createSignal<string | null>(null);
 
 async function runExport(exporter: Exporter): Promise<void> {
   const input = currentExportInput();
   if (!input) return;
-  setExportError(null);
   setExportingFormat(exporter.format);
   try {
     const blob = await exporter.run(input);
     const name = sanitizeFilename(input.document.title);
     downloadBlob(blob, `${name}.${exporter.extension}`);
+    toast.success(`${exporter.label} exported`);
   } catch (err) {
-    setExportError(
+    toast.error(
       `${exporter.label} export failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   } finally {
@@ -178,16 +179,28 @@ export const Sidebar = () => {
               const isActive = () => store.activeChapterId === c.id;
               const isEditing = () => editingChapterId() === c.id;
               const canDelete = () => store.chapters.length > 1;
-              const onDelete = (e: MouseEvent) => {
+              const onDelete = async (e: MouseEvent) => {
                 e.stopPropagation();
                 if (!canDelete()) return;
                 const blockCount = store.blockOrder.filter(
                   (id) => store.blocks[id]?.chapter_id === c.id,
                 ).length;
-                const msg = `Delete "${c.title}"? ${blockCount} block${
-                  blockCount === 1 ? '' : 's'
-                } will be moved to the graveyard.`;
-                if (confirm(msg)) deleteChapter(c.id);
+                const ok = await askConfirm({
+                  title: `Delete "${c.title}"?`,
+                  message: `${blockCount} block${
+                    blockCount === 1 ? '' : 's'
+                  } will be moved to the graveyard and can be restored individually.`,
+                  confirmLabel: 'Delete chapter',
+                  danger: true,
+                });
+                if (!ok) return;
+                if (deleteChapter(c.id)) {
+                  toast.success(
+                    `"${c.title}" deleted · ${blockCount} block${
+                      blockCount === 1 ? '' : 's'
+                    } in graveyard`,
+                  );
+                }
               };
               return (
                 <div
@@ -304,9 +317,18 @@ export const Sidebar = () => {
                   </Show>
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
+                      const ok = await askConfirm({
+                        title: `Delete character "${c.name}"?`,
+                        message:
+                          'Character mentions in existing blocks will stop highlighting this person. The character can be recreated by name later.',
+                        confirmLabel: 'Delete',
+                        danger: true,
+                      });
+                      if (!ok) return;
                       deleteCharacter(c.id);
+                      toast.info(`Character "${c.name}" deleted`);
                     }}
                     title="Delete character"
                     class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity"
@@ -361,9 +383,6 @@ export const Sidebar = () => {
             }}
           </For>
         </div>
-        <Show when={exportError()}>
-          <div class="text-[10px] text-red-500 px-1 break-all">{exportError()}</div>
-        </Show>
       </div>
 
       {/* --- Workspace actions --- */}

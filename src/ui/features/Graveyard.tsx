@@ -1,6 +1,7 @@
 import { createEffect, For, Show } from 'solid-js';
 import { uiState, setGraveyardOpen } from '@/store/ui-state';
 import { graveyardBlocks, refreshGraveyard, restoreBlock } from '@/store/document';
+import { toast } from '@/ui/shared/toast';
 
 export const Graveyard = () => {
   createEffect(() => {
@@ -10,7 +11,12 @@ export const Graveyard = () => {
   });
 
   const onRestore = async (id: string) => {
-    await restoreBlock(id);
+    try {
+      await restoreBlock(id);
+      toast.success('Block restored');
+    } catch (err) {
+      toast.error(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   return (

@@ -5,6 +5,8 @@ import { RightPanel } from './layout/RightPanel';
 import { FpsOverlay } from './perf/FpsOverlay';
 import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
+import { ToastHost } from './shared/ToastHost';
+import { ConfirmHost } from './shared/ConfirmHost';
 import { uiState, toggleFocusMode, toggleZenMode } from '@/store/ui-state';
 import type { JSX } from 'solid-js';
 
@@ -74,6 +76,8 @@ export const App = (props: { children?: JSX.Element }) => (
     <FpsOverlay />
     <Graveyard />
     <PlotTimeline />
+    <ConfirmHost />
+    <ToastHost />
     {props.children}
   </div>
 );
