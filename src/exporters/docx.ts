@@ -1,4 +1,4 @@
-import type { Block, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import { exportableBlocks, type Exporter, type ExportInput } from './index';
 
 // Narrow structural types — avoid importing docx types at module load time
@@ -14,9 +14,18 @@ function sceneHeaderText(md: SceneMetadata | null): string {
   return parts.join(' — ');
 }
 
+function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string | null {
+  if (!data.speaker_id) return null;
+  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
+}
+
 function blockParagraphs(
   docx: DocxMods,
   block: Block,
+  characters: readonly Character[],
 ): InstanceType<DocxMods['Paragraph']>[] {
   const { Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
   const out: InstanceType<DocxMods['Paragraph']>[] = [];
@@ -46,14 +55,25 @@ function blockParagraphs(
       break;
     }
     case 'dialogue': {
-      const md =
+      const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const speaker = md?.speaker_name?.trim();
+      const speaker = data ? speakerNameFor(data, characters) : null;
       if (speaker) {
         out.push(
           new Paragraph({
             spacing: { before: 120 },
             children: [new TextRun({ text: speaker, bold: true, smallCaps: true })],
+          }),
+        );
+      }
+      if (data?.parenthetical?.trim()) {
+        out.push(
+          new Paragraph({
+            indent: { left: 720 },
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: `(${data.parenthetical.trim()})`, italics: true }),
+            ],
           }),
         );
       }
@@ -129,7 +149,7 @@ export const docxExporter: Exporter = {
       );
       for (const block of exportableBlocks(chapter, input.blocks)) {
         if (block.content.trim().length === 0 && block.type !== 'scene') continue;
-        children.push(...blockParagraphs(docx, block));
+        children.push(...blockParagraphs(docx, block, input.characters));
       }
     }
 

@@ -35,11 +35,20 @@ function makeInput(): ExportInput {
     {
       id: 'b2', chapter_id: 'c1', type: 'dialogue',
       content: 'Hello there.', order: 1,
-      metadata: { type: 'dialogue', data: { speaker_id: 'x', speaker_name: 'Alice' } },
+      metadata: {
+        type: 'dialogue',
+        data: { speaker_id: 'x', parenthetical: 'whispering' },
+      },
       deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
     },
     {
-      id: 'b3', chapter_id: 'c1', type: 'note', content: 'Remember to fix this later', order: 2,
+      id: 'b2b', chapter_id: 'c1', type: 'dialogue',
+      content: 'And again.', order: 2,
+      metadata: { type: 'dialogue', data: { speaker_id: 'x' } },
+      deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+    },
+    {
+      id: 'b3', chapter_id: 'c1', type: 'note', content: 'Remember to fix this later', order: 3,
       metadata: { type: 'note', data: {} }, deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
     },
     {
@@ -85,9 +94,12 @@ describe('markdownExporter', () => {
     expect(out).toContain('## Chapter 1');
     expect(out).toContain('## Chapter 2');
   });
-  it('renders dialogue with speaker as blockquote', () => {
+  it('renders dialogue with speaker derived from character lookup', () => {
     expect(out).toContain('> **Alice**');
     expect(out).toContain('> Hello there.');
+  });
+  it('renders parenthetical as italic blockquote line', () => {
+    expect(out).toContain('> *(whispering)*');
   });
   it('renders scene heading from metadata', () => {
     expect(out).toContain('*desert highway — noon — (tense)*');
@@ -112,8 +124,11 @@ describe('fountainExporter', () => {
   it('emits scene heading in INT. format', () => {
     expect(out).toContain('INT. DESERT HIGHWAY - NOON');
   });
-  it('emits dialogue as UPPERCASE speaker + line', () => {
-    expect(out).toContain('ALICE\nHello there.');
+  it('emits dialogue as UPPERCASE speaker + parenthetical + line', () => {
+    expect(out).toContain('ALICE\n(whispering)\nHello there.');
+  });
+  it("emits (CONT'D) on consecutive same-speaker dialogue", () => {
+    expect(out).toContain("ALICE (CONT'D)\nAnd again.");
   });
   it('excludes notes and deleted blocks', () => {
     expect(out).not.toContain('Remember to fix this later');

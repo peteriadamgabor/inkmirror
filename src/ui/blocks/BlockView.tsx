@@ -4,6 +4,7 @@ import {
   updateBlockContent,
   updateBlockType,
   updateDialogueSpeaker,
+  updateDialogueParenthetical,
   matchLeadingSpeaker,
   createBlockAfter,
   duplicateBlock,
@@ -332,6 +333,10 @@ export const BlockView = (props: { block: Block }) => {
     return store.characters.find((c) => c.id === id) ?? null;
   };
   const dialogueSpeakerColor = () => dialogueSpeaker()?.color ?? null;
+  const dialogueParenthetical = () =>
+    props.block.metadata.type === 'dialogue'
+      ? props.block.metadata.data.parenthetical ?? ''
+      : '';
   const isPovSpeaker = () => {
     const pov = store.document?.pov_character_id;
     if (!pov) return false;
@@ -617,6 +622,17 @@ export const BlockView = (props: { block: Block }) => {
             <span>{dialogueSpeaker()?.name ?? 'speaker'}</span>
             <IconChevron size={10} class="text-stone-400" />
           </button>
+        )}
+        {props.block.type === 'dialogue' && (
+          <input
+            type="text"
+            value={dialogueParenthetical()}
+            onInput={(e) => updateDialogueParenthetical(props.block.id, e.currentTarget.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            placeholder="(aside)"
+            class="bg-transparent outline-none text-[10px] italic text-stone-500 dark:text-stone-400 placeholder-stone-300 dark:placeholder-stone-600 border-b border-transparent focus:border-teal-500 w-[110px] py-0.5"
+            title="Parenthetical — e.g. (whispering), (to Peter)"
+          />
         )}
         <button
           type="button"

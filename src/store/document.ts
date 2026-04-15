@@ -316,7 +316,12 @@ export function updateBlockContent(
       nextContent = match.rest;
       nextMetadata = {
         type: 'dialogue',
-        data: { speaker_id: match.character.id, speaker_name: match.character.name },
+        data: {
+          speaker_id: match.character.id,
+          ...(existing.metadata.data.parenthetical
+            ? { parenthetical: existing.metadata.data.parenthetical }
+            : {}),
+        },
       };
     }
   }
@@ -549,7 +554,8 @@ export function updateCharacter(
   }));
   if (nameChanged) {
     rescanAllCharacterMentions();
-    propagateCharacterRename(id, store.characters[idx].name);
+    // Dialogue blocks derive their speaker label from the character
+    // card on read, so renames are automatic — no propagation needed.
   }
 
   if (persistEnabled) {
@@ -783,7 +789,7 @@ export function moveBlock(blockId: UUID, direction: 'up' | 'down'): boolean {
 function defaultMetadataFor(type: BlockType): BlockMetadata {
   switch (type) {
     case 'text':     return { type: 'text' };
-    case 'dialogue': return { type: 'dialogue', data: { speaker_id: '', speaker_name: '' } };
+    case 'dialogue': return { type: 'dialogue', data: { speaker_id: '' } };
     case 'scene':    return { type: 'scene', data: { location: '', time: '', character_ids: [], mood: '' } };
     case 'note':     return { type: 'note', data: {} };
   }
@@ -805,7 +811,7 @@ export function updateBlockType(blockId: UUID, type: BlockType): void {
       content = match.rest;
       metadata = {
         type: 'dialogue',
-        data: { speaker_id: match.character.id, speaker_name: match.character.name },
+        data: { speaker_id: match.character.id },
       };
     }
   }
@@ -833,17 +839,14 @@ export function updateDialogueSpeaker(
   const block = store.blocks[blockId];
   if (!block || block.metadata.type !== 'dialogue') return;
   const now = new Date().toISOString();
-  let next: BlockMetadata;
-  if (characterId === null) {
-    next = { type: 'dialogue', data: { speaker_id: '', speaker_name: '' } };
-  } else {
-    const character = store.characters.find((c) => c.id === characterId);
-    if (!character) return;
-    next = {
-      type: 'dialogue',
-      data: { speaker_id: character.id, speaker_name: character.name },
-    };
-  }
+  const existingParenthetical = block.metadata.data.parenthetical;
+  const next: BlockMetadata = {
+    type: 'dialogue',
+    data: {
+      speaker_id: characterId ?? '',
+      ...(existingParenthetical ? { parenthetical: existingParenthetical } : {}),
+    },
+  };
   setStore('blocks', blockId, (b) => ({ ...b, metadata: next, updated_at: now }));
   if (persistEnabled && store.document) {
     track(
@@ -854,30 +857,28 @@ export function updateDialogueSpeaker(
   }
 }
 
-/**
- * Keep denormalized dialogue speaker_name fields in sync when a character
- * is renamed. Called from updateCharacter — avoids one-off drift between
- * the character card and the dialogue blocks that reference it.
- */
-function propagateCharacterRename(characterId: UUID, newName: string): void {
-  if (!store.document) return;
-  const documentId = store.document.id;
-  for (const blockId of store.blockOrder) {
-    const block = store.blocks[blockId];
-    if (!block || block.metadata.type !== 'dialogue') continue;
-    const data = block.metadata.data as DialogueMetadata;
-    if (data.speaker_id !== characterId) continue;
-    if (data.speaker_name === newName) continue;
-    const next: BlockMetadata = {
-      type: 'dialogue',
-      data: { ...data, speaker_name: newName },
-    };
-    setStore('blocks', blockId, (b) => ({ ...b, metadata: next }));
-    if (persistEnabled) {
-      track(
-        repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined),
-      );
-    }
+export function updateDialogueParenthetical(
+  blockId: UUID,
+  parenthetical: string,
+): void {
+  const block = store.blocks[blockId];
+  if (!block || block.metadata.type !== 'dialogue') return;
+  const now = new Date().toISOString();
+  const trimmed = parenthetical.trim();
+  const next: BlockMetadata = {
+    type: 'dialogue',
+    data: {
+      speaker_id: block.metadata.data.speaker_id,
+      ...(trimmed ? { parenthetical: trimmed } : {}),
+    },
+  };
+  setStore('blocks', blockId, (b) => ({ ...b, metadata: next, updated_at: now }));
+  if (persistEnabled && store.document) {
+    track(
+      repo
+        .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
+        .catch(() => undefined),
+    );
   }
 }
 
@@ -896,7 +897,10 @@ function propagateCharacterDelete(characterId: UUID): void {
     if (data.speaker_id !== characterId) continue;
     const next: BlockMetadata = {
       type: 'dialogue',
-      data: { speaker_id: '', speaker_name: '' },
+      data: {
+        speaker_id: '',
+        ...(data.parenthetical ? { parenthetical: data.parenthetical } : {}),
+      },
     };
     setStore('blocks', blockId, (b) => ({ ...b, metadata: next }));
     if (persistEnabled) {

@@ -4,7 +4,13 @@ export type BlockType = 'text' | 'dialogue' | 'scene' | 'note';
 
 export interface DialogueMetadata {
   speaker_id: UUID;
-  speaker_name: string;
+  /**
+   * Optional parenthetical aside like "(whispering)" or "(to Peter)".
+   * Rendered as italic above the dialogue content and included in
+   * every exporter (Fountain puts it on its own line between the
+   * speaker cue and the line). Empty string = no aside.
+   */
+  parenthetical?: string;
 }
 
 export interface SceneMetadata {

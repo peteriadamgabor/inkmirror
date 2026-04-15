@@ -1,4 +1,4 @@
-import type { Block, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import { exportableBlocks, type Exporter, type ExportInput } from './index';
 
 function esc(s: string): string {
@@ -19,7 +19,15 @@ function paragraphs(text: string): string {
     .join('\n      ');
 }
 
-function renderBlockXhtml(block: Block): string {
+function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string | null {
+  if (!data.speaker_id) return null;
+  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
+}
+
+function renderBlockXhtml(block: Block, characters: readonly Character[]): string {
   switch (block.type) {
     case 'scene': {
       const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
@@ -32,13 +40,19 @@ function renderBlockXhtml(block: Block): string {
       return `${headerHtml}\n      ${paragraphs(block.content)}`;
     }
     case 'dialogue': {
-      const md =
+      const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const speaker = md?.speaker_name?.trim();
+      if (!data) return paragraphs(block.content);
+      const speaker = speakerNameFor(data, characters);
+      const parenthetical = data.parenthetical?.trim();
       const body = paragraphs(block.content);
-      return speaker
-        ? `<blockquote class="dialogue"><p class="speaker">${esc(speaker)}</p>${body}</blockquote>`
-        : `<blockquote class="dialogue">${body}</blockquote>`;
+      const speakerLine = speaker
+        ? `<p class="speaker">${esc(speaker)}</p>`
+        : '';
+      const parentheticalLine = parenthetical
+        ? `<p class="parenthetical"><em>(${esc(parenthetical)})</em></p>`
+        : '';
+      return `<blockquote class="dialogue">${speakerLine}${parentheticalLine}${body}</blockquote>`;
     }
     case 'text':
     default:
@@ -71,6 +85,7 @@ p:first-of-type, h1 + p, .scene-heading + p { text-indent: 0; }
 .scene-break::before { content: "* * *"; letter-spacing: 0.5em; }
 blockquote.dialogue { margin: 1em 1.5em; border-left: 2px solid #999; padding-left: 1em; }
 .speaker { font-weight: bold; text-indent: 0; margin-bottom: 0.2em; font-variant: small-caps; }
+.parenthetical { text-indent: 0; margin: 0 0 0.3em 0.5em; color: #777; }
 `;
 
 function contentOpf(
@@ -161,7 +176,7 @@ export const epubExporter: Exporter = {
     sortedChapters.forEach((chapter, i) => {
       const filename = `chapter-${i + 1}.xhtml`;
       const bodyInner = exportableBlocks(chapter, input.blocks)
-        .map(renderBlockXhtml)
+        .map((b) => renderBlockXhtml(b, input.characters))
         .filter((x) => x.trim().length > 0)
         .join('\n      ');
       zip.file(`OEBPS/${filename}`, chapterXhtml(chapter.title, bodyInner));

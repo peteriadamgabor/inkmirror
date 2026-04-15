@@ -1,4 +1,4 @@
-import type { Block, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import { exportableBlocks, type Exporter, type ExportInput } from './index';
 
 // Rough A4-manuscript layout. jsPDF uses points (1/72 inch) when unit: 'pt'.
@@ -9,7 +9,18 @@ const LINE_H = 18;
 const BODY_FONT_SIZE = 12;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
-function flatten(block: Block): Array<{ kind: 'h' | 'scene' | 'speaker' | 'p'; text: string }> {
+function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string | null {
+  if (!data.speaker_id) return null;
+  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
+}
+
+function flatten(
+  block: Block,
+  characters: readonly Character[],
+): Array<{ kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p'; text: string }> {
   switch (block.type) {
     case 'scene': {
       const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
@@ -27,10 +38,16 @@ function flatten(block: Block): Array<{ kind: 'h' | 'scene' | 'speaker' | 'p'; t
       return parts;
     }
     case 'dialogue': {
-      const md =
+      const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const parts: Array<{ kind: 'speaker' | 'p'; text: string }> = [];
-      if (md?.speaker_name?.trim()) parts.push({ kind: 'speaker', text: md.speaker_name.trim() });
+      const parts: Array<{ kind: 'speaker' | 'parenthetical' | 'p'; text: string }> = [];
+      if (data) {
+        const speaker = speakerNameFor(data, characters);
+        if (speaker) parts.push({ kind: 'speaker', text: speaker });
+        if (data.parenthetical?.trim()) {
+          parts.push({ kind: 'parenthetical', text: `(${data.parenthetical.trim()})` });
+        }
+      }
       for (const p of block.content.split(/\n{2,}/)) {
         const t = p.trim();
         if (t) parts.push({ kind: 'p', text: t });
@@ -97,7 +114,7 @@ export const pdfExporter: Exporter = {
       writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
       y += LINE_H * 2;
       for (const block of exportableBlocks(chapter, input.blocks)) {
-        for (const part of flatten(block)) {
+        for (const part of flatten(block, input.characters)) {
           if (part.kind === 'scene') {
             y += LINE_H * 0.5;
             writeLines(part.text, { size: BODY_FONT_SIZE, style: 'italic', align: 'center' });
@@ -105,6 +122,8 @@ export const pdfExporter: Exporter = {
           } else if (part.kind === 'speaker') {
             y += LINE_H * 0.5;
             writeLines(part.text.toUpperCase(), { size: BODY_FONT_SIZE, style: 'bold' });
+          } else if (part.kind === 'parenthetical') {
+            writeLines(part.text, { size: BODY_FONT_SIZE - 1, style: 'italic' });
           } else {
             writeLines(part.text, { size: BODY_FONT_SIZE });
             y += LINE_H * 0.3;

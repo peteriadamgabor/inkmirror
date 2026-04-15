@@ -87,7 +87,7 @@ function metadataFor(type: BlockType): BlockMetadata {
     case 'dialogue':
       return {
         type: 'dialogue',
-        data: { speaker_id: 'synthetic', speaker_name: 'Speaker' },
+        data: { speaker_id: 'synthetic' },
       };
     case 'scene':
       return {

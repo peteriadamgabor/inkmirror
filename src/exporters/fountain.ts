@@ -1,20 +1,36 @@
-import type { Block, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
 
 // Fountain spec: https://fountain.io/syntax
 // - Scene headings start with INT. or EXT. (or I/E.) in ALL CAPS
 // - Character names are ALL CAPS lines followed immediately by dialogue
+// - Parentheticals go on their own line between speaker and dialogue
+// - Consecutive same-speaker lines get (CONT'D) on the second cue
 // - Action lines are plain paragraphs
 // - Title page uses "Key: Value" at the top
 
 function sceneHeading(md: SceneMetadata | null): string {
   const location = md?.location?.trim().toUpperCase() || 'SCENE';
   const time = md?.time?.trim().toUpperCase();
-  // Default to INT. since we have no indoor/outdoor metadata yet.
   return time ? `INT. ${location} - ${time}` : `INT. ${location}`;
 }
 
-function renderBlock(block: Block): string | null {
+function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string {
+  if (!data.speaker_id) return 'SPEAKER';
+  const c = characters.find((x) => x.id === data.speaker_id);
+  return (c?.name ?? 'SPEAKER').toUpperCase();
+}
+
+interface FountainContext {
+  characters: readonly Character[];
+  /** Speaker id of the previous dialogue block in the same chapter, if any. */
+  previousSpeakerId: string | null;
+}
+
+function renderBlock(block: Block, ctx: FountainContext): string | null {
   switch (block.type) {
     case 'note':
       return null;
@@ -24,10 +40,18 @@ function renderBlock(block: Block): string | null {
       return block.content.trim() ? `${heading}\n\n${block.content}` : heading;
     }
     case 'dialogue': {
-      const md =
+      const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const speaker = (md?.speaker_name?.trim() || 'SPEAKER').toUpperCase();
-      return `${speaker}\n${block.content}`;
+      if (!data) return block.content;
+      const baseName = speakerNameFor(data, ctx.characters);
+      const isContinuation =
+        !!data.speaker_id && data.speaker_id === ctx.previousSpeakerId;
+      const cue = isContinuation ? `${baseName} (CONT'D)` : baseName;
+      const parenthetical = data.parenthetical?.trim();
+      const lines: string[] = [cue];
+      if (parenthetical) lines.push(`(${parenthetical})`);
+      lines.push(block.content);
+      return lines.join('\n');
     }
     case 'text':
     default:
@@ -47,11 +71,24 @@ export function renderFountain(input: ExportInput): string {
   const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
   for (const chapter of sortedChapters) {
     parts.push(`# ${chapter.title}`, '');
+    // CONT'D tracking resets at every chapter boundary.
+    const ctx: FountainContext = {
+      characters: input.characters,
+      previousSpeakerId: null,
+    };
     const blocks = visibleChapterBlocks(chapter, input.blocks);
     for (const block of blocks) {
-      const rendered = renderBlock(block);
+      const rendered = renderBlock(block, ctx);
       if (rendered !== null && rendered.trim().length > 0) {
         parts.push(rendered, '');
+      }
+      // Update the CONT'D tracker. Dialogue blocks set the previous id;
+      // any non-dialogue block clears it so a later dialogue line under
+      // the same speaker still gets a fresh cue.
+      if (block.type === 'dialogue' && block.metadata.type === 'dialogue') {
+        ctx.previousSpeakerId = block.metadata.data.speaker_id || null;
+      } else {
+        ctx.previousSpeakerId = null;
       }
     }
   }

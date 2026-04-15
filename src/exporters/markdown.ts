@@ -1,7 +1,15 @@
-import type { Block, SceneMetadata, DialogueMetadata } from '@/types';
+import type { Block, Character, SceneMetadata, DialogueMetadata } from '@/types';
 import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
 
-function renderBlock(block: Block): string | null {
+function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string | null {
+  if (!data.speaker_id) return null;
+  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
+}
+
+function renderBlock(block: Block, characters: readonly Character[]): string | null {
   switch (block.type) {
     case 'note':
       return null;
@@ -15,14 +23,20 @@ function renderBlock(block: Block): string | null {
       return `${headline}\n\n${block.content}`.trimEnd();
     }
     case 'dialogue': {
-      const md =
+      const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const speaker = md?.speaker_name?.trim();
+      if (!data) return block.content;
+      const speaker = speakerNameFor(data, characters);
+      const parenthetical = data.parenthetical?.trim();
       const body = block.content
         .split('\n')
         .map((line) => `> ${line}`)
         .join('\n');
-      return speaker ? `> **${speaker}**\n${body}` : body;
+      const lines: string[] = [];
+      if (speaker) lines.push(`> **${speaker}**`);
+      if (parenthetical) lines.push(`> *(${parenthetical})*`);
+      lines.push(body);
+      return lines.join('\n');
     }
     case 'text':
     default:
@@ -42,7 +56,7 @@ export function renderMarkdown(input: ExportInput): string {
       parts.push(`\n## ${chapter.title}`);
       const blocks = visibleChapterBlocks(chapter, input.blocks);
       for (const block of blocks) {
-        const rendered = renderBlock(block);
+        const rendered = renderBlock(block, input.characters);
         if (rendered !== null && rendered.trim().length > 0) {
           parts.push(rendered);
         }
