@@ -7,6 +7,8 @@ export interface UiState {
   graveyardOpen: boolean;
   plotTimelineOpen: boolean;
   blockTypesHelpOpen: boolean;
+  hotkeysModalOpen: boolean;
+  commandPaletteOpen: boolean;
 }
 
 const SPELLCHECK_KEY = 'storyforge.spellcheck';
@@ -25,6 +27,8 @@ const [uiState, setUiState] = createStore<UiState>({
   graveyardOpen: false,
   plotTimelineOpen: false,
   blockTypesHelpOpen: false,
+  hotkeysModalOpen: false,
+  commandPaletteOpen: false,
 });
 
 export { uiState };
@@ -75,4 +79,20 @@ export function toggleBlockTypesHelp(): void {
 
 export function setBlockTypesHelpOpen(open: boolean): void {
   setUiState('blockTypesHelpOpen', open);
+}
+
+export function toggleHotkeysModal(): void {
+  setUiState('hotkeysModalOpen', (v) => !v);
+}
+
+export function setHotkeysModalOpen(open: boolean): void {
+  setUiState('hotkeysModalOpen', open);
+}
+
+export function toggleCommandPalette(): void {
+  setUiState('commandPaletteOpen', (v) => !v);
+}
+
+export function setCommandPaletteOpen(open: boolean): void {
+  setUiState('commandPaletteOpen', open);
 }

@@ -8,6 +8,7 @@ import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
 import { scheduleAiPreload } from '@/ai';
+import { installGlobalHotkeys } from '@/ui/shared/globalHotkeys';
 import { BootSplash } from '@/ui/layout/BootSplash';
 import type { Document, Chapter, Block, UUID } from '@/types';
 import './index.css';
@@ -127,6 +128,7 @@ void boot().then((result) => {
   if (result.ok) {
     setBootState({ kind: 'ready' });
     scheduleAiPreload();
+    installGlobalHotkeys();
   } else {
     setBootState({ kind: 'error', message: result.error });
   }

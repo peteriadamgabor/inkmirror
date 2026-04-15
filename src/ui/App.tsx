@@ -6,6 +6,8 @@ import { FpsOverlay } from './perf/FpsOverlay';
 import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
 import { BlockTypesHelp } from './features/BlockTypesHelp';
+import { HotkeysModal } from './features/HotkeysModal';
+import { CommandPalette } from './features/CommandPalette';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
@@ -81,6 +83,8 @@ export const App = (props: { children?: JSX.Element }) => (
     <Graveyard />
     <PlotTimeline />
     <BlockTypesHelp />
+    <HotkeysModal />
+    <CommandPalette />
     <ConfirmHost />
     <ContextMenuHost />
     <ToastHost />
