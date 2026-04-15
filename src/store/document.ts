@@ -699,6 +699,69 @@ export function renameChapter(chapterId: UUID, title: string): void {
   }
 }
 
+/**
+ * Move a block to an arbitrary target position in the blockOrder array.
+ * Used by drag-and-drop reordering. The target index is in the space of
+ * the CURRENT blockOrder — i.e. pass the index the dragged block should
+ * end up at in the final array. Same-chapter constraint enforced: drops
+ * into a different chapter are rejected (we just realign to the nearest
+ * same-chapter index to avoid silent chapter reassignment).
+ */
+export function moveBlockToPosition(blockId: UUID, targetIndex: number): boolean {
+  const order = store.blockOrder;
+  const sourceIdx = order.indexOf(blockId);
+  if (sourceIdx < 0) return false;
+  if (targetIndex === sourceIdx || targetIndex === sourceIdx + 1) return false;
+
+  const current = store.blocks[blockId];
+  if (!current) return false;
+
+  // Build the new order: remove source, insert at target.
+  const newOrder = order.slice();
+  const [moved] = newOrder.splice(sourceIdx, 1);
+  // If the source came before the target, the removal shifted everything
+  // left by one, so the target index needs to shift too.
+  const adjusted = targetIndex > sourceIdx ? targetIndex - 1 : targetIndex;
+  newOrder.splice(adjusted, 0, moved);
+
+  // Cross-chapter check: the dropped block must land between or at the
+  // edges of same-chapter blocks. If it would land between blocks from
+  // different chapters, snap to the nearest same-chapter boundary.
+  const beforeId = newOrder[adjusted - 1];
+  const afterId = newOrder[adjusted + 1];
+  const beforeBlock = beforeId ? store.blocks[beforeId] : null;
+  const afterBlock = afterId ? store.blocks[afterId] : null;
+  const beforeChapter = beforeBlock?.chapter_id;
+  const afterChapter = afterBlock?.chapter_id;
+  if (
+    (beforeChapter && beforeChapter !== current.chapter_id) &&
+    (afterChapter && afterChapter !== current.chapter_id)
+  ) {
+    return false;
+  }
+
+  setStore('blockOrder', newOrder);
+
+  // Rewrite `order` fields for every block in the source block's chapter
+  // so loadDocument rehydrates in the right sequence after reload.
+  const now = new Date().toISOString();
+  const chapterId = current.chapter_id;
+  let orderIdx = 0;
+  const documentId = store.document?.id;
+  for (const id of newOrder) {
+    const b = store.blocks[id];
+    if (!b || b.chapter_id !== chapterId) continue;
+    if (b.order !== orderIdx) {
+      setStore('blocks', id, (old) => ({ ...old, order: orderIdx, updated_at: now }));
+      if (persistEnabled && documentId) {
+        track(repo.saveBlock(unwrap(store.blocks[id]), documentId).catch(() => undefined));
+      }
+    }
+    orderIdx++;
+  }
+  return true;
+}
+
 export function moveBlock(blockId: UUID, direction: 'up' | 'down'): boolean {
   const current = store.blocks[blockId];
   if (!current) return false;

@@ -71,6 +71,30 @@ html, body, #root {
   margin-top: -4px;
 }
 
+/* Drag-and-drop reorder affordances. The source block dims while
+   it's in flight; the hover target gets a violet line above or
+   below depending on which half the pointer sits in. */
+[data-block-id][data-dragging="1"] {
+  opacity: 0.35;
+}
+[data-block-id][data-drop-before="1"]::before,
+[data-block-id][data-drop-after="1"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #7F77DD;
+  border-radius: 1px;
+  pointer-events: none;
+}
+[data-block-id][data-drop-before="1"]::before {
+  top: 0;
+}
+[data-block-id][data-drop-after="1"]::after {
+  bottom: 0;
+}
+
 /* POV dialogue: right-align the header row and push the bubble to
    the right of its column, so "me" sits on the right like an
    iMessage conversation. The content itself stays left-aligned

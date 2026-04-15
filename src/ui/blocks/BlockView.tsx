@@ -11,6 +11,7 @@ import {
   insertPastedParagraphs,
   deleteBlock,
   moveBlock,
+  moveBlockToPosition,
   store,
 } from '@/store/document';
 import { unwrap } from 'solid-js/store';
@@ -112,8 +113,11 @@ function focusBlock(blockId: string, caretPosition: 'start' | 'end' | number = '
   });
 }
 
+const DRAG_MIME = 'application/x-storyforge-block-id';
+
 export const BlockView = (props: { block: Block }) => {
   let el!: HTMLDivElement;
+  let wrapperEl!: HTMLDivElement;
   let isFocused = false;
   let isComposing = false;
 
@@ -434,6 +438,53 @@ export const BlockView = (props: { block: Block }) => {
     );
   };
 
+  // ---------- drag and drop reordering ----------
+
+  const onDragStart = (e: DragEvent) => {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData(DRAG_MIME, props.block.id);
+    // A subtle visual: dim the source while it's in flight.
+    wrapperEl.setAttribute('data-dragging', '1');
+  };
+
+  const onDragEnd = () => {
+    wrapperEl?.removeAttribute('data-dragging');
+    wrapperEl?.removeAttribute('data-drop-before');
+    wrapperEl?.removeAttribute('data-drop-after');
+  };
+
+  const onDragOver = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    // Pick a side based on the pointer's vertical position inside the row.
+    const rect = wrapperEl.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    wrapperEl.setAttribute(before ? 'data-drop-before' : 'data-drop-after', '1');
+    wrapperEl.removeAttribute(before ? 'data-drop-after' : 'data-drop-before');
+  };
+
+  const onDragLeave = () => {
+    wrapperEl?.removeAttribute('data-drop-before');
+    wrapperEl?.removeAttribute('data-drop-after');
+  };
+
+  const onDrop = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData(DRAG_MIME);
+    wrapperEl.removeAttribute('data-drop-before');
+    wrapperEl.removeAttribute('data-drop-after');
+    if (!sourceId || sourceId === props.block.id) return;
+    const rect = wrapperEl.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    const targetIdx = store.blockOrder.indexOf(props.block.id);
+    if (targetIdx < 0) return;
+    const insertAt = before ? targetIdx : targetIdx + 1;
+    moveBlockToPosition(sourceId, insertAt);
+  };
+
   const onTrash = async (e: MouseEvent) => {
     e.stopPropagation();
     const ok = await askConfirm({
@@ -506,14 +557,28 @@ export const BlockView = (props: { block: Block }) => {
 
   return (
     <div
-      class="py-2 transition-opacity duration-150"
+      ref={wrapperEl}
+      class="py-2 transition-opacity duration-150 relative group/block"
       classList={{
         'opacity-30 hover:opacity-100 focus-within:opacity-100': uiState.focusMode,
       }}
       data-block-id={props.block.id}
       data-block-type={props.block.type}
       data-pov-speaker={isPovSpeaker() ? '1' : undefined}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
     >
+      <div
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        class="absolute left-[-18px] top-3 w-4 h-5 flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-0 group-hover/block:opacity-100 transition-opacity select-none"
+        title="Drag to reorder"
+        aria-label="Drag handle"
+      >
+        ⠿
+      </div>
       <div class="flex items-center gap-2 mb-1 group/header">
         <button
           type="button"
