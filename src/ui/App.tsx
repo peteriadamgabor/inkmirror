@@ -19,13 +19,15 @@ export const App = (props: { children?: JSX.Element }) => (
       'storyforge-focus': uiState.focusMode,
     }}
   >
-    <div class="h-full w-full grid gap-4 p-4 transition-all duration-300 ease-out"
+    <div
+      class="h-full w-full grid gap-4 p-4 transition-all duration-300 ease-out min-h-0"
       style={{
         'grid-template-columns': uiState.focusMode ? '0fr 1fr 0fr' : '260px 1fr 280px',
+        'grid-template-rows': 'minmax(0, 1fr)',
       }}
     >
       <div
-        class="overflow-hidden transition-opacity duration-200"
+        class="h-full min-h-0 overflow-hidden transition-opacity duration-200"
         style={{
           opacity: uiState.focusMode ? 0 : 1,
           'pointer-events': uiState.focusMode ? 'none' : 'auto',
@@ -34,7 +36,7 @@ export const App = (props: { children?: JSX.Element }) => (
         <Sidebar />
       </div>
       <div
-        class="transition-all duration-300"
+        class="h-full min-h-0 transition-all duration-300"
         style={{
           'max-width': uiState.focusMode ? '860px' : 'none',
           'margin-left': uiState.focusMode ? 'auto' : '0',
@@ -45,7 +47,7 @@ export const App = (props: { children?: JSX.Element }) => (
         <Editor />
       </div>
       <div
-        class="overflow-hidden transition-opacity duration-200"
+        class="h-full min-h-0 overflow-hidden transition-opacity duration-200"
         style={{
           opacity: uiState.focusMode ? 0 : 1,
           'pointer-events': uiState.focusMode ? 'none' : 'auto',
