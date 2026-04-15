@@ -59,6 +59,7 @@ export interface DocumentRow {
   author: string;
   synopsis: string;
   settings: unknown;
+  pov_character_id?: string | null;
   created_at: string;
   updated_at: string;
 }

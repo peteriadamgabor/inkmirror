@@ -14,6 +14,12 @@ export interface Document {
   author: string;
   synopsis: string;
   settings: DocumentSettings;
+  /**
+   * The point-of-view character, if any. Dialogue blocks whose speaker
+   * matches this id render right-aligned (iMessage-style) so the reader's
+   * eye can track "me" vs "them" at a glance.
+   */
+  pov_character_id: UUID | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }

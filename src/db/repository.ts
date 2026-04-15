@@ -121,6 +121,7 @@ function documentToRow(d: Document): DocumentRow {
     author: d.author,
     synopsis: d.synopsis,
     settings: d.settings,
+    pov_character_id: d.pov_character_id,
     created_at: d.created_at,
     updated_at: d.updated_at,
   };
@@ -133,6 +134,8 @@ function rowToDocument(r: DocumentRow): Document {
     author: r.author,
     synopsis: r.synopsis,
     settings: r.settings as Document['settings'],
+    // Legacy rows (written before POV existed) read as null.
+    pov_character_id: r.pov_character_id ?? null,
     created_at: r.created_at,
     updated_at: r.updated_at,
   };

@@ -120,6 +120,7 @@ export function generateSyntheticDoc(opts: SyntheticDocOptions): SyntheticDoc {
       editor_width: 680,
       theme: 'light',
     },
+    pov_character_id: null,
     created_at: now,
     updated_at: now,
   };

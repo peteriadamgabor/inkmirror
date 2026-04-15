@@ -56,6 +56,7 @@ function makeDoc(): SyntheticDoc {
       editor_width: 680,
       theme: 'light',
     },
+    pov_character_id: null,
     created_at: '2026-04-12T00:00:00.000Z',
     updated_at: '2026-04-12T00:00:00.000Z',
   };

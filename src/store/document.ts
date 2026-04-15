@@ -614,8 +614,35 @@ export function deleteCharacter(id: UUID): void {
   rescanAllCharacterMentions();
   propagateCharacterDelete(id);
 
+  // If the deleted character was POV, clear the pointer so no stale UUID
+  // is left on the document row.
+  if (store.document && store.document.pov_character_id === id) {
+    setStore('document', 'pov_character_id', null);
+    const doc = unwrap(store.document);
+    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+  }
+
   if (persistEnabled) {
     track(repo.deleteCharacter(id).catch(() => undefined));
+  }
+}
+
+/**
+ * Set (or clear) the document's POV character. Dialogue blocks by this
+ * speaker render right-aligned; everyone else stays left-aligned.
+ */
+export function setPovCharacter(characterId: UUID | null): void {
+  if (!store.document) return;
+  if (characterId !== null && !store.characters.some((c) => c.id === characterId)) {
+    return;
+  }
+  const now = new Date().toISOString();
+  setStore('document', (d) =>
+    d ? { ...d, pov_character_id: characterId, updated_at: now } : d,
+  );
+  if (persistEnabled) {
+    const doc = unwrap(store.document);
+    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
   }
 }
 

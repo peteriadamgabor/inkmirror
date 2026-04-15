@@ -8,6 +8,7 @@ import {
   createCharacter,
   updateCharacter,
   deleteCharacter,
+  setPovCharacter,
 } from '@/store/document';
 import {
   toggleFocusMode,
@@ -333,11 +334,17 @@ export const Sidebar = () => {
                 deleteCharacter(c.id);
                 toast.info(`Character "${c.name}" deleted`);
               };
+              const isPov = () => store.document?.pov_character_id === c.id;
               const openCharacterMenu = (e: MouseEvent) => {
                 e.stopPropagation();
                 const trigger = e.currentTarget as HTMLElement;
                 const items: ContextMenuItem[] = [
                   { label: 'Rename', onSelect: () => startRenameCharacter(c.id, c.name) },
+                  {
+                    label: isPov() ? 'Remove POV mark' : 'Make POV character',
+                    description: 'Right-align this character\'s dialogue bubbles',
+                    onSelect: () => setPovCharacter(isPov() ? null : c.id),
+                  },
                   { kind: 'divider' },
                   {
                     label: 'Delete character',
@@ -356,7 +363,19 @@ export const Sidebar = () => {
                     class="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ 'background-color': c.color }}
                   />
-                  <Show when={isEditing()} fallback={<span class="flex-1">{c.name}</span>}>
+                  <Show when={isEditing()} fallback={
+                    <span class="flex-1 flex items-center gap-1.5">
+                      <span>{c.name}</span>
+                      <Show when={isPov()}>
+                        <span
+                          class="text-[10px] text-violet-500"
+                          title="POV character — dialogue aligns right"
+                        >
+                          ★
+                        </span>
+                      </Show>
+                    </span>
+                  }>
                     <input
                       type="text"
                       value={draft()}

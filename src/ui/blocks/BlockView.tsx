@@ -219,8 +219,38 @@ export const BlockView = (props: { block: Block }) => {
     commitDebounced();
   };
 
+  // Tab / Shift+Tab inside a dialogue block cycles through the speaker
+  // list — scene cast first when one exists, otherwise every character.
+  // Runs before the regular intent resolver so Tab never falls through
+  // to the browser's focus-advance while you're in a dialogue block.
+  const cycleSpeaker = (direction: 1 | -1): boolean => {
+    if (props.block.type !== 'dialogue') return false;
+    const castIds = sceneCastIds();
+    const pool = castIds
+      ? castIds
+          .map((id) => store.characters.find((c) => c.id === id))
+          .filter((c): c is NonNullable<typeof c> => !!c)
+      : store.characters;
+    if (pool.length === 0) return false;
+    const currentId = dialogueSpeakerId();
+    const currentIdx = currentId ? pool.findIndex((c) => c.id === currentId) : -1;
+    const nextIdx =
+      currentIdx === -1
+        ? direction === 1 ? 0 : pool.length - 1
+        : (currentIdx + direction + pool.length) % pool.length;
+    updateDialogueSpeaker(props.block.id, pool[nextIdx].id);
+    return true;
+  };
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (isComposing || e.isComposing) return;
+
+    if (e.key === 'Tab' && props.block.type === 'dialogue') {
+      if (cycleSpeaker(e.shiftKey ? -1 : 1)) {
+        e.preventDefault();
+        return;
+      }
+    }
 
     const caret = getCaretOffset(el);
     const len = el.innerText?.length ?? 0;
@@ -308,6 +338,11 @@ export const BlockView = (props: { block: Block }) => {
     return store.characters.find((c) => c.id === id) ?? null;
   };
   const dialogueSpeakerColor = () => dialogueSpeaker()?.color ?? null;
+  const isPovSpeaker = () => {
+    const pov = store.document?.pov_character_id;
+    if (!pov) return false;
+    return dialogueSpeakerId() === pov;
+  };
 
   // Walk backward from this block within the same chapter and find the
   // nearest preceding scene block. If it defines a cast, return those
@@ -450,6 +485,7 @@ export const BlockView = (props: { block: Block }) => {
       }}
       data-block-id={props.block.id}
       data-block-type={props.block.type}
+      data-pov-speaker={isPovSpeaker() ? '1' : undefined}
     >
       <div class="flex items-center gap-2 mb-1 group/header">
         <span
@@ -533,10 +569,16 @@ export const BlockView = (props: { block: Block }) => {
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/30 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
         style={
           dialogueSpeakerColor()
-            ? {
-                'border-left': `3px solid ${dialogueSpeakerColor()}`,
-                background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
-              }
+            ? isPovSpeaker()
+              ? {
+                  'border-right': `3px solid ${dialogueSpeakerColor()}`,
+                  'border-left': 'none',
+                  background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
+                }
+              : {
+                  'border-left': `3px solid ${dialogueSpeakerColor()}`,
+                  background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
+                }
             : undefined
         }
       />
