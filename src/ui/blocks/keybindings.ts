@@ -13,7 +13,6 @@ export interface KeyContext {
 
 export type KeyIntent =
   | { type: 'create-block-after' }
-  | { type: 'merge-with-previous' }
   | { type: 'delete-empty-block' }
   | { type: 'focus-previous' }
   | { type: 'focus-next' }
@@ -41,9 +40,14 @@ export function resolveKeyIntent(ctx: KeyContext): KeyIntent | null {
     return { type: 'create-block-after' };
   }
 
+  // Backspace at offset 0 only deletes the block when it is empty.
+  // Non-empty blocks stay put — merging the tail into the previous block
+  // was too destructive (it lost the block type, scene/dialogue metadata,
+  // speaker, and sentiment), and users kept triggering it by accident
+  // when their caret happened to be at the start of a line.
   if (ctx.key === 'Backspace' && ctx.caretOffset === 0) {
     if (ctx.contentLength === 0) return { type: 'delete-empty-block' };
-    return { type: 'merge-with-previous' };
+    return null;
   }
 
   if (ctx.key === 'ArrowUp' && ctx.atFirstLine) {

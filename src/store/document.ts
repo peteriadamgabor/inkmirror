@@ -467,28 +467,6 @@ export function duplicateBlock(blockId: UUID): UUID | null {
   return newId;
 }
 
-export function mergeBlockWithPrevious(
-  blockId: UUID,
-): { previousId: UUID; cursorOffset: number } | null {
-  const idx = store.blockOrder.indexOf(blockId);
-  if (idx <= 0) return null;
-  const previousId = store.blockOrder[idx - 1];
-  const previous = store.blocks[previousId];
-  const current = store.blocks[blockId];
-  if (!previous || !current) return null;
-
-  const cursorOffset = previous.content.length;
-  const mergedContent = previous.content + current.content;
-
-  updateBlockContent(previousId, mergedContent);
-  // ensure the merged content hits disk immediately so the soft-delete is
-  // never visible before the merge
-  persistBlockNow(previousId);
-  deleteBlock(blockId);
-
-  return { previousId, cursorOffset };
-}
-
 export function setActiveChapter(chapterId: UUID): void {
   if (!store.chapters.some((c) => c.id === chapterId)) return;
   setStore('activeChapterId', chapterId);
@@ -931,6 +909,22 @@ export function restoreBlockContent(blockId: UUID, content: string): void {
   setStore('blocks', blockId, (b) => ({ ...b, content, updated_at: now }));
   // Persist immediately — don't debounce — so the restored content is safe.
   persistBlockNow(blockId);
+  // Place caret at the end of the restored content so the writer can
+  // keep typing without guessing where the cursor went.
+  requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLElement>(
+      `[data-block-id="${blockId}"] [data-editable]`,
+    );
+    if (!el) return;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    if (!sel) return;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
 }
 
 async function recoverLastNonEmpty(blockId: UUID): Promise<string | null> {

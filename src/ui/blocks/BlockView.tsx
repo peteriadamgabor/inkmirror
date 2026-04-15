@@ -9,7 +9,6 @@ import {
   duplicateBlock,
   splitBlockAtCaret,
   insertPastedParagraphs,
-  mergeBlockWithPrevious,
   deleteBlock,
   moveBlock,
   store,
@@ -287,11 +286,6 @@ export const BlockView = (props: { block: Block }) => {
         }
         break;
       }
-      case 'merge-with-previous': {
-        const result = mergeBlockWithPrevious(props.block.id);
-        if (result) focusBlock(result.previousId, result.cursorOffset);
-        break;
-      }
       case 'delete-empty-block': {
         const idx = store.blockOrder.indexOf(props.block.id);
         const previousId = idx > 0 ? store.blockOrder[idx - 1] : null;
@@ -418,6 +412,39 @@ export const BlockView = (props: { block: Block }) => {
       .filter((c): c is NonNullable<typeof c> => !!c);
   };
 
+  // One-click type change from the header label: opens a compact menu
+  // right under the label so users don't have to drill into the ⋯ menu
+  // just to switch text → dialogue. Same infrastructure as the block
+  // menu, just the type rows.
+  const openTypeQuickMenu = (e: MouseEvent) => {
+    e.stopPropagation();
+    const trigger = e.currentTarget as HTMLElement;
+    const currentType = props.block.type;
+    const setType = (t: BlockType) => updateBlockType(props.block.id, t);
+    openContextMenuAt(
+      trigger,
+      [
+        { kind: 'header', label: 'Block type' },
+        { label: 'Text',     hint: meta().label === 'TEXT' ? '·' : '',     active: currentType === 'text',     onSelect: () => setType('text') },
+        { label: 'Dialogue', active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
+        { label: 'Scene',    active: currentType === 'scene',    onSelect: () => setType('scene') },
+        { label: 'Note',     active: currentType === 'note',     onSelect: () => setType('note') },
+      ],
+      { align: 'left' },
+    );
+  };
+
+  const onTrash = async (e: MouseEvent) => {
+    e.stopPropagation();
+    const ok = await askConfirm({
+      title: 'Delete block?',
+      message: 'The block will be moved to the graveyard and can be restored later.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (ok) deleteBlock(props.block.id);
+  };
+
   const openBlockMenu = (e: MouseEvent) => {
     e.stopPropagation();
     const trigger = e.currentTarget as HTMLElement;
@@ -488,12 +515,14 @@ export const BlockView = (props: { block: Block }) => {
       data-pov-speaker={isPovSpeaker() ? '1' : undefined}
     >
       <div class="flex items-center gap-2 mb-1 group/header">
-        <span
-          class={`text-[10px] uppercase tracking-wider font-medium cursor-help ${meta().className}`}
-          title={meta().hint}
+        <button
+          type="button"
+          onClick={openTypeQuickMenu}
+          class={`text-[10px] uppercase tracking-wider font-medium cursor-pointer hover:underline ${meta().className}`}
+          title={`${meta().hint} (click to change type)`}
         >
           {meta().label}
-        </span>
+        </button>
         {props.block.type === 'dialogue' && (
           <button
             type="button"
@@ -530,6 +559,15 @@ export const BlockView = (props: { block: Block }) => {
           aria-label="Open block menu"
         >
           ⋯
+        </button>
+        <button
+          type="button"
+          onClick={onTrash}
+          title="Delete block"
+          class="text-stone-400 hover:text-red-500 text-xs px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          aria-label="Delete block"
+        >
+          🗑
         </button>
         {sentiment() && (
           <span

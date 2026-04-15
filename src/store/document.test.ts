@@ -4,7 +4,6 @@ import {
   loadSyntheticDoc,
   updateBlockContent,
   createBlockAfter,
-  mergeBlockWithPrevious,
   deleteBlock,
   setPersistEnabled,
   createChapter,
@@ -106,28 +105,6 @@ describe('document store mutations', () => {
       expect(typeof newId).toBe('string');
       expect(newId.length).toBeGreaterThan(0);
       expect(store.blockOrder[store.blockOrder.length - 1]).toBe(newId);
-    });
-  });
-
-  describe('mergeBlockWithPrevious', () => {
-    it('concatenates content with the previous block and soft-deletes the merged block', () => {
-      mergeBlockWithPrevious('b2');
-      expect(store.blocks['b1'].content).toBe('firstsecond');
-      expect(store.blockOrder).toEqual(['b1', 'b3']);
-      // b2 row still exists but is flagged
-      expect(store.blocks['b2']).toBeDefined();
-      expect(store.blocks['b2'].deleted_at).toBeTruthy();
-    });
-
-    it('returns the previous block id and the cursor offset', () => {
-      const result = mergeBlockWithPrevious('b2');
-      expect(result).toEqual({ previousId: 'b1', cursorOffset: 5 });
-    });
-
-    it('is a no-op at the first block', () => {
-      const result = mergeBlockWithPrevious('b1');
-      expect(result).toBeNull();
-      expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
     });
   });
 

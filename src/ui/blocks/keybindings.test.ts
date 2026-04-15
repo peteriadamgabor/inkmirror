@@ -66,10 +66,10 @@ describe('resolveKeyIntent', () => {
   });
 
   describe('Backspace', () => {
-    it('returns merge-with-previous intent at offset 0 with non-empty content', () => {
-      expect(resolveKeyIntent(ctx({ key: 'Backspace', caretOffset: 0, contentLength: 5 }))).toEqual({
-        type: 'merge-with-previous',
-      });
+    it('returns null at offset 0 with non-empty content (merge-with-previous was too destructive)', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'Backspace', caretOffset: 0, contentLength: 5 })),
+      ).toBeNull();
     });
 
     it('returns delete-empty-block intent on an empty block', () => {
