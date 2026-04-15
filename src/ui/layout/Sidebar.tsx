@@ -10,6 +10,35 @@ import {
 } from '@/store/document';
 import { toggleFocusMode, toggleGraveyard } from '@/store/ui-state';
 import type { UUID } from '@/types';
+import { jsonExporter } from '@/exporters/json';
+import { markdownExporter } from '@/exporters/markdown';
+import { fountainExporter } from '@/exporters/fountain';
+import {
+  downloadText,
+  sanitizeFilename,
+  type Exporter,
+  type ExportInput,
+} from '@/exporters';
+
+const EXPORTERS: Exporter[] = [markdownExporter, jsonExporter, fountainExporter];
+
+function currentExportInput(): ExportInput | null {
+  if (!store.document) return null;
+  return {
+    document: store.document,
+    chapters: store.chapters,
+    blocks: store.blockOrder.map((id) => store.blocks[id]).filter(Boolean),
+    characters: store.characters,
+  };
+}
+
+function runExport(exporter: Exporter): void {
+  const input = currentExportInput();
+  if (!input) return;
+  const content = exporter.run(input);
+  const name = sanitizeFilename(input.document.title);
+  downloadText(content, `${name}.${exporter.extension}`, exporter.mimeType);
+}
 
 export const Sidebar = () => {
   const [editingChapterId, setEditingChapterId] = createSignal<UUID | null>(null);
@@ -195,6 +224,27 @@ export const Sidebar = () => {
             placeholder="+ Add character"
             class="flex-1 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-xs text-stone-800 dark:text-stone-200 py-1 placeholder-stone-400"
           />
+        </div>
+      </div>
+
+      {/* --- Export --- */}
+      <div class="flex flex-col gap-1.5 mt-2">
+        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+          Export
+        </div>
+        <div class="flex flex-wrap gap-1">
+          <For each={EXPORTERS}>
+            {(exp) => (
+              <button
+                type="button"
+                onClick={() => runExport(exp)}
+                class="px-2 py-1 text-[11px] rounded border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-violet-500 hover:text-violet-500 transition-colors"
+                title={`Download as ${exp.label}`}
+              >
+                {exp.label}
+              </button>
+            )}
+          </For>
         </div>
       </div>
 
