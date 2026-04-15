@@ -571,17 +571,17 @@ export const BlockView = (props: { block: Block }) => {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div
-        draggable
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        class="absolute left-[-18px] top-3 w-4 h-5 flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-0 group-hover/block:opacity-100 transition-opacity select-none"
-        title="Drag to reorder"
-        aria-label="Drag handle"
-      >
-        <IconDrag size={14} />
-      </div>
       <div class="flex items-center gap-2 mb-1 group/header">
+        <div
+          draggable="true"
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          class="flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-40 hover:opacity-100 transition-opacity select-none shrink-0"
+          title="Drag to reorder"
+          aria-label="Drag handle"
+        >
+          <IconDrag size={14} />
+        </div>
         <button
           type="button"
           onClick={openTypeQuickMenu}
@@ -680,6 +680,34 @@ export const BlockView = (props: { block: Block }) => {
         onCompositionEnd={onCompositionEnd}
         onPaste={onPaste}
         onKeyDown={onKeyDown}
+        onDragOver={(e) => {
+          // Cancel contenteditable's native text-drop handling when a
+          // block-level drag is in flight, so our wrapper's onDragOver
+          // / onDrop decide the outcome. Without this, the contenteditable
+          // absorbs the event and nothing reorders.
+          if (e.dataTransfer?.types.includes(DRAG_MIME)) {
+            e.preventDefault();
+          }
+        }}
+        onDrop={(e) => {
+          if (e.dataTransfer?.types.includes(DRAG_MIME)) {
+            e.preventDefault();
+            // Let the wrapper handler decide insertion side — mirror its
+            // drop logic here so the event doesn't get eaten by the
+            // contenteditable's default "insert text at caret" path.
+            const sourceId = e.dataTransfer.getData(DRAG_MIME);
+            if (sourceId && sourceId !== props.block.id) {
+              const rect = wrapperEl.getBoundingClientRect();
+              const before = e.clientY < rect.top + rect.height / 2;
+              const targetIdx = store.blockOrder.indexOf(props.block.id);
+              if (targetIdx >= 0) {
+                moveBlockToPosition(sourceId, before ? targetIdx : targetIdx + 1);
+              }
+            }
+            wrapperEl.removeAttribute('data-drop-before');
+            wrapperEl.removeAttribute('data-drop-after');
+          }
+        }}
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/30 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
         style={
           dialogueSpeakerColor()
