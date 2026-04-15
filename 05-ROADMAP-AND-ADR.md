@@ -174,11 +174,13 @@ src/
 
 **Context:** At 100,000+ words, DOM Layout Reflow is the main bottleneck.
 
-**Decision:** Use the `pretext` library for Canvas/Wasm-based text measurement.
+**Decision:** Use the `pretext` library for out-of-DOM text measurement behind our own `src/engine/measure.ts` wrapper.
 
-**Rationale:** DOM Layout Reflow re-layouts every element, which is O(n) in the number of DOM elements. `pretext` measures on Canvas, which is isolated — measuring a single block does not affect the others.
+**Rationale:** DOM Layout Reflow re-layouts every element, which is O(n) in the number of DOM elements. `pretext` measures *outside* the live DOM, so measuring a single block does not affect any other block's layout — O(1) in the number of blocks.
 
-**Risk:** `pretext` is an experimental project with an unstable API. Fallback plan: our own Canvas `measureText()` wrapper (see `src/engine/measure.ts`).
+**Correction (2026-04-15):** the original ADR claimed pretext does measurement "on Canvas/Wasm." This was wrong. `@chenglou/pretext@0.0.5` is actually pure JavaScript on top of `CanvasRenderingContext2D.measureText()` — no Wasm, no custom text shaper. The architectural conclusion (no DOM reflow, isolated measurement) still holds, and the ResizeObserver corrects estimate drift regardless, so nothing in the code had to change. The detail just matters if someone reads the ADR expecting a different performance model than what's actually running.
+
+**Risk:** `pretext` is an experimental project with an unstable API. Our own `src/engine/measure.ts` is a thin wrapper specifically so that a future swap (to a Wasm shaper, a different JS library, or a hand-rolled `measureText` implementation) is a single-file change. See also ADR-007 for why ResizeObserver makes the initial estimate accuracy less critical than it would otherwise be.
 
 ---
 
@@ -233,6 +235,61 @@ src/
 **Rationale:** The goal is to validate `pretext` + virtualization, not to finalize the editor. `contenteditable` is quick to implement and gives most basic features for free (cursor, selection, undo).
 
 **Risk:** `contenteditable` is inconsistent across browsers. In Phase 2-3 we need to switch to custom input handling (Canvas-based cursor, or a ProseMirror-like input model).
+
+---
+
+### ADR-007: ResizeObserver as source of truth + scroll-anchoring
+
+**Context:** `pretext` gives us fast out-of-DOM measurement, but the estimates are *not* pixel-perfect against the real rendered DOM. Font fallbacks, line-height rounding, kerning, Tailwind `line-clamp`, scrollbar presence, and the editor's own chrome (`py-2` wrappers, block headers, dialogue bubble radius) all introduce drift between what pretext thinks a block's height is and what the browser actually lays out. Naively feeding pretext estimates into the virtualizer left a visible 5–15 px gap between consecutive blocks on first paint, and scrolling past partially-measured blocks caused the scrollbar to jerk as totals snapped into place.
+
+**Decision:** Treat pretext as a **first-frame estimate only**. Attach a single `ResizeObserver` to every rendered block wrapper, overwrite `measurements[id]` with the real `entry.contentRect.height` as soon as it arrives, and run a **scroll-anchor restore** around every measurement update so the visible content doesn't shift under the user's cursor.
+
+**Implementation** (see `src/ui/layout/Editor.tsx`):
+
+1. **Initial pass.** On mount, loop through `store.blockOrder`, call `measurer.measure({text, font, width, lineHeight})` via the pretext wrapper, and store the result as `{height, contentHash}`. Cap the minimum at `INITIAL_BLOCK_HEIGHT` (400 px) so the scrollbar starts **too big** and shrinks rather than growing — shrinkage is visually less jarring than growth.
+2. **Source-of-truth observer.** A single `ResizeObserver` observes every `[data-block-id]` element as the virtualizer renders it. On each `ResizeObserverEntry`, round `contentRect.height`, compare with the cached estimate, and dispatch `setMeasurement` if the delta is ≥ 0.5 px.
+3. **Scroll anchor.** Before committing a batch of measurement changes, `captureAnchor()` snapshots the currently-top-visible block's index + its intra-block pixel offset. After Solid has flushed the reactive update, `queueMicrotask(() => restoreAnchor(anchor))` re-computes the new `scrollTop` so the same block sits at the same pixel position. Without this, shrinking a few blocks that live above the viewport would cause the viewport to jump upward.
+4. **Re-observe on visibility change.** A `createEffect` tracks `visibleBlocks()`; whenever the visible slice changes, we `querySelectorAll('[data-block-id]')` and observe any that aren't in the `WeakSet` yet. Unobservation is handled by the browser when the DOM node is unmounted.
+
+**Why not FLIP / `getBoundingClientRect`?** FLIP animates layout changes; we don't want animation, we want *no* visible change. Reading `getBoundingClientRect` would force a layout synchronously and defeat the whole point.
+
+**Gotcha discovered later (2026-04-15):** `scroll-behavior: smooth` on the scroll container is **actively harmful** with this pattern. It smooth-animates the programmatic `scrollTop` writes from `restoreAnchor`, which means every measurement update kicks off an animation that the next measurement interrupts, and the user sees blocks advance one at a time as the scroll never actually completes. `scroll-smooth` only smooths programmatic scrolls anyway (not wheel input), so the fix is to remove it entirely. See commit `6df8efc` for the investigation.
+
+**Risk & limits:** this pattern only works because virtualization keeps the number of observed elements roughly bounded by the viewport size. If we ever render all blocks (we won't), the observer would fire for every resize. Also: ResizeObserver is mandatory — the `typeof ResizeObserver === 'undefined'` guard silently disables remeasurement in the (vanishingly rare) case the API isn't present; a periodic remeasurement fallback is in the backlog but has never mattered in practice.
+
+---
+
+### ADR-008: Chunk-split export pipeline
+
+**Context:** Phase 4 shipped six export formats — JSON, Markdown, Fountain, EPUB, DOCX, PDF. The text formats are pure string transforms, but the three binary formats need real libraries: `jszip` for EPUB's zip container, `docx` for Word's OOXML packaging, and `jspdf` (which in turn pulls `html2canvas` and `dompurify`) for PDF rendering. Together these libraries add **~1.2 MB raw / ~370 KB gzipped** — roughly 3× the weight of everything else in the app, for a feature that runs exactly once per click and never during normal editing.
+
+**Decision:** Every export binary lib is loaded via a **dynamic `await import(...)` inside the exporter's `run()` method**, and the `Exporter` interface returns `Promise<Blob>` so text exporters can stay synchronous-feeling while binary exporters get their library lazily. Main-bundle code never imports them, and tree-shaking can't save us here (the libraries are barrel exports with side-effectful init).
+
+**Implementation** (see `src/exporters/`):
+
+- `src/exporters/index.ts` — `Exporter` interface, `textBlob()` helper, shared `exportableBlocks()` filter.
+- `src/exporters/json.ts`, `markdown.ts`, `fountain.ts` — pure string builders wrapped in a `textBlob()` at the edge. No external deps.
+- `src/exporters/epub.ts` — `const { default: JSZip } = await import('jszip')` inside `run()`. The EPUB3 templates (container.xml, content.opf, nav.xhtml, per-chapter XHTML, styles.css) are hand-rolled strings in the same file.
+- `src/exporters/docx.ts` — `const docx = await import('docx')` inside `run()`. Takes the entire module namespace so the exporter can use `Document`, `Packer`, `Paragraph`, `TextRun`, `HeadingLevel`, and `AlignmentType` without listing them individually.
+- `src/exporters/pdf.ts` — `const { jsPDF } = await import('jspdf')` inside `run()`. jsPDF brings `html2canvas` and `purify.es` along speculatively even though we never call `.html()`; accepted as noise since these live in their own chunks.
+- `src/ui/layout/Sidebar.tsx` and `src/ui/features/CommandPalette.tsx` — both eager-import the exporter modules because each `Exporter` object (the interface, label, extension, mimeType) is cheap. Only the `run()` promise pays the library cost, and only on a user click.
+
+**Bundle outcome** (from `vite build`):
+
+| Chunk | Size | When loaded |
+|---|---|---|
+| `index-*.js` (main) | ~195 KB | Always |
+| `jszip.min-*.js` | 97 KB | On EPUB click |
+| `docx` + `index.es-*.js` (2 chunks) | 557 KB | On DOCX click |
+| `jspdf.es.min-*.js` | 390 KB | On PDF click |
+| `html2canvas.esm-*.js` | 201 KB | Pulled by jspdf |
+| `purify.es-*.js` | 22 KB | Pulled by jspdf |
+
+**Why not per-exporter entry points?** Vite would still share common dependencies across entry points, and we'd lose the "one async import per library" guarantee. The current approach gives each library exactly one dynamic chunk regardless of how many exporters reference it.
+
+**Why not tree-shake the libraries?** `docx` has aggressive side effects in its entry (it builds a class registry). `jspdf` and `jszip` are similarly non-tree-shakable. Dynamic import is the only realistic isolation.
+
+**Risk:** First-click latency on the heavy formats (DOCX / PDF) is ~200-500 ms on a cold fetch, because the browser downloads and parses the chunk. Acceptable: the user clicks once and expects a download; the trade-off is obviously worth it for the main-bundle weight saved on every other page load. A follow-up item in the backlog is to preload the EPUB chunk during idle time after boot, on the theory that it's the smallest + most likely to be used.
 
 ---
 

@@ -124,3 +124,78 @@ npm install @chenglou/pretext
   `createPretextMeasurer` is added but `describe.skip`-ed under JSDOM
   with an inline comment pointing here. It must be re-enabled (or
   ported to a real-browser harness) in Task 14.
+
+---
+
+## API cheat sheet
+
+Quick reference for the `@chenglou/pretext@0.0.5` functions we'll
+touch as new features land. All of them live on
+`CanvasRenderingContext2D.measureText()` under the hood — there is
+no Wasm, no custom shaper. ADR-002 was updated in 2026-04-15 to
+reflect this; the original wording was wrong about the mechanism.
+
+### `prepare(text, font)` → opaque prepared segments
+
+Pre-parses the text into word / whitespace / punctuation segments,
+caching per-segment metrics so subsequent `layout` calls on the
+same string are cheap. Pass the CSS shorthand font string you'll
+use at render time (e.g. `"16px Georgia, serif"`). Re-call
+`prepare` whenever the text *or* the font changes.
+
+### `layout(prepared, { width, lineHeight })` → `{ height, lines }`
+
+Given a prepared string and a target column width in CSS pixels,
+returns the total rendered height and the number of line breaks.
+This is what `createPretextMeasurer` wraps — we only read `.height`
+and hand it to the virtualizer, but `.lines` is useful for features
+that want per-paragraph line counts (Story Pulse rhythm viz).
+
+### `layoutWithLines(prepared, opts)` → `{ height, lines, lineRanges }`
+
+Same as `layout` but also returns an array of `{start, end}`
+character offsets per line. This is the hook for the backlog's
+"sentence rhythm via `walkLineRanges`" Story Pulse item — it lets
+us measure line-by-line widths and velocity rather than guessing
+from sentence boundaries in the plain string.
+
+### `walkLineRanges(prepared, width, visit)` → void
+
+Streaming variant: calls `visit({start, end, width})` for each
+line produced by the current width. Cheaper than `layoutWithLines`
+when we only need a callback-style pass (e.g. for drawing a
+per-line bar chart). The pretext author explicitly calls out
+"editor virtualization with per-line hit testing" as the target
+use case — this is the piece that unlocks proper Dual Pulse and
+@-mention hit testing later.
+
+### `@chenglou/pretext/rich-inline`
+
+A separate entry point exposing an inline-rich-text renderer that
+takes a `(segment, metrics) => node` callback and walks a prepared
+string, yielding a mix of plain text and custom inline nodes. This
+is the plumbing for character `@mentions`, code spans, and inline
+chips inside dialogue blocks — see the "rich text" and "phase 3+
+hooks" sections of the backlog. Not imported yet; the sample code
+in pretext's README is the starting point.
+
+### Lifecycle notes
+
+- **Web fonts.** `prepare` reads font metrics via `ctx.measureText`,
+  which depends on `document.fonts.ready` for fallback-vs-real font
+  resolution. The boot path already awaits `document.fonts.ready`
+  (bounded 1.5 s) before the first measurement pass — see
+  `src/index.tsx`. If a new font is added later, the wait needs to
+  cover it too.
+- **Memoization.** `createMemoizedMeasurer` in `src/engine/measure.ts`
+  caches `{content hash, width, font} → height`. pretext prepares
+  internally, we memoize on top. Invalidation on content edit is
+  driven by the content hash — see `Editor.tsx`'s initial pass.
+- **ResizeObserver is still the source of truth.** See ADR-007.
+  Pretext is a fast estimate; real DOM heights arrive asynchronously
+  via the observer and overwrite the cached value. Treat any pretext
+  number as "good enough for the first frame" and not authoritative.
+- **Churn risk.** Still `0.0.x`, pinned to `^0.0.5` in `package.json`.
+  The wrapper in `measure.ts` is the documented escape hatch per
+  ADR-002 — if the API breaks, point `createPretextMeasurer` at the
+  Canvas fallback and everything downstream keeps working.

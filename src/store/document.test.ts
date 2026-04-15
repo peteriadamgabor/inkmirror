@@ -91,6 +91,14 @@ describe('document store mutations', () => {
     });
   });
 
+  describe('multi-line content (Shift+Enter soft break)', () => {
+    it('preserves embedded newlines in block content', () => {
+      updateBlockContent('b1', 'first line\nsecond line\nthird line');
+      expect(store.blocks['b1'].content).toBe('first line\nsecond line\nthird line');
+      expect(store.blocks['b1'].content.split('\n')).toHaveLength(3);
+    });
+  });
+
   describe('createBlockAfter', () => {
     it('inserts a new empty text block after the given id', () => {
       const newId = createBlockAfter('b1');
