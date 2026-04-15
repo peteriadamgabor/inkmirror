@@ -2,6 +2,7 @@ import { For, createSignal, Show } from 'solid-js';
 import {
   store,
   createChapter,
+  deleteChapter,
   renameChapter,
   setActiveChapter,
   createCharacter,
@@ -176,11 +177,23 @@ export const Sidebar = () => {
             {(c) => {
               const isActive = () => store.activeChapterId === c.id;
               const isEditing = () => editingChapterId() === c.id;
+              const canDelete = () => store.chapters.length > 1;
+              const onDelete = (e: MouseEvent) => {
+                e.stopPropagation();
+                if (!canDelete()) return;
+                const blockCount = store.blockOrder.filter(
+                  (id) => store.blocks[id]?.chapter_id === c.id,
+                ).length;
+                const msg = `Delete "${c.title}"? ${blockCount} block${
+                  blockCount === 1 ? '' : 's'
+                } will be moved to the graveyard.`;
+                if (confirm(msg)) deleteChapter(c.id);
+              };
               return (
                 <div
                   onClick={() => !isEditing() && setActiveChapter(c.id)}
                   onDblClick={() => startRenameChapter(c.id, c.title)}
-                  class="group relative py-1.5 pl-3 pr-2 text-sm text-stone-800 dark:text-stone-200 rounded cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  class="group relative py-1.5 pl-3 pr-2 text-sm text-stone-800 dark:text-stone-200 rounded cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center"
                   classList={{
                     'bg-stone-100 dark:bg-stone-700': isActive(),
                   }}
@@ -188,41 +201,53 @@ export const Sidebar = () => {
                     'border-left': isActive() ? '2px solid #7F77DD' : '2px solid transparent',
                   }}
                 >
-                  <Show
-                    when={isEditing()}
-                    fallback={
-                      <span class="flex items-center gap-1.5">
-                        <Show when={c.kind !== 'standard'}>
-                          <span class="text-[10px] text-stone-400 italic">
-                            {CHAPTER_KIND_GLYPH[c.kind]}
-                          </span>
-                        </Show>
-                        <span>{c.title}</span>
-                      </span>
-                    }
-                  >
-                    <input
-                      type="text"
-                      value={draft()}
-                      onInput={(e) => setDraft(e.currentTarget.value)}
-                      onBlur={commitChapterRename}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          commitChapterRename();
-                        } else if (e.key === 'Escape') {
-                          e.preventDefault();
-                          setEditingChapterId(null);
-                        }
-                      }}
-                      ref={(el) => {
-                        queueMicrotask(() => {
-                          el.focus();
-                          el.select();
-                        });
-                      }}
-                      class="w-full bg-transparent outline-none border-b border-violet-500 text-stone-800 dark:text-stone-200"
-                    />
+                  <div class="flex-1 min-w-0">
+                    <Show
+                      when={isEditing()}
+                      fallback={
+                        <span class="flex items-center gap-1.5 truncate">
+                          <Show when={c.kind !== 'standard'}>
+                            <span class="text-[10px] text-stone-400 italic">
+                              {CHAPTER_KIND_GLYPH[c.kind]}
+                            </span>
+                          </Show>
+                          <span class="truncate">{c.title}</span>
+                        </span>
+                      }
+                    >
+                      <input
+                        type="text"
+                        value={draft()}
+                        onInput={(e) => setDraft(e.currentTarget.value)}
+                        onBlur={commitChapterRename}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitChapterRename();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            setEditingChapterId(null);
+                          }
+                        }}
+                        ref={(el) => {
+                          queueMicrotask(() => {
+                            el.focus();
+                            el.select();
+                          });
+                        }}
+                        class="w-full bg-transparent outline-none border-b border-violet-500 text-stone-800 dark:text-stone-200"
+                      />
+                    </Show>
+                  </div>
+                  <Show when={!isEditing() && canDelete()}>
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      title="Delete chapter (blocks go to graveyard)"
+                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
+                    >
+                      ×
+                    </button>
                   </Show>
                 </div>
               );

@@ -513,6 +513,67 @@ export function deleteCharacter(id: UUID): void {
   }
 }
 
+/**
+ * Delete a chapter: hard-remove the chapter row and soft-delete every
+ * block that belonged to it (blocks go to the graveyard carrying a
+ * deleted_from trail, so the user can restore individual blocks later).
+ * Refuses to delete the last chapter — there must always be at least one.
+ */
+export function deleteChapter(chapterId: UUID): boolean {
+  if (store.chapters.length <= 1) return false;
+  const chapter = store.chapters.find((c) => c.id === chapterId);
+  if (!chapter) return false;
+
+  const doomedBlockIds = store.blockOrder.filter(
+    (id) => store.blocks[id]?.chapter_id === chapterId,
+  );
+  const now = new Date().toISOString();
+
+  // Soft-delete each block with a deleted_from trail so the graveyard
+  // entry remembers which chapter it came from (even after the chapter
+  // row itself disappears).
+  for (const blockId of doomedBlockIds) {
+    const block = store.blocks[blockId];
+    if (!block) continue;
+    const deletedFrom: NonNullable<Block['deleted_from']> = {
+      chapter_id: chapterId,
+      chapter_title: chapter.title,
+      position: store.blockOrder.indexOf(blockId),
+    };
+    setStore('blocks', blockId, (b) => ({
+      ...b,
+      deleted_at: now,
+      deleted_from: deletedFrom,
+      updated_at: now,
+    }));
+    if (persistEnabled && store.document) {
+      track(
+        repo
+          .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
+          .catch(() => undefined),
+      );
+    }
+  }
+
+  setStore(
+    'blockOrder',
+    store.blockOrder.filter((id) => !doomedBlockIds.includes(id)),
+  );
+
+  // Remove the chapter from the store and the active pointer.
+  const remaining = store.chapters.filter((c) => c.id !== chapterId);
+  setStore('chapters', remaining);
+  if (store.activeChapterId === chapterId) {
+    const fallback = remaining[0]?.id ?? null;
+    setStore('activeChapterId', fallback);
+  }
+
+  if (persistEnabled) {
+    track(repo.deleteChapterRow(chapterId).catch(() => undefined));
+  }
+  return true;
+}
+
 export function renameChapter(chapterId: UUID, title: string): void {
   const trimmed = title.trim();
   if (!trimmed) return;

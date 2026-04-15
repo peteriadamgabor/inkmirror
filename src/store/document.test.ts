@@ -8,6 +8,7 @@ import {
   deleteBlock,
   setPersistEnabled,
   createChapter,
+  deleteChapter,
   renameChapter,
   setActiveChapter,
   moveBlock,
@@ -150,6 +151,30 @@ describe('document store mutations', () => {
       createChapter();
       const titles = store.chapters.map((c) => c.title);
       expect(titles).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
+    });
+  });
+
+  describe('deleteChapter', () => {
+    it('refuses to delete the last remaining chapter', () => {
+      const result = deleteChapter('ch1');
+      expect(result).toBe(false);
+      expect(store.chapters).toHaveLength(1);
+    });
+
+    it('removes the chapter row and soft-deletes its blocks', () => {
+      const { chapterId } = createChapter()!;
+      // ch1 has 3 blocks from the fixture.
+      const ch1Blocks = ['b1', 'b2', 'b3'];
+      const result = deleteChapter('ch1');
+      expect(result).toBe(true);
+      expect(store.chapters.find((c) => c.id === 'ch1')).toBeUndefined();
+      for (const id of ch1Blocks) {
+        expect(store.blocks[id].deleted_at).not.toBeNull();
+        expect(store.blocks[id].deleted_from?.chapter_title).toBe('Chapter 1');
+        expect(store.blockOrder).not.toContain(id);
+      }
+      // Active chapter jumps to the surviving one.
+      expect(store.activeChapterId).toBe(chapterId);
     });
   });
 

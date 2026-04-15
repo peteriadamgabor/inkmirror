@@ -149,6 +149,7 @@ export interface DbLike {
   chapters: {
     put(row: ChapterRow): Promise<unknown>;
     getAllByDocument(documentId: string): Promise<ChapterRow[]>;
+    delete(id: string): Promise<unknown>;
   };
   blocks: {
     put(row: BlockRow): Promise<unknown>;
@@ -192,6 +193,7 @@ function realDb(idb: StoryForgeDb): DbLike {
       put: (row) => idb.put('chapters', row),
       getAllByDocument: (documentId) =>
         idb.getAllFromIndex('chapters', 'by_document', documentId),
+      delete: (id) => idb.delete('chapters', id),
     },
     blocks: {
       put: (row) => idb.put('blocks', row),
@@ -243,6 +245,16 @@ export async function saveDocument(doc: Document): Promise<void> {
     await d.documents.put(documentToRow(doc));
   } catch (err) {
     logDbError('repository.saveDocument', err);
+    throw err;
+  }
+}
+
+export async function deleteChapterRow(id: UUID): Promise<void> {
+  try {
+    const d = await db();
+    await d.chapters.delete(id);
+  } catch (err) {
+    logDbError('repository.deleteChapterRow', err);
     throw err;
   }
 }

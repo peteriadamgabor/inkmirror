@@ -64,6 +64,10 @@ function createMockDb(): { db: DbLike; state: MockState } {
       async getAllByDocument(documentId) {
         return state.chapters.filter((r) => r.document_id === documentId);
       },
+      async delete(id) {
+        const idx = state.chapters.findIndex((r) => r.id === id);
+        if (idx >= 0) state.chapters.splice(idx, 1);
+      },
     },
     blocks: {
       async put(row) {
