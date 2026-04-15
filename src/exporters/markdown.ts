@@ -1,5 +1,5 @@
 import type { Block, SceneMetadata, DialogueMetadata } from '@/types';
-import { visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
 
 function renderBlock(block: Block): string | null {
   switch (block.type) {
@@ -30,12 +30,7 @@ function renderBlock(block: Block): string | null {
   }
 }
 
-export const markdownExporter: Exporter = {
-  format: 'markdown',
-  label: 'Markdown',
-  extension: 'md',
-  mimeType: 'text/markdown',
-  run(input: ExportInput): string {
+export function renderMarkdown(input: ExportInput): string {
     const parts: string[] = [];
     const doc = input.document;
     parts.push(`# ${doc.title || 'Untitled'}`);
@@ -64,5 +59,14 @@ export const markdownExporter: Exporter = {
     }
 
     return parts.join('\n\n') + '\n';
+}
+
+export const markdownExporter: Exporter = {
+  format: 'markdown',
+  label: 'Markdown',
+  extension: 'md',
+  mimeType: 'text/markdown',
+  async run(input: ExportInput): Promise<Blob> {
+    return textBlob(renderMarkdown(input), 'text/markdown');
   },
 };

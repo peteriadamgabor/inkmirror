@@ -13,14 +13,24 @@ import type { UUID } from '@/types';
 import { jsonExporter } from '@/exporters/json';
 import { markdownExporter } from '@/exporters/markdown';
 import { fountainExporter } from '@/exporters/fountain';
+import { epubExporter } from '@/exporters/epub';
+import { docxExporter } from '@/exporters/docx';
+import { pdfExporter } from '@/exporters/pdf';
 import {
-  downloadText,
+  downloadBlob,
   sanitizeFilename,
   type Exporter,
   type ExportInput,
 } from '@/exporters';
 
-const EXPORTERS: Exporter[] = [markdownExporter, jsonExporter, fountainExporter];
+const EXPORTERS: Exporter[] = [
+  markdownExporter,
+  jsonExporter,
+  fountainExporter,
+  epubExporter,
+  docxExporter,
+  pdfExporter,
+];
 
 function currentExportInput(): ExportInput | null {
   if (!store.document) return null;
@@ -32,12 +42,25 @@ function currentExportInput(): ExportInput | null {
   };
 }
 
-function runExport(exporter: Exporter): void {
+const [exportingFormat, setExportingFormat] = createSignal<string | null>(null);
+const [exportError, setExportError] = createSignal<string | null>(null);
+
+async function runExport(exporter: Exporter): Promise<void> {
   const input = currentExportInput();
   if (!input) return;
-  const content = exporter.run(input);
-  const name = sanitizeFilename(input.document.title);
-  downloadText(content, `${name}.${exporter.extension}`, exporter.mimeType);
+  setExportError(null);
+  setExportingFormat(exporter.format);
+  try {
+    const blob = await exporter.run(input);
+    const name = sanitizeFilename(input.document.title);
+    downloadBlob(blob, `${name}.${exporter.extension}`);
+  } catch (err) {
+    setExportError(
+      `${exporter.label} export failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    setExportingFormat(null);
+  }
 }
 
 export const Sidebar = () => {
@@ -234,18 +257,26 @@ export const Sidebar = () => {
         </div>
         <div class="flex flex-wrap gap-1">
           <For each={EXPORTERS}>
-            {(exp) => (
-              <button
-                type="button"
-                onClick={() => runExport(exp)}
-                class="px-2 py-1 text-[11px] rounded border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-violet-500 hover:text-violet-500 transition-colors"
-                title={`Download as ${exp.label}`}
-              >
-                {exp.label}
-              </button>
-            )}
+            {(exp) => {
+              const busy = () => exportingFormat() === exp.format;
+              const anyBusy = () => exportingFormat() !== null;
+              return (
+                <button
+                  type="button"
+                  disabled={anyBusy()}
+                  onClick={() => void runExport(exp)}
+                  class="px-2 py-1 text-[11px] rounded border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-violet-500 hover:text-violet-500 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                  title={`Download as ${exp.label}`}
+                >
+                  {busy() ? '…' : exp.label}
+                </button>
+              );
+            }}
           </For>
         </div>
+        <Show when={exportError()}>
+          <div class="text-[10px] text-red-500 px-1 break-all">{exportError()}</div>
+        </Show>
       </div>
 
       {/* --- Workspace actions --- */}

@@ -1,4 +1,4 @@
-import type { Exporter, ExportInput } from './index';
+import { textBlob, type Exporter, type ExportInput } from './index';
 
 interface JsonExport {
   format_version: 1;
@@ -35,7 +35,12 @@ export const jsonExporter: Exporter = {
   label: 'JSON',
   extension: 'json',
   mimeType: 'application/json',
-  run(input: ExportInput): string {
+  async run(input: ExportInput): Promise<Blob> {
+    return textBlob(renderJson(input), 'application/json');
+  },
+};
+
+export function renderJson(input: ExportInput): string {
     const payload: JsonExport = {
       format_version: 1,
       exported_at: new Date().toISOString(),
@@ -72,5 +77,4 @@ export const jsonExporter: Exporter = {
       })),
     };
     return JSON.stringify(payload, null, 2);
-  },
-};
+}

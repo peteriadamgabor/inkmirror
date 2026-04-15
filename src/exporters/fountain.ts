@@ -1,5 +1,5 @@
 import type { Block, DialogueMetadata, SceneMetadata } from '@/types';
-import { visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
 
 // Fountain spec: https://fountain.io/syntax
 // - Scene headings start with INT. or EXT. (or I/E.) in ALL CAPS
@@ -35,34 +35,36 @@ function renderBlock(block: Block): string | null {
   }
 }
 
+export function renderFountain(input: ExportInput): string {
+  const parts: string[] = [];
+  const doc = input.document;
+  parts.push(
+    `Title: ${doc.title || 'Untitled'}`,
+    `Author: ${doc.author || ''}`,
+    '',
+  );
+
+  const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+  for (const chapter of sortedChapters) {
+    parts.push(`# ${chapter.title}`, '');
+    const blocks = visibleChapterBlocks(chapter, input.blocks);
+    for (const block of blocks) {
+      const rendered = renderBlock(block);
+      if (rendered !== null && rendered.trim().length > 0) {
+        parts.push(rendered, '');
+      }
+    }
+  }
+
+  return parts.join('\n');
+}
+
 export const fountainExporter: Exporter = {
   format: 'fountain',
   label: 'Fountain',
   extension: 'fountain',
   mimeType: 'text/plain',
-  run(input: ExportInput): string {
-    const parts: string[] = [];
-    const doc = input.document;
-    // Title page
-    parts.push(
-      `Title: ${doc.title || 'Untitled'}`,
-      `Author: ${doc.author || ''}`,
-      '',
-    );
-
-    const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
-    for (const chapter of sortedChapters) {
-      // Chapter title as a section header (Fountain extension, widely supported)
-      parts.push(`# ${chapter.title}`, '');
-      const blocks = visibleChapterBlocks(chapter, input.blocks);
-      for (const block of blocks) {
-        const rendered = renderBlock(block);
-        if (rendered !== null && rendered.trim().length > 0) {
-          parts.push(rendered, '');
-        }
-      }
-    }
-
-    return parts.join('\n');
+  async run(input: ExportInput): Promise<Blob> {
+    return textBlob(renderFountain(input), 'text/plain');
   },
 };

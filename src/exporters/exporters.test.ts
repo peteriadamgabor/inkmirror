@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { jsonExporter } from './json';
-import { markdownExporter } from './markdown';
-import { fountainExporter } from './fountain';
+import { renderJson } from './json';
+import { renderMarkdown } from './markdown';
+import { renderFountain } from './fountain';
 import type { Block, Chapter, Character, Document } from '@/types';
 import type { ExportInput } from './index';
 
@@ -60,7 +60,7 @@ function makeInput(): ExportInput {
 }
 
 describe('jsonExporter', () => {
-  const out = JSON.parse(jsonExporter.run(makeInput()));
+  const out = JSON.parse(renderJson(makeInput()));
   it('includes document metadata and characters', () => {
     expect(out.document.title).toBe('My Novel');
     expect(out.characters).toHaveLength(1);
@@ -77,7 +77,7 @@ describe('jsonExporter', () => {
 });
 
 describe('markdownExporter', () => {
-  const out = markdownExporter.run(makeInput());
+  const out = renderMarkdown(makeInput());
   it('renders title and chapter headings', () => {
     expect(out).toContain('# My Novel');
     expect(out).toContain('*by Test Author*');
@@ -103,7 +103,7 @@ describe('markdownExporter', () => {
 });
 
 describe('fountainExporter', () => {
-  const out = fountainExporter.run(makeInput());
+  const out = renderFountain(makeInput());
   it('emits title page', () => {
     expect(out).toContain('Title: My Novel');
     expect(out).toContain('Author: Test Author');
@@ -119,3 +119,4 @@ describe('fountainExporter', () => {
     expect(out).not.toContain('Deleted');
   });
 });
+
