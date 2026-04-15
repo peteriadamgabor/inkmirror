@@ -3,6 +3,7 @@ import type { Block, BlockType } from '@/types';
 import {
   updateBlockContent,
   updateBlockType,
+  updateDialogueSpeaker,
   createBlockAfter,
   duplicateBlock,
   splitBlockAtCaret,
@@ -13,14 +14,13 @@ import {
   store,
 } from '@/store/document';
 import { uiState } from '@/store/ui-state';
-import { openContextMenuAt } from '@/ui/shared/contextMenu';
+import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
-import { DialogueSpeakerEditor } from './DialogueSpeakerEditor';
 import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
 
@@ -278,11 +278,40 @@ export const BlockView = (props: { block: Block }) => {
 
   const meta = () => TYPE_LABELS[props.block.type];
   const sentiment = () => store.sentiments[props.block.id];
-  const dialogueSpeakerColor = () => {
-    if (props.block.metadata.type !== 'dialogue') return null;
-    const speakerId = props.block.metadata.data.speaker_id;
-    if (!speakerId) return null;
-    return store.characters.find((c) => c.id === speakerId)?.color ?? null;
+  const dialogueSpeakerId = () => {
+    if (props.block.metadata.type !== 'dialogue') return '';
+    return props.block.metadata.data.speaker_id;
+  };
+  const dialogueSpeaker = () => {
+    const id = dialogueSpeakerId();
+    if (!id) return null;
+    return store.characters.find((c) => c.id === id) ?? null;
+  };
+  const dialogueSpeakerColor = () => dialogueSpeaker()?.color ?? null;
+
+  const openSpeakerMenu = (e: MouseEvent) => {
+    e.stopPropagation();
+    const trigger = e.currentTarget as HTMLElement;
+    const currentId = dialogueSpeakerId();
+    const items: ContextMenuItem[] = [
+      { kind: 'header', label: 'Speaker' },
+      {
+        label: 'Unassigned',
+        active: !currentId,
+        onSelect: () => updateDialogueSpeaker(props.block.id, null),
+      },
+    ];
+    if (store.characters.length > 0) {
+      items.push({ kind: 'divider' });
+      for (const c of store.characters) {
+        items.push({
+          label: c.name,
+          active: c.id === currentId,
+          onSelect: () => updateDialogueSpeaker(props.block.id, c.id),
+        });
+      }
+    }
+    openContextMenuAt(trigger, items);
   };
   const mentionedChars = () => {
     const ids = store.characterMentions[props.block.id] ?? [];
@@ -357,11 +386,40 @@ export const BlockView = (props: { block: Block }) => {
         'opacity-30 hover:opacity-100 focus-within:opacity-100': uiState.focusMode,
       }}
       data-block-id={props.block.id}
+      data-block-type={props.block.type}
     >
       <div class="flex items-center gap-2 mb-1 group/header">
         <span class={`text-[10px] uppercase tracking-wider font-medium ${meta().className}`}>
           {meta().label}
         </span>
+        {props.block.type === 'dialogue' && (
+          <button
+            type="button"
+            onClick={openSpeakerMenu}
+            class="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors"
+            classList={{
+              'border-stone-200 dark:border-stone-700 text-stone-400 italic hover:text-teal-600 hover:border-teal-500':
+                !dialogueSpeaker(),
+              'border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-teal-500':
+                !!dialogueSpeaker(),
+            }}
+            title="Change speaker"
+          >
+            <span
+              class="w-2 h-2 rounded-full"
+              style={
+                dialogueSpeakerColor()
+                  ? { 'background-color': dialogueSpeakerColor()! }
+                  : undefined
+              }
+              classList={{
+                'border border-stone-300 dark:border-stone-600': !dialogueSpeakerColor(),
+              }}
+            />
+            <span>{dialogueSpeaker()?.name ?? 'speaker'}</span>
+            <span class="text-stone-400 text-[8px]">▾</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={openBlockMenu}
@@ -394,7 +452,6 @@ export const BlockView = (props: { block: Block }) => {
         )}
       </div>
       {props.block.type === 'scene' && <SceneMetadataEditor block={props.block} />}
-      {props.block.type === 'dialogue' && <DialogueSpeakerEditor block={props.block} />}
       <div
         ref={el}
         data-editable

@@ -46,3 +46,21 @@ html, body, #root {
   font-style: italic;
   padding-top: 20vh;
 }
+
+/* Dialogue blocks get a subtle tint on the content area so they feel
+   like a chat thread inside a run of normal prose. The left-border
+   color accent (writer-driven via character color) stays on top. */
+[data-block-type="dialogue"] [data-editable] {
+  background: rgba(20, 184, 166, 0.06);
+}
+.dark [data-block-type="dialogue"] [data-editable] {
+  background: rgba(20, 184, 166, 0.08);
+}
+/* Tighten vertical spacing between consecutive dialogue blocks so
+   back-and-forth conversations feel grouped rather than paragraphed. */
+[data-block-type="dialogue"] + [data-block-type="dialogue"] {
+  padding-top: 2px;
+}
+[data-block-type="dialogue"] + [data-block-type="dialogue"] > div:first-child {
+  margin-top: -2px;
+}

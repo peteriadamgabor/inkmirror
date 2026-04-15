@@ -330,7 +330,7 @@ export function updateBlockContent(
   scheduleBlockContentWrite(blockId);
 }
 
-export function createBlockAfter(blockId: UUID): UUID {
+export function createBlockAfter(blockId: UUID, type: BlockType = 'text'): UUID {
   const existing = store.blocks[blockId];
   if (!existing) throw new Error(`createBlockAfter: unknown block ${blockId}`);
 
@@ -339,10 +339,10 @@ export function createBlockAfter(blockId: UUID): UUID {
   const newBlock: Block = {
     id: newId,
     chapter_id: existing.chapter_id,
-    type: 'text',
+    type,
     content: '',
     order: existing.order + 1,
-    metadata: { type: 'text' },
+    metadata: defaultMetadataFor(type),
     deleted_at: null,
     deleted_from: null,
     created_at: now,
@@ -378,7 +378,10 @@ export function splitBlockAtCaret(
   const content = block.content;
   const head = content.slice(0, caretOffset);
   const tail = content.slice(caretOffset);
-  const newId = createBlockAfter(blockId);
+  // Inherit the source block's type so pressing Enter inside a dialogue
+  // block gives you another dialogue line (with an empty speaker, ready
+  // for the next turn) instead of kicking back to text.
+  const newId = createBlockAfter(blockId, block.type);
   if (tail.length > 0) {
     updateBlockContent(newId, tail);
   }
