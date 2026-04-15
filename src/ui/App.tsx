@@ -7,6 +7,7 @@ import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
+import { ContextMenuHost } from './shared/ContextMenuHost';
 import { uiState, toggleFocusMode, toggleZenMode } from '@/store/ui-state';
 import type { JSX } from 'solid-js';
 
@@ -77,6 +78,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <Graveyard />
     <PlotTimeline />
     <ConfirmHost />
+    <ContextMenuHost />
     <ToastHost />
     {props.children}
   </div>

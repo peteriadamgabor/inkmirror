@@ -48,6 +48,7 @@ import {
 } from '@/exporters';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
+import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 
 const EXPORTERS: Exporter[] = [
   markdownExporter,
@@ -199,9 +200,11 @@ export const Sidebar = () => {
               const isActive = () => store.activeChapterId === c.id;
               const isEditing = () => editingChapterId() === c.id;
               const canDelete = () => store.chapters.length > 1;
-              const onDelete = async (e: MouseEvent) => {
-                e.stopPropagation();
-                if (!canDelete()) return;
+              const doDelete = async () => {
+                if (!canDelete()) {
+                  toast.error('Cannot delete the last remaining chapter');
+                  return;
+                }
                 const blockCount = store.blockOrder.filter(
                   (id) => store.blocks[id]?.chapter_id === c.id,
                 ).length;
@@ -221,6 +224,21 @@ export const Sidebar = () => {
                     } in graveyard`,
                   );
                 }
+              };
+              const openMenu = (e: MouseEvent) => {
+                e.stopPropagation();
+                const trigger = e.currentTarget as HTMLElement;
+                const items: ContextMenuItem[] = [
+                  { label: 'Rename', onSelect: () => startRenameChapter(c.id, c.title) },
+                  { kind: 'divider' },
+                  {
+                    label: 'Delete chapter',
+                    danger: true,
+                    disabled: !canDelete(),
+                    onSelect: () => void doDelete(),
+                  },
+                ];
+                openContextMenuAt(trigger, items, { align: 'right' });
               };
               return (
                 <div
@@ -272,14 +290,14 @@ export const Sidebar = () => {
                       />
                     </Show>
                   </div>
-                  <Show when={!isEditing() && canDelete()}>
+                  <Show when={!isEditing()}>
                     <button
                       type="button"
-                      onClick={onDelete}
-                      title="Delete chapter (blocks go to graveyard)"
-                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
+                      onClick={openMenu}
+                      title="Chapter actions"
+                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
                     >
-                      ×
+                      ⋯
                     </button>
                   </Show>
                 </div>
@@ -302,6 +320,32 @@ export const Sidebar = () => {
           >
             {(c) => {
               const isEditing = () => editingCharacterId() === c.id;
+              const doDeleteCharacter = async () => {
+                const ok = await askConfirm({
+                  title: `Delete character "${c.name}"?`,
+                  message:
+                    'Character mentions in existing blocks will stop highlighting this person. The character can be recreated by name later.',
+                  confirmLabel: 'Delete',
+                  danger: true,
+                });
+                if (!ok) return;
+                deleteCharacter(c.id);
+                toast.info(`Character "${c.name}" deleted`);
+              };
+              const openCharacterMenu = (e: MouseEvent) => {
+                e.stopPropagation();
+                const trigger = e.currentTarget as HTMLElement;
+                const items: ContextMenuItem[] = [
+                  { label: 'Rename', onSelect: () => startRenameCharacter(c.id, c.name) },
+                  { kind: 'divider' },
+                  {
+                    label: 'Delete character',
+                    danger: true,
+                    onSelect: () => void doDeleteCharacter(),
+                  },
+                ];
+                openContextMenuAt(trigger, items, { align: 'right' });
+              };
               return (
                 <div
                   onDblClick={() => startRenameCharacter(c.id, c.name)}
@@ -335,26 +379,16 @@ export const Sidebar = () => {
                       class="flex-1 bg-transparent outline-none border-b border-violet-500 text-stone-800 dark:text-stone-200"
                     />
                   </Show>
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const ok = await askConfirm({
-                        title: `Delete character "${c.name}"?`,
-                        message:
-                          'Character mentions in existing blocks will stop highlighting this person. The character can be recreated by name later.',
-                        confirmLabel: 'Delete',
-                        danger: true,
-                      });
-                      if (!ok) return;
-                      deleteCharacter(c.id);
-                      toast.info(`Character "${c.name}" deleted`);
-                    }}
-                    title="Delete character"
-                    class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity"
-                  >
-                    ×
-                  </button>
+                  <Show when={!isEditing()}>
+                    <button
+                      type="button"
+                      onClick={openCharacterMenu}
+                      title="Character actions"
+                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-xs w-5 h-5 flex items-center justify-center rounded transition-opacity"
+                    >
+                      ⋯
+                    </button>
+                  </Show>
                 </div>
               );
             }}

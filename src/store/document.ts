@@ -365,6 +365,32 @@ export function insertPastedParagraphs(
   };
 }
 
+/**
+ * Duplicate a block: creates a sibling immediately after the original
+ * with identical type, content, and metadata. Returns the new block id.
+ */
+export function duplicateBlock(blockId: UUID): UUID | null {
+  const source = store.blocks[blockId];
+  if (!source) return null;
+  const newId = createBlockAfter(blockId);
+  const now = new Date().toISOString();
+  setStore('blocks', newId, (b) => ({
+    ...b,
+    type: source.type,
+    content: source.content,
+    metadata: source.metadata,
+    updated_at: now,
+  }));
+  if (persistEnabled && store.document) {
+    track(
+      repo
+        .saveBlock(unwrap(store.blocks[newId]), store.document.id)
+        .catch(() => undefined),
+    );
+  }
+  return newId;
+}
+
 export function mergeBlockWithPrevious(
   blockId: UUID,
 ): { previousId: UUID; cursorOffset: number } | null {

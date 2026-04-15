@@ -4,6 +4,7 @@ import {
   updateBlockContent,
   updateBlockType,
   createBlockAfter,
+  duplicateBlock,
   splitBlockAtCaret,
   insertPastedParagraphs,
   mergeBlockWithPrevious,
@@ -12,6 +13,9 @@ import {
   store,
 } from '@/store/document';
 import { uiState } from '@/store/ui-state';
+import { openContextMenuAt } from '@/ui/shared/contextMenu';
+import { askConfirm } from '@/ui/shared/confirm';
+import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
@@ -277,9 +281,63 @@ export const BlockView = (props: { block: Block }) => {
       .filter((c): c is NonNullable<typeof c> => !!c);
   };
 
-  const onTypeChange = (e: Event & { currentTarget: HTMLSelectElement }) => {
-    const next = e.currentTarget.value as BlockType;
-    updateBlockType(props.block.id, next);
+  const openBlockMenu = (e: MouseEvent) => {
+    e.stopPropagation();
+    const trigger = e.currentTarget as HTMLElement;
+    const currentType = props.block.type;
+    const idx = store.blockOrder.indexOf(props.block.id);
+    const isFirst = idx === 0;
+    const isLast = idx === store.blockOrder.length - 1;
+
+    const setType = (t: BlockType) => updateBlockType(props.block.id, t);
+
+    const copyContent = async () => {
+      try {
+        await navigator.clipboard.writeText(props.block.content);
+        toast.success('Block content copied');
+      } catch {
+        toast.error('Copy failed');
+      }
+    };
+
+    const onDelete = async () => {
+      const ok = await askConfirm({
+        title: 'Delete block?',
+        message: 'The block will be moved to the graveyard and can be restored later.',
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (ok) deleteBlock(props.block.id);
+    };
+
+    openContextMenuAt(trigger, [
+      { kind: 'header', label: 'Block type' },
+      { label: 'Text',     active: currentType === 'text',     onSelect: () => setType('text') },
+      { label: 'Dialogue', active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
+      { label: 'Scene',    active: currentType === 'scene',    onSelect: () => setType('scene') },
+      { label: 'Note',     active: currentType === 'note',     onSelect: () => setType('note') },
+      { kind: 'divider' },
+      {
+        label: 'Duplicate',
+        onSelect: () => {
+          const newId = duplicateBlock(props.block.id);
+          if (newId) toast.success('Block duplicated');
+        },
+      },
+      {
+        label: 'Move up',
+        disabled: isFirst,
+        onSelect: () => moveBlock(props.block.id, 'up'),
+      },
+      {
+        label: 'Move down',
+        disabled: isLast,
+        onSelect: () => moveBlock(props.block.id, 'down'),
+      },
+      { label: 'Copy content', onSelect: () => void copyContent() },
+      { kind: 'divider' },
+      { label: 'Delete block', danger: true, onSelect: () => void onDelete() },
+    ], { align: 'right' });
   };
 
   return (
@@ -290,19 +348,19 @@ export const BlockView = (props: { block: Block }) => {
       }}
       data-block-id={props.block.id}
     >
-      <div class="flex items-center gap-2 mb-1">
-        <select
-          value={props.block.type}
-          onChange={onTypeChange}
-          onMouseDown={(e) => e.stopPropagation()}
-          class={`bg-transparent text-[10px] uppercase tracking-wider font-medium outline-none cursor-pointer border-none ${meta().className}`}
-          title="Change block type"
+      <div class="flex items-center gap-2 mb-1 group/header">
+        <span class={`text-[10px] uppercase tracking-wider font-medium ${meta().className}`}>
+          {meta().label}
+        </span>
+        <button
+          type="button"
+          onClick={openBlockMenu}
+          title="Block actions"
+          class="text-stone-400 hover:text-violet-500 text-xs px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          aria-label="Open block menu"
         >
-          <option value="text">TEXT</option>
-          <option value="dialogue">DIALOGUE</option>
-          <option value="scene">SCENE</option>
-          <option value="note">NOTE</option>
-        </select>
+          ⋯
+        </button>
         {sentiment() && (
           <span
             class={`text-[10px] uppercase tracking-wider font-medium ${
