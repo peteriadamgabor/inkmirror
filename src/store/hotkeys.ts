@@ -15,7 +15,9 @@ export type AppAction =
   | 'help.show'
   | 'hotkeys.show'
   | 'palette.show'
-  | 'document.settings';
+  | 'document.settings'
+  | 'undo'
+  | 'redo';
 
 export interface BindingMeta {
   action: AppAction;
@@ -35,6 +37,8 @@ export const BINDING_META: BindingMeta[] = [
   { action: 'chapter.new',       label: 'New chapter',         description: 'Create a standard chapter',             defaultCombo: 'Alt+Shift+N' },
   { action: 'spellcheck.toggle', label: 'Spellcheck',          description: 'Toggle browser red-squiggle spellcheck',defaultCombo: 'Alt+Shift+K' },
   { action: 'document.settings',label: 'Document settings',   description: 'Edit title, author, synopsis',          defaultCombo: 'Alt+Shift+D' },
+  { action: 'undo',              label: 'Undo',               description: 'Undo the last action',                  defaultCombo: 'Ctrl+Z' },
+  { action: 'redo',              label: 'Redo',               description: 'Redo the last undone action',            defaultCombo: 'Ctrl+Shift+Z' },
 ];
 
 const STORAGE_KEY = 'storyforge.hotkeys';

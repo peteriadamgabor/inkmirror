@@ -16,7 +16,7 @@ import {
   toggleDocumentSettings,
   uiState,
 } from '@/store/ui-state';
-import { createChapter } from '@/store/document';
+import { createChapter, performUndo, performRedo } from '@/store/document';
 
 export function runAction(action: AppAction): void {
   switch (action) {
@@ -30,6 +30,8 @@ export function runAction(action: AppAction): void {
     case 'hotkeys.show':      toggleHotkeysModal();  break;
     case 'palette.show':      toggleCommandPalette();break;
     case 'document.settings': toggleDocumentSettings(); break;
+    case 'undo':              performUndo();            break;
+    case 'redo':              performRedo();             break;
   }
 }
 
@@ -39,6 +41,9 @@ export function runAction(action: AppAction): void {
  * to be called once at boot.
  */
 export function installGlobalHotkeys(): void {
+  // Use capture phase so hotkeys fire BEFORE contenteditable's default
+  // handlers — critical for Ctrl+Z/Shift+Z which would otherwise
+  // trigger the browser's built-in (broken for our block model) undo.
   window.addEventListener('keydown', (e) => {
     // Ignore when a modal is actively capturing key input for rebinding.
     if (document.body.dataset.hotkeyCapture === '1') return;
@@ -55,5 +60,5 @@ export function installGlobalHotkeys(): void {
     e.preventDefault();
     e.stopPropagation();
     runAction(action);
-  });
+  }, true); // capture phase
 }

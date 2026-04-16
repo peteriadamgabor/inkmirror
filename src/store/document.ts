@@ -2,6 +2,14 @@ import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
 import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, Mark, SceneMetadata, UUID } from '@/types';
 import { normalizeMarks } from '@/engine/marks';
+import {
+  trackContentChange,
+  finalizePendingBatch,
+  pushEntry,
+  popUndo,
+  popRedo,
+  type UndoEntry,
+} from './undo';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
@@ -309,6 +317,10 @@ export function updateBlockContent(
 ): void {
   const existing = store.blocks[blockId];
   if (!existing) return;
+
+  // Track for undo before mutating.
+  trackContentChange(blockId, existing.content, existing.marks ? [...existing.marks] : undefined);
+
   const now = new Date().toISOString();
   let nextContent = content;
   let nextMetadata: BlockMetadata | null = null;
@@ -462,6 +474,116 @@ export function duplicateBlock(blockId: UUID): UUID | null {
     );
   }
   return newId;
+}
+
+// ---------- undo / redo ----------
+
+function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
+  switch (entry.kind) {
+    case 'content-change': {
+      const state = isRedo ? entry.after : entry.before;
+      const block = store.blocks[entry.blockId];
+      if (!block) return;
+      const now = new Date().toISOString();
+      setStore('blocks', entry.blockId, (b) => {
+        const out: Block = { ...b, content: state.content, updated_at: now };
+        if (state.marks && state.marks.length > 0) out.marks = state.marks;
+        else delete out.marks;
+        return out;
+      });
+      if (persistEnabled && store.document) {
+        track(
+          repo
+            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id)
+            .catch(() => undefined),
+        );
+      }
+      break;
+    }
+    case 'block-delete': {
+      if (isRedo) {
+        // Re-delete: same as the original deleteBlock but skip pushing undo again.
+        deleteBlock(entry.block.id, true);
+      } else {
+        // Restore: re-insert the block at its original position.
+        const restored: Block = {
+          ...entry.block,
+          deleted_at: null,
+          deleted_from: null,
+          updated_at: new Date().toISOString(),
+        };
+        setStore('blocks', restored.id, restored);
+        const newOrder = [...store.blockOrder];
+        const insertAt = Math.min(entry.orderIndex, newOrder.length);
+        newOrder.splice(insertAt, 0, restored.id);
+        setStore('blockOrder', newOrder);
+        if (persistEnabled) {
+          track(
+            repo
+              .saveBlock(unwrap(store.blocks[restored.id]), entry.documentId)
+              .catch(() => undefined),
+          );
+        }
+      }
+      break;
+    }
+    case 'type-change': {
+      const state = isRedo ? entry.after : entry.before;
+      const block = store.blocks[entry.blockId];
+      if (!block) return;
+      const now = new Date().toISOString();
+      setStore('blocks', entry.blockId, (b) => ({
+        ...b,
+        type: state.type,
+        metadata: state.metadata,
+        content: state.content,
+        updated_at: now,
+      }));
+      if (persistEnabled && store.document) {
+        track(
+          repo
+            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id)
+            .catch(() => undefined),
+        );
+      }
+      break;
+    }
+    case 'block-move': {
+      const fromIdx = isRedo ? entry.toIndex : entry.fromIndex;
+      const toIdx = isRedo ? entry.fromIndex : entry.toIndex;
+      void fromIdx;
+      // Just swap back — moveBlockToPosition handles the full reorder.
+      moveBlockToPosition(entry.blockId, isRedo ? entry.toIndex : entry.fromIndex);
+      void toIdx;
+      break;
+    }
+  }
+}
+
+export function performUndo(): boolean {
+  // Finalize any pending content batch so the current text is captured.
+  if (store.blockOrder.length > 0) {
+    const activeEl = document.activeElement as HTMLElement | null;
+    const blockId = activeEl?.closest('[data-block-id]')?.getAttribute('data-block-id');
+    if (blockId && store.blocks[blockId]) {
+      finalizePendingBatch(
+        blockId,
+        store.blocks[blockId].content,
+        store.blocks[blockId].marks,
+      );
+    }
+  }
+  const entry = popUndo();
+  if (!entry) return false;
+  applyUndoEntry(entry, false);
+  return true;
+}
+
+export function performRedo(): boolean {
+  const entry = popRedo();
+  if (!entry) return false;
+  applyUndoEntry(entry, true);
+  return true;
 }
 
 export function setActiveChapter(chapterId: UUID): void {
@@ -835,6 +957,15 @@ function defaultMetadataFor(type: BlockType): BlockMetadata {
 export function updateBlockType(blockId: UUID, type: BlockType): void {
   const block = store.blocks[blockId];
   if (!block || block.type === type) return;
+
+  // Snapshot for undo before mutating.
+  finalizePendingBatch(blockId, block.content, block.marks);
+  const beforeState = {
+    type: block.type,
+    metadata: { ...unwrap(block.metadata) } as BlockMetadata,
+    content: block.content,
+  };
+
   const now = new Date().toISOString();
   let metadata = defaultMetadataFor(type);
   let content = block.content;
@@ -860,6 +991,14 @@ export function updateBlockType(blockId: UUID, type: BlockType): void {
     content,
     updated_at: now,
   }));
+
+  pushEntry({
+    kind: 'type-change',
+    blockId,
+    before: beforeState,
+    after: { type, metadata, content },
+  });
+
   if (persistEnabled && store.document) {
     track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
   }
@@ -1062,11 +1201,22 @@ export async function restoreBlock(blockId: UUID): Promise<void> {
   await refreshGraveyard();
 }
 
-export function deleteBlock(blockId: UUID): void {
+export function deleteBlock(blockId: UUID, skipUndo = false): void {
   const block = store.blocks[blockId];
   if (!block) return;
   const chapter = store.chapters.find((c) => c.id === block.chapter_id);
   const position = store.blockOrder.indexOf(blockId);
+
+  // Finalize any pending content batch for this block before deleting.
+  finalizePendingBatch(blockId, block.content, block.marks);
+  if (!skipUndo && store.document) {
+    pushEntry({
+      kind: 'block-delete',
+      block: { ...unwrap(block) },
+      orderIndex: position,
+      documentId: store.document.id,
+    });
+  }
   const now = new Date().toISOString();
   const deletedFrom: NonNullable<Block['deleted_from']> = {
     chapter_id: block.chapter_id,
