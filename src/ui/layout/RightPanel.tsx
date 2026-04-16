@@ -6,6 +6,7 @@ import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { WordCount } from '@/ui/features/WordCount';
+import { CharacterSentiment } from '@/ui/features/CharacterSentiment';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
 import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 
@@ -159,6 +160,10 @@ export const RightPanel = () => {
           Document mood
         </div>
         <MoodHeatmap />
+      </div>
+
+      <div class="mt-2">
+        <CharacterSentiment />
       </div>
 
       <div class="mt-2">

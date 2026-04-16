@@ -64,9 +64,8 @@ function blockParagraphs(
       if (header) {
         out.push(
           new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 240, after: 120 },
-            children: [new TextRun({ text: header, italics: true })],
+            style: 'SceneHeading',
+            children: [new TextRun(header)],
           }),
         );
       }
@@ -82,29 +81,22 @@ function blockParagraphs(
       if (speaker) {
         out.push(
           new Paragraph({
-            spacing: { before: 120 },
-            children: [new TextRun({ text: speaker, bold: true, smallCaps: true })],
+            style: 'DialogueSpeaker',
+            children: [new TextRun(speaker)],
           }),
         );
       }
       if (data?.parenthetical?.trim()) {
         out.push(
           new Paragraph({
-            indent: { left: 720 },
-            spacing: { after: 60 },
-            children: [
-              new TextRun({ text: `(${data.parenthetical.trim()})`, italics: true }),
-            ],
+            style: 'Parenthetical',
+            children: [new TextRun(`(${data.parenthetical.trim()})`)],
           }),
         );
       }
       for (const runs of contentLinesAsRuns(docx, block)) {
         out.push(
-          new Paragraph({
-            indent: { left: 720 },
-            spacing: { after: 120 },
-            children: runs,
-          }),
+          new Paragraph({ style: 'DialogueBody', children: runs }),
         );
       }
       break;
@@ -119,6 +111,7 @@ function blockParagraphs(
   }
 
   void HeadingLevel;
+  void AlignmentType;
   return out;
 }
 
@@ -178,7 +171,67 @@ export const docxExporter: Exporter = {
             run: { font: 'Georgia', size: 24 },
             paragraph: { spacing: { line: 360 } },
           },
+          heading1: {
+            run: { font: 'Georgia', size: 36, bold: true },
+            paragraph: {
+              spacing: { before: 240, after: 240 },
+              alignment: AlignmentType.CENTER,
+            },
+          },
+          heading2: {
+            run: { font: 'Georgia', size: 28, bold: true },
+            paragraph: { spacing: { before: 200, after: 120 } },
+          },
+          title: {
+            run: { font: 'Georgia', size: 52, bold: true },
+            paragraph: {
+              spacing: { before: 480, after: 120 },
+              alignment: AlignmentType.CENTER,
+            },
+          },
         },
+        paragraphStyles: [
+          {
+            id: 'SceneHeading',
+            name: 'Scene Heading',
+            basedOn: 'Normal',
+            next: 'Normal',
+            run: { italics: true },
+            paragraph: {
+              spacing: { before: 240, after: 120 },
+              alignment: AlignmentType.CENTER,
+            },
+          },
+          {
+            id: 'DialogueSpeaker',
+            name: 'Dialogue Speaker',
+            basedOn: 'Normal',
+            next: 'Normal',
+            run: { bold: true, smallCaps: true },
+            paragraph: { spacing: { before: 120, after: 60 } },
+          },
+          {
+            id: 'DialogueBody',
+            name: 'Dialogue Body',
+            basedOn: 'Normal',
+            next: 'Normal',
+            paragraph: {
+              indent: { left: 720 },
+              spacing: { after: 120 },
+            },
+          },
+          {
+            id: 'Parenthetical',
+            name: 'Parenthetical',
+            basedOn: 'Normal',
+            next: 'Normal',
+            run: { italics: true },
+            paragraph: {
+              indent: { left: 720 },
+              spacing: { after: 60 },
+            },
+          },
+        ],
       },
       sections: [{ children }],
     });

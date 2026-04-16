@@ -12,16 +12,34 @@ export const WordCount = () => {
   const stats = createMemo(() => {
     let total = 0;
     let chapterTotal = 0;
+    let dialogueTotal = 0;
+    let dialogueChapter = 0;
     const activeId = store.activeChapterId;
     for (const id of store.blockOrder) {
       const b: Block | undefined = store.blocks[id];
       if (!b || b.deleted_at || b.type === 'note') continue;
       const words = countWords(b.content);
       total += words;
-      if (b.chapter_id === activeId) chapterTotal += words;
+      if (b.type === 'dialogue') dialogueTotal += words;
+      if (b.chapter_id === activeId) {
+        chapterTotal += words;
+        if (b.type === 'dialogue') dialogueChapter += words;
+      }
     }
-    return { total, chapter: chapterTotal };
+    return {
+      total,
+      chapter: chapterTotal,
+      dialogue: dialogueTotal,
+      dialogueChapter,
+      narration: total - dialogueTotal,
+      narrationChapter: chapterTotal - dialogueChapter,
+    };
   });
+
+  const dialoguePct = () => {
+    const s = stats();
+    return s.total > 0 ? Math.round((s.dialogue / s.total) * 100) : 0;
+  };
 
   return (
     <div class="flex flex-col gap-2">
@@ -43,6 +61,23 @@ export const WordCount = () => {
             </div>
           </Show>
         </div>
+        <Show when={stats().dialogue > 0}>
+          <div class="mt-2 pt-2 border-t border-stone-100 dark:border-stone-700/50">
+            <div class="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400">
+              <span>
+                dialogue {stats().dialogue.toLocaleString()} · narration{' '}
+                {stats().narration.toLocaleString()}
+              </span>
+              <span class="font-mono text-teal-600">{dialoguePct()}% dial</span>
+            </div>
+            <div class="mt-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+              <div
+                class="h-full rounded-full bg-teal-500 transition-all"
+                style={{ width: `${dialoguePct()}%` }}
+              />
+            </div>
+          </div>
+        </Show>
       </div>
     </div>
   );

@@ -112,6 +112,7 @@ blockquote.dialogue { margin: 1em 1.5em; border-left: 2px solid #999; padding-le
 function contentOpf(
   title: string,
   author: string,
+  synopsis: string,
   bookId: string,
   chapterFiles: string[],
   modified: string,
@@ -132,7 +133,10 @@ function contentOpf(
     <dc:title>${esc(title)}</dc:title>
     <dc:creator>${esc(author || 'Unknown')}</dc:creator>
     <dc:language>en</dc:language>
+    <dc:date>${modified.slice(0, 10)}</dc:date>${synopsis ? `\n    <dc:description>${esc(synopsis)}</dc:description>` : ''}
+    <dc:rights>All rights reserved</dc:rights>
     <meta property="dcterms:modified">${modified}</meta>
+    <meta property="rendition:layout">reflowable</meta>
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
@@ -215,6 +219,7 @@ export const epubExporter: Exporter = {
       contentOpf(
         input.document.title || 'Untitled',
         input.document.author || '',
+        input.document.synopsis || '',
         crypto.randomUUID(),
         chapterFiles.map((c) => c.file),
         modified,
