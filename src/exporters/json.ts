@@ -66,6 +66,7 @@ export function renderJson(input: ExportInput): string {
               content: b.content,
               order: b.order,
               metadata: b.metadata,
+              ...(b.marks && b.marks.length > 0 ? { marks: b.marks } : {}),
             })),
         })),
       characters: input.characters.map((c) => ({

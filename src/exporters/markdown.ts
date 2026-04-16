@@ -1,5 +1,19 @@
 import type { Block, Character, SceneMetadata, DialogueMetadata } from '@/types';
-import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import { contentToRuns, textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+
+function wrapRun(text: string, bold: boolean, italic: boolean): string {
+  if (!text) return '';
+  let out = text;
+  if (italic) out = `*${out}*`;
+  if (bold) out = `**${out}**`;
+  return out;
+}
+
+function renderInline(block: Block): string {
+  return contentToRuns(block.content, block.marks)
+    .map((run) => wrapRun(run.text, run.bold, run.italic))
+    .join('');
+}
 
 function speakerNameFor(
   data: DialogueMetadata,
@@ -20,15 +34,15 @@ function renderBlock(block: Block, characters: readonly Character[]): string | n
       if (md?.time) header.push(md.time);
       if (md?.mood) header.push(`(${md.mood})`);
       const headline = header.length > 0 ? `*${header.join(' — ')}*` : '*Scene*';
-      return `${headline}\n\n${block.content}`.trimEnd();
+      return `${headline}\n\n${renderInline(block)}`.trimEnd();
     }
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      if (!data) return block.content;
+      if (!data) return renderInline(block);
       const speaker = speakerNameFor(data, characters);
       const parenthetical = data.parenthetical?.trim();
-      const body = block.content
+      const body = renderInline(block)
         .split('\n')
         .map((line) => `> ${line}`)
         .join('\n');
@@ -40,7 +54,7 @@ function renderBlock(block: Block, characters: readonly Character[]): string | n
     }
     case 'text':
     default:
-      return block.content;
+      return renderInline(block);
   }
 }
 

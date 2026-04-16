@@ -1,5 +1,8 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import { exportableBlocks, type Exporter, type ExportInput } from './index';
+// NOTE: jsPDF has no inline mixed-style text API. Marks (bold/italic)
+// are NOT rendered in PDF output — only plain text. This is a known
+// limitation tracked in the backlog under "PDF typography".
 
 // Rough A4-manuscript layout. jsPDF uses points (1/72 inch) when unit: 'pt'.
 const PAGE_W = 595.28; // A4 width pt

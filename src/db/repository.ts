@@ -39,6 +39,7 @@ function blockToRow(b: Block, documentId: UUID): BlockRow {
     chapter_id: b.chapter_id,
     type: b.type,
     content: b.content,
+    marks: b.marks,
     order_idx: b.order,
     metadata: b.metadata,
     deleted_at: b.deleted_at,
@@ -49,7 +50,8 @@ function blockToRow(b: Block, documentId: UUID): BlockRow {
 }
 
 function rowToBlock(row: BlockRow): Block {
-  return {
+  const marks = Array.isArray(row.marks) ? (row.marks as Block['marks']) : undefined;
+  const block: Block = {
     id: row.id,
     chapter_id: row.chapter_id,
     type: row.type as Block['type'],
@@ -61,6 +63,8 @@ function rowToBlock(row: BlockRow): Block {
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+  if (marks && marks.length > 0) block.marks = marks;
+  return block;
 }
 
 function chapterToRow(c: Chapter): ChapterRow {

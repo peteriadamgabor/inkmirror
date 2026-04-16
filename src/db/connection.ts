@@ -35,6 +35,7 @@ export interface BlockRow {
   chapter_id: string;
   type: string;
   content: string;
+  marks?: unknown; // serialized Mark[] when present
   order_idx: number;
   metadata: unknown;
   deleted_at: string | null;

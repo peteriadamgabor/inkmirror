@@ -15,6 +15,8 @@ import {
   store,
 } from '@/store/document';
 import { unwrap } from 'solid-js/store';
+import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
+import type { MarkType } from '@/types/block';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { IconDots, IconTrash, IconDrag, IconChevron, IconPlus } from '@/ui/shared/icons';
@@ -45,6 +47,44 @@ function getCaretOffset(el: HTMLElement): number {
   pre.selectNodeContents(el);
   pre.setEnd(range.startContainer, range.startOffset);
   return pre.toString().length;
+}
+
+/**
+ * Restore a non-collapsed selection by walking text nodes until the
+ * cumulative character count reaches `start` and `end`. Used after
+ * mark-toggle re-renders the block's innerHTML.
+ */
+function restoreSelectionRange(el: HTMLElement, start: number, end: number): void {
+  const sel = window.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  let remaining = start;
+  let startSet = false;
+  let endRemaining = end;
+  const walk = (node: Node): boolean => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const len = node.textContent?.length ?? 0;
+      if (!startSet && remaining <= len) {
+        range.setStart(node, remaining);
+        startSet = true;
+      } else if (!startSet) {
+        remaining -= len;
+      }
+      if (startSet && endRemaining <= len) {
+        range.setEnd(node, endRemaining);
+        return true;
+      }
+      endRemaining -= len;
+    } else {
+      for (const child of Array.from(node.childNodes)) {
+        if (walk(child)) return true;
+      }
+    }
+    return false;
+  };
+  walk(el);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function setCaretOffset(el: HTMLElement, offset: number): void {
@@ -123,21 +163,26 @@ export const BlockView = (props: { block: Block }) => {
   let isComposing = false;
 
   onMount(() => {
-    el.innerText = props.block.content;
+    el.innerHTML = marksToHtml(props.block.content, props.block.marks);
   });
 
   // Rule 1: skip DOM writes while the block is focused or composing.
+  // Uses innerHTML because blocks can carry inline formatting marks.
   createEffect(() => {
     const incoming = props.block.content;
+    const marks = props.block.marks;
     if (isFocused || isComposing) return;
-    if (el && el.innerText !== incoming) {
-      el.innerText = incoming;
+    if (!el) return;
+    const html = marksToHtml(incoming, marks);
+    if (el.innerHTML !== html) {
+      el.innerHTML = html;
     }
   });
 
   const commitDebounced = debounce(() => {
     if (isComposing || !el) return;
-    updateBlockContent(props.block.id, el.innerText);
+    const { content, marks } = parseMarksFromDom(el);
+    updateBlockContent(props.block.id, content, { marks });
   }, COMMIT_DEBOUNCE_MS);
 
   const onFocus = () => {
@@ -150,7 +195,8 @@ export const BlockView = (props: { block: Block }) => {
     // detectSpeaker is safe here: blur means the DOM is no longer being
     // actively typed, so the content-sync effect in the store→DOM path
     // will pick up any speaker-strip side effect without a caret fight.
-    updateBlockContent(props.block.id, el.innerText, { detectSpeaker: true });
+    const { content, marks } = parseMarksFromDom(el);
+    updateBlockContent(props.block.id, content, { detectSpeaker: true, marks });
   };
 
   const onInput = () => {
@@ -166,10 +212,10 @@ export const BlockView = (props: { block: Block }) => {
       const current = el.innerText;
       const match = matchLeadingSpeaker(current, unwrap(store.characters));
       if (match) {
-        el.innerText = match.rest;
+        el.innerHTML = marksToHtml(match.rest, undefined);
         setCaretOffset(el, match.rest.length);
         updateDialogueSpeaker(props.block.id, match.character.id);
-        updateBlockContent(props.block.id, match.rest);
+        updateBlockContent(props.block.id, match.rest, { marks: [] });
         return;
       }
     }
@@ -198,7 +244,8 @@ export const BlockView = (props: { block: Block }) => {
     if (/\n{2,}/.test(text)) {
       // Sync whatever's currently in the DOM into the store before the split,
       // so insertPastedParagraphs sees an accurate head/tail around the caret.
-      updateBlockContent(props.block.id, el.innerText);
+      const { content, marks } = parseMarksFromDom(el);
+      updateBlockContent(props.block.id, content, { marks });
       const caret = getCaretOffset(el);
       const result = insertPastedParagraphs(props.block.id, caret, text);
       focusBlock(result.targetBlockId, result.caretOffset);
@@ -246,8 +293,55 @@ export const BlockView = (props: { block: Block }) => {
     return true;
   };
 
+  // Get the current selection's character offsets relative to `el`'s
+  // plain-text content. Returns null if there's no selection inside
+  // this block or if collapsed (caret only, no range to mark).
+  const getSelectionOffsets = (): { start: number; end: number } | null => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) {
+      return null;
+    }
+    const pre = range.cloneRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length;
+    const end = start + range.toString().length;
+    return { start, end };
+  };
+
+  const applyMarkToggle = (type: MarkType): void => {
+    const range = getSelectionOffsets();
+    if (!range || range.end <= range.start) return;
+    const { content, marks } = parseMarksFromDom(el);
+    const next = toggleMark(marks, type, range.start, range.end, content.length);
+    el.innerHTML = marksToHtml(content, next);
+    // Restore the selection by walking the freshly-rendered DOM.
+    restoreSelectionRange(el, range.start, range.end);
+    updateBlockContent(props.block.id, content, { marks: next });
+  };
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (isComposing || e.isComposing) return;
+
+    // Bold / italic toggles. Run before the intent resolver so Cmd+B
+    // inside a contenteditable doesn't fall through to the browser's
+    // deprecated execCommand('bold'), which would produce inconsistent
+    // output (some browsers insert <b>, some <strong>, some inline
+    // style attributes).
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        applyMarkToggle('bold');
+        return;
+      }
+      if (e.key === 'i' || e.key === 'I') {
+        e.preventDefault();
+        applyMarkToggle('italic');
+        return;
+      }
+    }
 
     if (e.key === 'Tab' && props.block.type === 'dialogue') {
       if (cycleSpeaker(e.shiftKey ? -1 : 1)) {
@@ -275,8 +369,11 @@ export const BlockView = (props: { block: Block }) => {
     if (!intent) return;
 
     e.preventDefault();
-    // Commit any pending typing before mutating block structure.
-    updateBlockContent(props.block.id, el.innerText);
+    // Commit any pending typing (with marks) before mutating block structure.
+    {
+      const { content, marks } = parseMarksFromDom(el);
+      updateBlockContent(props.block.id, content, { marks });
+    }
 
     switch (intent.type) {
       case 'create-block-after': {

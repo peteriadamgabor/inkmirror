@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
-import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, SceneMetadata, UUID } from '@/types';
+import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, Mark, SceneMetadata, UUID } from '@/types';
+import { normalizeMarks } from '@/engine/marks';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
@@ -293,6 +294,12 @@ export interface UpdateBlockContentOptions {
    * DOM from the store.
    */
   detectSpeaker?: boolean;
+  /**
+   * Inline formatting ranges read from the DOM. When provided, replaces
+   * the block's marks in full. Pass an empty array to clear. Omit to
+   * leave marks untouched.
+   */
+  marks?: Mark[];
 }
 
 export function updateBlockContent(
@@ -326,12 +333,25 @@ export function updateBlockContent(
     }
   }
 
-  setStore('blocks', blockId, (b) => ({
-    ...b,
-    content: nextContent,
-    metadata: nextMetadata ?? b.metadata,
-    updated_at: now,
-  }));
+  let nextMarks: Mark[] | undefined = undefined;
+  if (opts.marks !== undefined) {
+    const normalized = normalizeMarks(opts.marks, nextContent.length);
+    nextMarks = normalized.length > 0 ? normalized : undefined;
+  }
+
+  setStore('blocks', blockId, (b) => {
+    const out: Block = {
+      ...b,
+      content: nextContent,
+      metadata: nextMetadata ?? b.metadata,
+      updated_at: now,
+    };
+    if (opts.marks !== undefined) {
+      if (nextMarks) out.marks = nextMarks;
+      else delete out.marks;
+    }
+    return out;
+  });
   scheduleBlockContentWrite(blockId);
 }
 

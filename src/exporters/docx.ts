@@ -1,5 +1,5 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { exportableBlocks, type Exporter, type ExportInput } from './index';
+import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
 
 // Narrow structural types — avoid importing docx types at module load time
 // so the library stays in a dynamic chunk.
@@ -22,6 +22,33 @@ function speakerNameFor(
   return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
 }
 
+/**
+ * Walk content+marks and return an array of "lines", where each line
+ * is an array of TextRun instances with bold/italics set per run.
+ * Splits runs on `\n` so soft line breaks within a block become
+ * separate paragraphs in the DOCX output.
+ */
+function contentLinesAsRuns(
+  docx: DocxMods,
+  block: Block,
+): InstanceType<DocxMods['TextRun']>[][] {
+  const { TextRun } = docx;
+  const runs = contentToRuns(block.content, block.marks);
+  const lines: InstanceType<DocxMods['TextRun']>[][] = [[]];
+  for (const run of runs) {
+    const parts = run.text.split('\n');
+    parts.forEach((part, i) => {
+      if (i > 0) lines.push([]);
+      if (part.length > 0) {
+        lines[lines.length - 1].push(
+          new TextRun({ text: part, bold: run.bold, italics: run.italic }),
+        );
+      }
+    });
+  }
+  return lines.filter((l) => l.length > 0);
+}
+
 function blockParagraphs(
   docx: DocxMods,
   block: Block,
@@ -29,7 +56,6 @@ function blockParagraphs(
 ): InstanceType<DocxMods['Paragraph']>[] {
   const { Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
   const out: InstanceType<DocxMods['Paragraph']>[] = [];
-  const splitLines = (s: string) => s.split(/\n/).filter((l) => l.length > 0);
 
   switch (block.type) {
     case 'scene': {
@@ -44,13 +70,8 @@ function blockParagraphs(
           }),
         );
       }
-      for (const line of splitLines(block.content)) {
-        out.push(
-          new Paragraph({
-            spacing: { after: 120 },
-            children: [new TextRun(line)],
-          }),
-        );
+      for (const runs of contentLinesAsRuns(docx, block)) {
+        out.push(new Paragraph({ spacing: { after: 120 }, children: runs }));
       }
       break;
     }
@@ -77,12 +98,12 @@ function blockParagraphs(
           }),
         );
       }
-      for (const line of splitLines(block.content)) {
+      for (const runs of contentLinesAsRuns(docx, block)) {
         out.push(
           new Paragraph({
             indent: { left: 720 },
             spacing: { after: 120 },
-            children: [new TextRun(line)],
+            children: runs,
           }),
         );
       }
@@ -90,19 +111,13 @@ function blockParagraphs(
     }
     case 'text':
     default: {
-      for (const line of splitLines(block.content)) {
-        out.push(
-          new Paragraph({
-            spacing: { after: 120 },
-            children: [new TextRun(line)],
-          }),
-        );
+      for (const runs of contentLinesAsRuns(docx, block)) {
+        out.push(new Paragraph({ spacing: { after: 120 }, children: runs }));
       }
       break;
     }
   }
 
-  // Suppress unused imports warning from strict TS.
   void HeadingLevel;
   return out;
 }

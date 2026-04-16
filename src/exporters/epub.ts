@@ -1,5 +1,5 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { exportableBlocks, type Exporter, type ExportInput } from './index';
+import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
 
 function esc(s: string): string {
   return s
@@ -16,6 +16,27 @@ function paragraphs(text: string): string {
     .map((p) => p.trim())
     .filter((p) => p.length > 0)
     .map((p) => `<p>${esc(p).replace(/\n/g, '<br/>')}</p>`)
+    .join('\n      ');
+}
+
+function paragraphsWithMarks(block: Block): string {
+  const runs = contentToRuns(block.content, block.marks);
+  if (runs.length === 1 && !runs[0].bold && !runs[0].italic) {
+    return paragraphs(block.content);
+  }
+  // Build inline HTML from runs, then split into <p> tags on double-newlines.
+  let inline = '';
+  for (const run of runs) {
+    let t = esc(run.text).replace(/\n/g, '<br/>');
+    if (run.italic) t = `<i>${t}</i>`;
+    if (run.bold) t = `<b>${t}</b>`;
+    inline += t;
+  }
+  return inline
+    .split(/<br\/><br\/>/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => `<p>${p}</p>`)
     .join('\n      ');
 }
 
@@ -37,15 +58,15 @@ function renderBlockXhtml(block: Block, characters: readonly Character[]): strin
       const headerHtml = header
         ? `<p class="scene-heading">${esc(header)}</p>`
         : '<hr class="scene-break"/>';
-      return `${headerHtml}\n      ${paragraphs(block.content)}`;
+      return `${headerHtml}\n      ${paragraphsWithMarks(block)}`;
     }
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      if (!data) return paragraphs(block.content);
+      if (!data) return paragraphsWithMarks(block);
       const speaker = speakerNameFor(data, characters);
       const parenthetical = data.parenthetical?.trim();
-      const body = paragraphs(block.content);
+      const body = paragraphsWithMarks(block);
       const speakerLine = speaker
         ? `<p class="speaker">${esc(speaker)}</p>`
         : '';
@@ -56,7 +77,7 @@ function renderBlockXhtml(block: Block, characters: readonly Character[]): strin
     }
     case 'text':
     default:
-      return paragraphs(block.content);
+      return paragraphsWithMarks(block);
   }
 }
 

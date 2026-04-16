@@ -1,5 +1,16 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import { contentToRuns, textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+
+function renderInline(block: Block): string {
+  return contentToRuns(block.content, block.marks)
+    .map((run) => {
+      let t = run.text;
+      if (run.italic) t = `*${t}*`;
+      if (run.bold) t = `**${t}**`;
+      return t;
+    })
+    .join('');
+}
 
 // Fountain spec: https://fountain.io/syntax
 // - Scene headings start with INT. or EXT. (or I/E.) in ALL CAPS
@@ -37,12 +48,13 @@ function renderBlock(block: Block, ctx: FountainContext): string | null {
     case 'scene': {
       const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
       const heading = sceneHeading(md);
-      return block.content.trim() ? `${heading}\n\n${block.content}` : heading;
+      const body = renderInline(block);
+      return body.trim() ? `${heading}\n\n${body}` : heading;
     }
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      if (!data) return block.content;
+      if (!data) return renderInline(block);
       const baseName = speakerNameFor(data, ctx.characters);
       const isContinuation =
         !!data.speaker_id && data.speaker_id === ctx.previousSpeakerId;
@@ -50,12 +62,12 @@ function renderBlock(block: Block, ctx: FountainContext): string | null {
       const parenthetical = data.parenthetical?.trim();
       const lines: string[] = [cue];
       if (parenthetical) lines.push(`(${parenthetical})`);
-      lines.push(block.content);
+      lines.push(renderInline(block));
       return lines.join('\n');
     }
     case 'text':
     default:
-      return block.content;
+      return renderInline(block);
   }
 }
 
