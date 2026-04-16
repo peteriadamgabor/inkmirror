@@ -4,6 +4,19 @@ import type { Document } from '@/types';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { useTheme } from '@/ui/theme';
+import {
+  bundleToBlob,
+  databaseBackupFilename,
+  documentBundleFilename,
+  exportDatabaseBackup,
+  exportDocumentBundle,
+} from '@/backup/export';
+import {
+  importDatabaseBackup,
+  importDocumentBundle,
+  parseBundle,
+} from '@/backup/import';
+import { downloadBlob } from '@/exporters';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -86,6 +99,71 @@ export const DocumentPicker = (props: Props) => {
     }
   };
 
+  const exportDoc = async (doc: Document) => {
+    try {
+      const bundle = await exportDocumentBundle(doc.id);
+      const blob = bundleToBlob(bundle);
+      downloadBlob(blob, documentBundleFilename(doc.title, bundle.exported_at));
+      toast.success(`Exported "${doc.title || 'Untitled'}"`);
+    } catch (err) {
+      toast.error(
+        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  const exportAll = async () => {
+    try {
+      const backup = await exportDatabaseBackup();
+      const blob = bundleToBlob(backup);
+      downloadBlob(blob, databaseBackupFilename(backup.exported_at));
+      toast.success(
+        `Backup exported (${backup.stores.documents.length} document${
+          backup.stores.documents.length === 1 ? '' : 's'
+        })`,
+      );
+    } catch (err) {
+      toast.error(
+        `Backup failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  const handleImportFile = async (file: File) => {
+    try {
+      const bundle = await parseBundle(file);
+      const result =
+        bundle.kind === 'inkmirror.document'
+          ? await importDocumentBundle(bundle)
+          : await importDatabaseBackup(bundle);
+      if (result.kind === 'document') {
+        toast.success(`Imported "${result.documentTitles[0]}"`);
+      } else {
+        const parts = [`Added ${result.documentsAdded}`];
+        if (result.documentsSkipped > 0) {
+          parts.push(`skipped ${result.documentsSkipped} already present`);
+        }
+        toast.success(`Restore complete — ${parts.join(', ')}`);
+      }
+      refetch();
+    } catch (err) {
+      toast.error(
+        `Import failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  const triggerImport = () => {
+    const input = globalThis.document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) void handleImportFile(file);
+    };
+    input.click();
+  };
+
   const deleteDoc = async (doc: Document) => {
     const ok = await askConfirm({
       title: `Delete "${doc.title || 'Untitled'}"?`,
@@ -153,13 +231,23 @@ export const DocumentPicker = (props: Props) => {
             <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
               Your documents
             </div>
-            <button
-              type="button"
-              onClick={() => setShowNewForm(true)}
-              class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
-            >
-              + New document
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={triggerImport}
+                class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
+                title="Import a document or backup"
+              >
+                Import…
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewForm(true)}
+                class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
+              >
+                + New document
+              </button>
+            </div>
           </div>
 
           <div class="max-h-[50vh] overflow-auto">
@@ -222,6 +310,14 @@ export const DocumentPicker = (props: Props) => {
                       </button>
                       <button
                         type="button"
+                        onClick={() => void exportDoc(doc)}
+                        class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-[11px] px-1 transition-opacity"
+                        title="Export this document as .inkmirror.json"
+                      >
+                        Export
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void deleteDoc(doc)}
                         class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs px-1 transition-opacity"
                         title="Delete document"
@@ -234,6 +330,35 @@ export const DocumentPicker = (props: Props) => {
               </div>
             </Show>
           </div>
+
+          <div class="flex items-center justify-between gap-2 px-5 py-2.5 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/40">
+            <div class="text-[10px] uppercase tracking-wider text-stone-400">
+              Backup
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void exportAll()}
+                class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 transition-colors"
+                title="Download every document + graveyard + revisions as a single file"
+              >
+                Backup all
+              </button>
+              <span class="text-stone-300 dark:text-stone-600">·</span>
+              <button
+                type="button"
+                onClick={triggerImport}
+                class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 transition-colors"
+                title="Restore from a backup or import a single document"
+              >
+                Restore…
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 text-center text-[11px] text-stone-400 dark:text-stone-500">
+          Everything stays on this device. Use Backup to move your work between browsers.
         </div>
       </div>
     </div>
