@@ -73,21 +73,21 @@ export const LandingRoute = () => (
           </h1>
           {/* Mirror surface line */}
           <div
-            class="w-32 h-px mx-auto my-1"
+            class="w-48 h-px mx-auto mt-2 mb-1"
             style={{
-              background: 'linear-gradient(to right, transparent, rgba(127,119,221,0.4), transparent)',
+              background: 'linear-gradient(to right, transparent, rgba(127,119,221,0.6), transparent)',
             }}
           />
           {/* Mirror reflection */}
           <div
-            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none"
+            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-300"
             style={{
               transform: 'scaleY(-1)',
-              'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 60%)',
-              '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 60%)',
-              opacity: '0.3',
-              'margin-top': '-0.15em',
+              'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
+              '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
+              opacity: '0.5',
               'line-height': '1',
+              filter: 'blur(0.5px)',
             }}
             aria-hidden="true"
           >
