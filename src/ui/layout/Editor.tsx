@@ -1,9 +1,13 @@
-import { createEffect, createMemo, For, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { BlockView } from '@/ui/blocks/BlockView';
 import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
-import { store, setViewport, setMeasurement, saveState } from '@/store/document';
+import { store, setViewport, setMeasurement, saveState, renameChapter } from '@/store/document';
+import { useTheme } from '@/ui/theme';
+import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
+import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
+import { IconSun, IconMoon, IconSpellcheck, IconVolume } from '@/ui/shared/icons';
 import type { Block } from '@/types';
 
 const EDITOR_WIDTH = 680;
@@ -195,6 +199,10 @@ export const Editor = () => {
     return store.chapters.find((c) => c.id === id)?.kind ?? 'standard';
   });
 
+  const { theme, toggleTheme } = useTheme();
+  const sono = getSonificationEngine();
+  const [sonoOn, setSonoOn] = createSignal(false);
+
   const docTitle = () => store.document?.title || 'Untitled';
   const chapterTitle = () => {
     const id = store.activeChapterId;
@@ -202,16 +210,124 @@ export const Editor = () => {
     return store.chapters.find((c) => c.id === id)?.title ?? '';
   };
 
+  const [editingChapter, setEditingChapter] = createSignal(false);
+  const [chapterDraft, setChapterDraft] = createSignal('');
+
+  const startChapterEdit = () => {
+    setChapterDraft(chapterTitle());
+    setEditingChapter(true);
+  };
+
+  const commitChapterEdit = () => {
+    const id = store.activeChapterId;
+    if (id && chapterDraft().trim()) {
+      renameChapter(id, chapterDraft());
+    }
+    setEditingChapter(false);
+  };
+
+  const toggleSono = async () => {
+    if (sonoOn()) {
+      sono.stop();
+      setSonoOn(false);
+    } else {
+      try {
+        await sono.start('neutral' as MoodLabel);
+        setSonoOn(true);
+      } catch {
+        /* silent */
+      }
+    }
+  };
+
   return (
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
-      <div class="flex items-center justify-center px-4 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0">
-        <span class="text-[11px] text-stone-500 dark:text-stone-400 truncate">
-          {docTitle()}
+      <div class="flex items-center px-3 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0 gap-2">
+        {/* Left: toolbar icons */}
+        <div class="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme() === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            class="w-6 h-6 flex items-center justify-center rounded text-stone-400 hover:text-violet-500 transition-colors"
+          >
+            {theme() === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={toggleSpellcheck}
+            title={`Spellcheck: ${uiState.spellcheck ? 'on' : 'off'}`}
+            class="w-6 h-6 flex items-center justify-center rounded transition-colors"
+            classList={{
+              'text-violet-500': uiState.spellcheck,
+              'text-stone-400 hover:text-violet-500': !uiState.spellcheck,
+            }}
+          >
+            <IconSpellcheck size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => void toggleSono()}
+            title={sonoOn() ? 'Stop ambient tone' : 'Play ambient tone'}
+            class="w-6 h-6 flex items-center justify-center rounded transition-colors"
+            classList={{
+              'text-violet-500': sonoOn(),
+              'text-stone-400 hover:text-violet-500': !sonoOn(),
+            }}
+          >
+            <IconVolume size={14} />
+          </button>
+        </div>
+
+        {/* Center: doc title / chapter — clickable */}
+        <div class="flex-1 flex items-center justify-center min-w-0">
+          <button
+            type="button"
+            onClick={() => toggleDocumentSettings()}
+            title="Edit document settings"
+            class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 truncate transition-colors"
+          >
+            {docTitle()}
+          </button>
           <Show when={chapterTitle()}>
-            <span class="text-stone-300 dark:text-stone-600 mx-1.5">/</span>
-            {chapterTitle()}
+            <span class="text-stone-300 dark:text-stone-600 mx-1 text-[11px]">/</span>
+            <Show
+              when={editingChapter()}
+              fallback={
+                <button
+                  type="button"
+                  onClick={startChapterEdit}
+                  title="Click to rename chapter"
+                  class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 truncate transition-colors"
+                >
+                  {chapterTitle()}
+                </button>
+              }
+            >
+              <input
+                type="text"
+                value={chapterDraft()}
+                onInput={(e) => setChapterDraft(e.currentTarget.value)}
+                onBlur={commitChapterEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitChapterEdit(); }
+                  if (e.key === 'Escape') { e.preventDefault(); setEditingChapter(false); }
+                }}
+                ref={(el) => queueMicrotask(() => { el.focus(); el.select(); })}
+                class="text-[11px] bg-transparent outline-none border-b border-violet-500 text-stone-700 dark:text-stone-200 w-[120px] text-center"
+              />
+            </Show>
           </Show>
-        </span>
+        </div>
+
+        {/* Right: save state */}
+        <div class="w-[60px] text-right shrink-0">
+          <Show when={saveState() !== 'idle'}>
+            <span class="text-[10px] text-stone-400">
+              {saveState() === 'saving' ? 'Saving…' : 'Saved'}
+            </span>
+          </Show>
+        </div>
       </div>
       <StoryPulseEcg />
       <div
@@ -238,11 +354,6 @@ export const Editor = () => {
           </div>
         </div>
       </div>
-      <Show when={saveState() !== 'idle'}>
-        <div class="px-3 py-1 text-[10px] text-stone-400 text-right border-t border-stone-200/50 dark:border-stone-700/30">
-          {saveState() === 'saving' ? 'Saving…' : 'Saved'}
-        </div>
-      </Show>
     </div>
   );
 };
