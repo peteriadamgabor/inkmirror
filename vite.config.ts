@@ -11,6 +11,7 @@ export default defineConfig({
       '/hf-proxy': {
         target: HF_BASE,
         changeOrigin: true,
+        followRedirects: true,
         rewrite: (path) => path.replace(/^\/hf-proxy/, ''),
         headers: {
           'User-Agent': 'InkMirror/1.0',
@@ -21,6 +22,13 @@ export default defineConfig({
             proxyRes.headers['access-control-allow-methods'] = 'GET, HEAD, OPTIONS';
             proxyRes.headers['access-control-allow-headers'] = '*';
             proxyRes.headers['access-control-expose-headers'] = '*';
+          });
+          proxy.on('error', (err, _req, res) => {
+            console.error('[hf-proxy] error:', err.message);
+            if (res && 'writeHead' in res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'hf-proxy failed', message: err.message }));
+            }
           });
         },
       },
