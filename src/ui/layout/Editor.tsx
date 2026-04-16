@@ -243,8 +243,8 @@ export const Editor = () => {
   return (
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
       <div class="flex items-center px-3 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0 gap-2">
-        {/* Left: toolbar icons */}
-        <div class="flex items-center gap-1 shrink-0">
+        {/* Left: toolbar icons — fixed width to balance the right side */}
+        <div class="flex items-center gap-1 w-[80px] shrink-0">
           <button
             type="button"
             onClick={toggleTheme}
@@ -320,8 +320,8 @@ export const Editor = () => {
           </Show>
         </div>
 
-        {/* Right: save state */}
-        <div class="w-[60px] text-right shrink-0">
+        {/* Right: save state — same width as left for centering */}
+        <div class="w-[80px] text-right shrink-0">
           <Show when={saveState() !== 'idle'}>
             <span class="text-[10px] text-stone-400">
               {saveState() === 'saving' ? 'Saving…' : 'Saved'}
