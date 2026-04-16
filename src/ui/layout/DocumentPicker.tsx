@@ -22,8 +22,11 @@ function timeAgo(iso: string): string {
 export const DocumentPicker = (props: Props) => {
   const [docs, { refetch }] = createResource(() => repo.listDocuments());
   const [creating, setCreating] = createSignal(false);
+  const [showNewForm, setShowNewForm] = createSignal(false);
+  const [newTitle, setNewTitle] = createSignal('');
 
   const createNew = async () => {
+    const title = newTitle().trim() || 'Untitled';
     setCreating(true);
     try {
       const now = new Date().toISOString();
@@ -32,7 +35,7 @@ export const DocumentPicker = (props: Props) => {
       const blockId = crypto.randomUUID();
       const doc: Document = {
         id: docId,
-        title: 'Untitled',
+        title,
         author: '',
         synopsis: '',
         settings: {
@@ -76,6 +79,8 @@ export const DocumentPicker = (props: Props) => {
       toast.error(`Failed to create document: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setCreating(false);
+      setShowNewForm(false);
+      setNewTitle('');
     }
   };
 
@@ -140,21 +145,53 @@ export const DocumentPicker = (props: Props) => {
             </div>
             <button
               type="button"
-              onClick={() => void createNew()}
-              disabled={creating()}
-              class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
+              onClick={() => setShowNewForm(true)}
+              class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
             >
-              {creating() ? '…' : '+ New document'}
+              + New document
             </button>
           </div>
 
           <div class="max-h-[50vh] overflow-auto">
+            <Show when={showNewForm()}>
+              <div class="flex items-center gap-2 px-5 py-3 border-b border-stone-200 dark:border-stone-700 bg-violet-50 dark:bg-violet-950/20">
+                <input
+                  type="text"
+                  value={newTitle()}
+                  onInput={(e) => setNewTitle(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); void createNew(); }
+                    if (e.key === 'Escape') { e.preventDefault(); setShowNewForm(false); setNewTitle(''); }
+                  }}
+                  ref={(el) => queueMicrotask(() => el.focus())}
+                  placeholder="Document title…"
+                  class="flex-1 bg-transparent outline-none border-b border-violet-300 dark:border-violet-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-base py-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => void createNew()}
+                  disabled={creating()}
+                  class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
+                >
+                  {creating() ? '…' : 'Create'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowNewForm(false); setNewTitle(''); }}
+                  class="text-stone-400 hover:text-stone-600 text-xs"
+                >
+                  ×
+                </button>
+              </div>
+            </Show>
             <Show
               when={!docs.loading && (docs() ?? []).length > 0}
               fallback={
-                <div class="px-5 py-8 text-center text-sm text-stone-400">
-                  {docs.loading ? 'Loading…' : 'No documents yet. Create your first one.'}
-                </div>
+                <Show when={!showNewForm()}>
+                  <div class="px-5 py-8 text-center text-sm text-stone-400">
+                    {docs.loading ? 'Loading…' : 'No documents yet. Create your first one.'}
+                  </div>
+                </Show>
               }
             >
               <div class="flex flex-col">

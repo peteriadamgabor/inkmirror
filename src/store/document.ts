@@ -837,6 +837,34 @@ export function deleteChapter(chapterId: UUID): boolean {
   return true;
 }
 
+export function moveChapter(chapterId: UUID, direction: 'up' | 'down'): boolean {
+  const idx = store.chapters.findIndex((c) => c.id === chapterId);
+  if (idx < 0) return false;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= store.chapters.length) return false;
+
+  const now = new Date().toISOString();
+  const chapters = store.chapters.slice();
+  const temp = chapters[idx];
+  chapters[idx] = chapters[swapIdx];
+  chapters[swapIdx] = temp;
+
+  // Rewrite order fields.
+  chapters.forEach((c, i) => {
+    if (c.order !== i) {
+      setStore('chapters', i, (ch) => ({ ...ch, order: i, updated_at: now }));
+    }
+  });
+  setStore('chapters', chapters);
+
+  if (persistEnabled) {
+    for (const c of [chapters[idx], chapters[swapIdx]]) {
+      track(repo.saveChapter(unwrap(c)).catch(() => undefined));
+    }
+  }
+  return true;
+}
+
 export function renameChapter(chapterId: UUID, title: string): void {
   const trimmed = title.trim();
   if (!trimmed) return;

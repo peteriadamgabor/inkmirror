@@ -1,8 +1,5 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { exportableBlocks, type Exporter, type ExportInput } from './index';
-// NOTE: jsPDF has no inline mixed-style text API. Marks (bold/italic)
-// are NOT rendered in PDF output — only plain text. This is a known
-// limitation tracked in the backlog under "PDF typography".
+import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
 
 // Rough A4-manuscript layout. jsPDF uses points (1/72 inch) when unit: 'pt'.
 const PAGE_W = 595.28; // A4 width pt
@@ -101,6 +98,61 @@ export const pdfExporter: Exporter = {
       }
     };
 
+    // Render a block's content with per-run bold/italic font switching.
+    // jsPDF has no inline rich-text API, so we render each run at an
+    // advancing X position and wrap manually when the line exceeds
+    // CONTENT_W. Falls back to plain writeLines for blocks with no marks.
+    const writeRichBlock = (block: Block, size: number) => {
+      const runs = contentToRuns(block.content, block.marks);
+      const hasMarks = runs.some((r) => r.bold || r.italic);
+      if (!hasMarks) {
+        writeLines(block.content, { size });
+        return;
+      }
+
+      // Split content on newlines first, render each visual paragraph.
+      const paragraphs = block.content.split(/\n/);
+      let charOffset = 0;
+      for (const para of paragraphs) {
+        if (!para.trim()) { charOffset += para.length + 1; continue; }
+        const paraStart = charOffset;
+        const paraEnd = charOffset + para.length;
+        let currentX = MARGIN;
+        ensureSpace(size * 1.4);
+        let runCharPos = 0;
+        for (const run of runs) {
+          const runEnd = runCharPos + run.text.length;
+          // Check if this run overlaps with the current paragraph.
+          const overlapStart = Math.max(runCharPos, paraStart);
+          const overlapEnd = Math.min(runEnd, paraEnd);
+          if (overlapStart < overlapEnd) {
+            const text = block.content.slice(overlapStart, overlapEnd);
+            const fontStyle = run.bold && run.italic
+              ? 'bolditalic'
+              : run.bold ? 'bold' : run.italic ? 'italic' : 'normal';
+            pdf.setFontSize(size);
+            pdf.setFont('times', fontStyle);
+            // Word-wrap within the remaining line width.
+            const availW = CONTENT_W - (currentX - MARGIN);
+            const wrapped = pdf.splitTextToSize(text, availW) as string[];
+            for (let li = 0; li < wrapped.length; li++) {
+              if (li > 0) {
+                // Wrap to next line.
+                y += size * 1.4;
+                ensureSpace(size * 1.4);
+                currentX = MARGIN;
+              }
+              pdf.text(wrapped[li], currentX, y);
+              currentX += pdf.getStringUnitWidth(wrapped[li]) * size;
+            }
+          }
+          runCharPos = runEnd;
+        }
+        y += size * 1.4;
+        charOffset = paraEnd + 1; // +1 for the \n
+      }
+    };
+
     // Title page
     y = PAGE_H / 3;
     writeLines(input.document.title || 'Untitled', { size: 28, align: 'center' });
@@ -128,8 +180,9 @@ export const pdfExporter: Exporter = {
           } else if (part.kind === 'parenthetical') {
             writeLines(part.text, { size: BODY_FONT_SIZE - 1, style: 'italic' });
           } else {
-            writeLines(part.text, { size: BODY_FONT_SIZE });
+            writeRichBlock(block, BODY_FONT_SIZE);
             y += LINE_H * 0.3;
+            break; // writeRichBlock handles the full block content; skip remaining flat parts.
           }
         }
       }

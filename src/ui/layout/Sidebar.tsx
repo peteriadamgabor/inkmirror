@@ -3,6 +3,7 @@ import {
   store,
   createChapter,
   deleteChapter,
+  moveChapter,
   renameChapter,
   setActiveChapter,
   createCharacter,
@@ -231,11 +232,25 @@ export const Sidebar = () => {
                   );
                 }
               };
+              const chapterIdx = () => store.chapters.findIndex((ch) => ch.id === c.id);
+              const isFirst = () => chapterIdx() === 0;
+              const isLast = () => chapterIdx() === store.chapters.length - 1;
               const openMenu = (e: MouseEvent) => {
                 e.stopPropagation();
                 const trigger = e.currentTarget as HTMLElement;
                 const items: ContextMenuItem[] = [
                   { label: 'Rename', onSelect: () => startRenameChapter(c.id, c.title) },
+                  { kind: 'divider' },
+                  {
+                    label: 'Move up',
+                    disabled: isFirst(),
+                    onSelect: () => moveChapter(c.id, 'up'),
+                  },
+                  {
+                    label: 'Move down',
+                    disabled: isLast(),
+                    onSelect: () => moveChapter(c.id, 'down'),
+                  },
                   { kind: 'divider' },
                   {
                     label: 'Delete chapter',
@@ -532,9 +547,9 @@ export const Sidebar = () => {
           type="button"
           onClick={returnToPicker}
           class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Switch to a different document"
+          title="Switch to a different document or create a new one"
         >
-          <span>Switch document</span>
+          <span>Documents</span>
         </button>
       </div>
     </div>
