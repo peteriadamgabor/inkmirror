@@ -18,8 +18,20 @@ export interface ImportResult {
   kind: 'document' | 'database';
   documentsAdded: number;
   documentsSkipped: number;
+  /** Only set for document imports when strategy='replace'. */
+  replaced?: boolean;
   documentTitles: string[];
 }
+
+/**
+ * How to handle a single-document import when a document with the
+ * same id already exists locally:
+ * - 'copy' — remap every id to fresh UUIDs; imported doc becomes a
+ *   sibling. Title gets "(imported)" suffix. Original untouched.
+ * - 'replace' — wipe the existing doc's rows (in all stores) and
+ *   import the bundle under its original ids. Destructive.
+ */
+export type CollisionStrategy = 'copy' | 'replace';
 
 async function readBlobAsText(blob: Blob): Promise<string> {
   if (typeof (blob as Blob & { text?: () => Promise<string> }).text === 'function') {
@@ -52,33 +64,61 @@ export async function parseBundle(
   );
 }
 
+async function wipeDocument(db: InkMirrorDb, documentId: UUID): Promise<void> {
+  const chapters = await db.getAllFromIndex('chapters', 'by_document', documentId);
+  const blocks = await db.getAllFromIndex('blocks', 'by_document', documentId);
+  const sentiments = await db.getAllFromIndex('sentiments', 'by_document', documentId);
+  const characters = await db.getAllFromIndex('characters', 'by_document', documentId);
+  for (const c of chapters) await db.delete('chapters', c.id);
+  for (const b of blocks) {
+    await db.delete('blocks', b.id);
+    const revs = await db.getAllFromIndex('block_revisions', 'by_block', b.id);
+    for (const r of revs) await db.delete('block_revisions', r.id);
+  }
+  for (const s of sentiments) await db.delete('sentiments', s.block_id);
+  for (const c of characters) await db.delete('characters', c.id);
+  await db.delete('documents', documentId);
+}
+
 /**
- * Import a single-document bundle. If a document with the same ID
- * already exists we remap every ID (doc/chapters/blocks/characters)
- * so the import becomes a sibling rather than overwriting the original.
- * The imported title gets a "(imported)" suffix when remapped.
+ * Import a single-document bundle.
+ *
+ * When no document with the bundle's id exists locally, the bundle is
+ * imported as-is. When one exists, behavior depends on `strategy`:
+ * - 'copy' (default): remap every id to fresh UUIDs and suffix the
+ *   title with "(imported)" — both docs coexist.
+ * - 'replace': wipe the existing doc's rows (chapters, blocks,
+ *   sentiments, characters, revisions) and import the bundle under
+ *   its original ids.
  */
 export async function importDocumentBundle(
   bundle: DocumentBundleV1,
+  strategy: CollisionStrategy = 'copy',
 ): Promise<ImportResult> {
   const db = await getDb();
   const existing = await db.get('documents', bundle.document.id);
   const collides = !!existing;
 
-  // Build an id-map; identity when no collision.
+  if (collides && strategy === 'replace') {
+    await wipeDocument(db, bundle.document.id);
+  }
+
+  const remap = collides && strategy === 'copy';
+
+  // Build an id-map; identity when we're not remapping.
   const chapterIdMap = new Map<UUID, UUID>();
   const blockIdMap = new Map<UUID, UUID>();
   const characterIdMap = new Map<UUID, UUID>();
-  const newDocId: UUID = collides ? crypto.randomUUID() : bundle.document.id;
+  const newDocId: UUID = remap ? crypto.randomUUID() : bundle.document.id;
 
   for (const c of bundle.chapters) {
-    chapterIdMap.set(c.id, collides ? crypto.randomUUID() : c.id);
+    chapterIdMap.set(c.id, remap ? crypto.randomUUID() : c.id);
   }
   for (const b of bundle.blocks) {
-    blockIdMap.set(b.id, collides ? crypto.randomUUID() : b.id);
+    blockIdMap.set(b.id, remap ? crypto.randomUUID() : b.id);
   }
   for (const ch of bundle.characters) {
-    characterIdMap.set(ch.id, collides ? crypto.randomUUID() : ch.id);
+    characterIdMap.set(ch.id, remap ? crypto.randomUUID() : ch.id);
   }
 
   const mapId = (m: Map<UUID, UUID>, id: UUID): UUID => m.get(id) ?? id;
@@ -86,7 +126,7 @@ export async function importDocumentBundle(
   const importedDoc: Document = {
     ...bundle.document,
     id: newDocId,
-    title: collides
+    title: remap
       ? `${bundle.document.title || 'Untitled'} (imported)`
       : bundle.document.title,
     pov_character_id: bundle.document.pov_character_id
@@ -163,6 +203,7 @@ export async function importDocumentBundle(
     kind: 'document',
     documentsAdded: 1,
     documentsSkipped: 0,
+    replaced: collides && strategy === 'replace',
     documentTitles: [importedDoc.title],
   };
 }

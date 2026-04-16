@@ -1,7 +1,7 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
 import * as repo from '@/db/repository';
 import type { Document } from '@/types';
-import { askConfirm } from '@/ui/shared/confirm';
+import { askConfirm, askConfirmChoice } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { useTheme } from '@/ui/theme';
 import {
@@ -132,13 +132,32 @@ export const DocumentPicker = (props: Props) => {
   const handleImportFile = async (file: File) => {
     try {
       const bundle = await parseBundle(file);
-      const result =
-        bundle.kind === 'inkmirror.document'
-          ? await importDocumentBundle(bundle)
-          : await importDatabaseBackup(bundle);
-      if (result.kind === 'document') {
-        toast.success(`Imported "${result.documentTitles[0]}"`);
+      if (bundle.kind === 'inkmirror.document') {
+        const existing = await repo.loadDocument(bundle.document.id);
+        let strategy: 'copy' | 'replace' = 'copy';
+        if (existing) {
+          const choice = await askConfirmChoice({
+            title: `"${existing.document.title || 'Untitled'}" already exists`,
+            message:
+              'A document with this id is already in your library. ' +
+              'Replace it with the imported version (overwrites current content, including the graveyard), ' +
+              'or keep both as separate copies?',
+            confirmLabel: 'Replace',
+            neutralLabel: 'Keep both',
+            cancelLabel: 'Cancel',
+            danger: true,
+          });
+          if (choice === 'cancel') return; // user aborted
+          strategy = choice === 'confirm' ? 'replace' : 'copy';
+        }
+        const result = await importDocumentBundle(bundle, strategy);
+        if (result.replaced) {
+          toast.success(`Replaced "${result.documentTitles[0]}"`);
+        } else {
+          toast.success(`Imported "${result.documentTitles[0]}"`);
+        }
       } else {
+        const result = await importDatabaseBackup(bundle);
         const parts = [`Added ${result.documentsAdded}`];
         if (result.documentsSkipped > 0) {
           parts.push(`skipped ${result.documentsSkipped} already present`);

@@ -213,6 +213,38 @@ describe('backup roundtrip', () => {
     expect(meta.data.speaker_id).toBe(newCharId);
   });
 
+  it('replace strategy overwrites existing doc and wipes stale rows', async () => {
+    await seed('doc-1');
+    const bundle = await exportDocumentBundle('doc-1');
+
+    // Mutate the existing doc in-place: add a second chapter that is NOT in the bundle.
+    const db = await getDb();
+    await db.put('chapters', {
+      id: 'chap-stale',
+      document_id: 'doc-1',
+      title: 'Will be wiped',
+      order_idx: 99,
+      kind: 'standard',
+      created_at: '2026-04-16T12:00:00.000Z',
+      updated_at: '2026-04-16T12:00:00.000Z',
+    });
+    const before = await db.getAllFromIndex('chapters', 'by_document', 'doc-1');
+    expect(before.length).toBe(2);
+
+    const result = await importDocumentBundle(bundle, 'replace');
+    expect(result.replaced).toBe(true);
+    expect(result.documentsAdded).toBe(1);
+
+    const after = await db.getAllFromIndex('chapters', 'by_document', 'doc-1');
+    expect(after.length).toBe(1); // stale chapter gone, original bundle chapter restored
+    expect(after[0].id).toBe('chap-1');
+
+    const allDocs = await db.getAll('documents');
+    expect(allDocs.length).toBe(1); // NOT duplicated
+    expect(allDocs[0].id).toBe('doc-1');
+    expect(allDocs[0].title).toBe('Test Novel'); // no "(imported)" suffix
+  });
+
   it('full database backup roundtrips and skips docs that already exist', async () => {
     await seed('doc-a');
     await seed('doc-b');
