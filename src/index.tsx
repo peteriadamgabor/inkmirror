@@ -12,9 +12,12 @@ import { scheduleAiPreload } from '@/ai';
 import { installGlobalHotkeys } from '@/ui/shared/globalHotkeys';
 import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
+import { CrashBoundary } from '@/ui/shared/CrashBoundary';
 import { setReturnToPicker } from '@/store/ui-state';
 import { ConfirmHost } from '@/ui/shared/ConfirmHost';
 import { ToastHost } from '@/ui/shared/ToastHost';
+import { daysSinceLastExport } from '@/exporters';
+import { toast } from '@/ui/shared/toast';
 import type { UUID } from '@/types';
 import './index.css';
 
@@ -56,6 +59,20 @@ async function openDocument(docId: UUID): Promise<void> {
       installGlobalHotkeys();
       hotkeysInstalled = true;
     }
+    // Nudge the user if they haven't exported in a while.
+    const days = daysSinceLastExport();
+    if (days === null) {
+      // Never exported — show a gentler first-time hint after 3 days.
+      setTimeout(() => {
+        toast.info('Tip: export your work regularly. Everything lives in this browser only.');
+      }, 5000);
+    } else if (days >= 7) {
+      setTimeout(() => {
+        toast.info(
+          `You haven't exported in ${days} days. Consider downloading a backup (Sidebar → Export).`,
+        );
+      }, 3000);
+    }
   } catch (err) {
     setAppState({
       kind: 'error',
@@ -74,25 +91,27 @@ setReturnToPicker(() => {
 
 render(
   () => (
-    <Switch>
-      <Match when={appState().kind === 'loading'}>
-        <BootSplash />
-      </Match>
-      <Match when={appState().kind === 'error'}>
-        <BootSplash error={(appState() as { kind: 'error'; message: string }).message} />
-      </Match>
-      <Match when={appState().kind === 'picker'}>
-        <DocumentPicker onSelect={(id) => void openDocument(id)} />
-        <ConfirmHost />
-        <ToastHost />
-      </Match>
-      <Match when={appState().kind === 'ready'}>
-        <Router>
-          <Route path="/" component={EditorRoute} />
-          <Route path="/perf" component={PerfHarnessRoute} />
-        </Router>
-      </Match>
-    </Switch>
+    <CrashBoundary>
+      <Switch>
+        <Match when={appState().kind === 'loading'}>
+          <BootSplash />
+        </Match>
+        <Match when={appState().kind === 'error'}>
+          <BootSplash error={(appState() as { kind: 'error'; message: string }).message} />
+        </Match>
+        <Match when={appState().kind === 'picker'}>
+          <DocumentPicker onSelect={(id) => void openDocument(id)} />
+          <ConfirmHost />
+          <ToastHost />
+        </Match>
+        <Match when={appState().kind === 'ready'}>
+          <Router>
+            <Route path="/" component={EditorRoute} />
+            <Route path="/perf" component={PerfHarnessRoute} />
+          </Router>
+        </Match>
+      </Switch>
+    </CrashBoundary>
   ),
   rootEl,
 );

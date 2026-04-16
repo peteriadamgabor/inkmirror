@@ -1,9 +1,9 @@
-import { createEffect, createMemo, For, onCleanup, onMount } from 'solid-js';
+import { createEffect, createMemo, For, onCleanup, onMount, Show } from 'solid-js';
 import { BlockView } from '@/ui/blocks/BlockView';
 import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
-import { store, setViewport, setMeasurement } from '@/store/document';
+import { store, setViewport, setMeasurement, saveState } from '@/store/document';
 import type { Block } from '@/types';
 
 const EDITOR_WIDTH = 680;
@@ -222,6 +222,11 @@ export const Editor = () => {
           </div>
         </div>
       </div>
+      <Show when={saveState() !== 'idle'}>
+        <div class="px-3 py-1 text-[10px] text-stone-400 text-right border-t border-stone-200/50 dark:border-stone-700/30">
+          {saveState() === 'saving' ? 'Saving…' : 'Saved'}
+        </div>
+      </Show>
     </div>
   );
 };

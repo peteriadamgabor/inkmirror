@@ -61,6 +61,11 @@ const initialState: AppState = {
 
 export const [store, setStore] = createStore<AppState>(initialState);
 
+// Reactive save-state indicator. Updated by the persistence plumbing
+// so the UI can show "Saving..." / "Saved".
+const [saveState, setSaveState] = createSignal<'idle' | 'saving' | 'saved'>('idle');
+export { saveState };
+
 // ---------- persistence plumbing ----------
 
 const CONTENT_DEBOUNCE_MS = 500;
@@ -82,9 +87,19 @@ export function setSentimentHook(hook: SentimentHook | null): void {
   sentimentHook = hook;
 }
 
+let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
+
 function track<T>(p: Promise<T>): Promise<T> {
   pendingWrites.add(p);
-  p.finally(() => pendingWrites.delete(p));
+  setSaveState('saving');
+  if (saveStateTimer) clearTimeout(saveStateTimer);
+  p.finally(() => {
+    pendingWrites.delete(p);
+    if (pendingWrites.size === 0) {
+      setSaveState('saved');
+      saveStateTimer = setTimeout(() => setSaveState('idle'), 2000);
+    }
+  });
   return p;
 }
 

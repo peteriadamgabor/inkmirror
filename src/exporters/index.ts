@@ -85,6 +85,22 @@ export function textBlob(content: string, mimeType: string): Blob {
   return new Blob([content], { type: `${mimeType};charset=utf-8` });
 }
 
+const LAST_EXPORT_KEY = 'storyforge.lastExportAt';
+
+export function recordExportTimestamp(): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString());
+  }
+}
+
+export function daysSinceLastExport(): number | null {
+  if (typeof localStorage === 'undefined') return null;
+  const raw = localStorage.getItem(LAST_EXPORT_KEY);
+  if (!raw) return null;
+  const ms = Date.now() - new Date(raw).getTime();
+  return Math.floor(ms / 86_400_000);
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -94,4 +110,5 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  recordExportTimestamp();
 }
