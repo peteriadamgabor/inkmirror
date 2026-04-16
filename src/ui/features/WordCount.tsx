@@ -61,6 +61,9 @@ export const WordCount = () => {
             </div>
           </Show>
         </div>
+        <div class="mt-1 text-[10px] text-stone-400 text-right">
+          ~{Math.max(1, Math.ceil(stats().total / 250))} min read
+        </div>
         <Show when={stats().dialogue > 0}>
           <div class="mt-2 pt-2 border-t border-stone-100 dark:border-stone-700/50">
             <div class="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400">

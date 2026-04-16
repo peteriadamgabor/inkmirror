@@ -9,8 +9,15 @@ export interface Toast {
   duration: number;
 }
 
+export interface ToastHistoryEntry extends Toast {
+  timestamp: number;
+}
+
+const HISTORY_CAP = 20;
+
 const [toasts, setToasts] = createSignal<Toast[]>([]);
-export { toasts };
+const [toastHistory, setToastHistory] = createSignal<ToastHistoryEntry[]>([]);
+export { toasts, toastHistory };
 
 let nextId = 1;
 
@@ -19,17 +26,25 @@ export function pushToast(
   opts: { kind?: ToastKind; duration?: number } = {},
 ): number {
   const id = nextId++;
-  const toast: Toast = {
+  const entry: Toast = {
     id,
     kind: opts.kind ?? 'info',
     message,
     duration: opts.duration ?? 3200,
   };
-  setToasts((list) => [...list, toast]);
-  if (toast.duration > 0) {
-    setTimeout(() => dismissToast(id), toast.duration);
+  setToasts((list) => [...list, entry]);
+  setToastHistory((list) => [
+    { ...entry, timestamp: Date.now() },
+    ...list,
+  ].slice(0, HISTORY_CAP));
+  if (entry.duration > 0) {
+    setTimeout(() => dismissToast(id), entry.duration);
   }
   return id;
+}
+
+export function clearToastHistory(): void {
+  setToastHistory([]);
 }
 
 export function dismissToast(id: number): void {
