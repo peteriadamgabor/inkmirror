@@ -14,5 +14,5 @@ export function getDbErrors(): ReadonlyArray<{ timestamp: number; scope: string;
 }
 
 if (typeof window !== 'undefined') {
-  (window as unknown as { __storyforge_errors: typeof getDbErrors }).__storyforge_errors = getDbErrors;
+  (window as unknown as { __inkmirror_errors: typeof getDbErrors }).__inkmirror_errors = getDbErrors;
 }

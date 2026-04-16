@@ -65,7 +65,7 @@ export interface DocumentRow {
   updated_at: string;
 }
 
-export interface StoryForgeSchema extends DBSchema {
+export interface InkMirrorSchema extends DBSchema {
   documents: {
     key: string;
     value: DocumentRow;
@@ -97,7 +97,7 @@ export interface StoryForgeSchema extends DBSchema {
   };
 }
 
-const DB_NAME = 'storyforge';
+const DB_NAME = 'inkmirror';
 // v1: initial stores
 // v2: idempotent upgrade after SurrealDB leftover
 // v3: add `sentiments` store for Phase 3 slice 2
@@ -105,15 +105,15 @@ const DB_NAME = 'storyforge';
 // v5: add `block_revisions` store for per-block history
 const DB_VERSION = 5;
 
-export type StoryForgeDb = IDBPDatabase<StoryForgeSchema>;
+export type InkMirrorDb = IDBPDatabase<InkMirrorSchema>;
 
-let dbPromise: Promise<StoryForgeDb> | null = null;
+let dbPromise: Promise<InkMirrorDb> | null = null;
 
-export function getDb(): Promise<StoryForgeDb> {
+export function getDb(): Promise<InkMirrorDb> {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
     try {
-      return await openDB<StoryForgeSchema>(DB_NAME, DB_VERSION, {
+      return await openDB<InkMirrorSchema>(DB_NAME, DB_VERSION, {
         upgrade(db) {
           // Idempotent: create any store/index that doesn't already exist.
           if (!db.objectStoreNames.contains('documents')) {

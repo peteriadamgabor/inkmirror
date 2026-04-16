@@ -14,5 +14,5 @@ export function getAiErrors(): ReadonlyArray<{ timestamp: number; scope: string;
 }
 
 if (typeof window !== 'undefined') {
-  (window as unknown as { __storyforge_ai_errors: typeof getAiErrors }).__storyforge_ai_errors = getAiErrors;
+  (window as unknown as { __inkmirror_ai_errors: typeof getAiErrors }).__inkmirror_ai_errors = getAiErrors;
 }

@@ -67,9 +67,33 @@ export const LandingRoute = () => (
             <div class="w-8 h-8 rounded-full bg-orange-600" />
           </div>
         </div>
-        <h1 class="font-serif text-5xl md:text-7xl tracking-tight mb-4">
-          StoryForge
-        </h1>
+        <div class="relative mb-4">
+          <h1 class="font-serif text-5xl md:text-7xl tracking-tight">
+            InkMirror
+          </h1>
+          {/* Mirror surface line */}
+          <div
+            class="w-32 h-px mx-auto my-1"
+            style={{
+              background: 'linear-gradient(to right, transparent, rgba(127,119,221,0.4), transparent)',
+            }}
+          />
+          {/* Mirror reflection */}
+          <div
+            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none"
+            style={{
+              transform: 'scaleY(-1)',
+              'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 60%)',
+              '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 60%)',
+              opacity: '0.3',
+              'margin-top': '-0.15em',
+              'line-height': '1',
+            }}
+            aria-hidden="true"
+          >
+            InkMirror
+          </div>
+        </div>
         <p class="text-xl md:text-2xl text-stone-400 leading-relaxed mb-3">
           Two hearts, one soul —<br />
           the writer's and the story's pulse.
@@ -128,7 +152,7 @@ export const LandingRoute = () => (
           "AI doesn't write for you"
         </h2>
         <p class="text-lg text-stone-400 leading-relaxed mb-8">
-          StoryForge will never generate text, autocomplete your sentences, or
+          InkMirror will never generate text, autocomplete your sentences, or
           suggest plot twists. That's your job — and the world doesn't need
           another tool that does it worse than you.
         </p>
@@ -209,13 +233,13 @@ export const LandingRoute = () => (
         href="/"
         class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
       >
-        Open StoryForge
+        Open InkMirror
       </a>
     </section>
 
     {/* --- Footer --- */}
     <footer class="py-8 px-6 border-t border-stone-800 text-center text-xs text-stone-600">
-      StoryForge · Offline-first novel writing · Built with Solid.js + Tailwind
+      InkMirror · Offline-first novel writing · Built with Solid.js + Tailwind
     </footer>
   </div>
 );

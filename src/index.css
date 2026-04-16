@@ -32,17 +32,17 @@ html, body, #root {
 /* Zen mode: strip block chrome (type picker, labels, history, sentiment badges)
    so only the prose remains. Focus mode is still active underneath — sidebars
    are hidden, blocks dim on unfocus. Zen goes one step further. */
-.storyforge-zen [data-block-id] > div:first-child {
+.inkmirror-zen [data-block-id] > div:first-child {
   display: none;
 }
-.storyforge-zen [data-block-id] [data-editable] {
+.inkmirror-zen [data-block-id] [data-editable] {
   border-color: transparent !important;
 }
-.storyforge-zen [data-scroll-root="editor"] {
+.inkmirror-zen [data-scroll-root="editor"] {
   padding-top: 15vh !important;
   padding-bottom: 15vh !important;
 }
-.storyforge-zen .storyforge-ecg { display: none; }
+.inkmirror-zen .inkmirror-ecg { display: none; }
 
 /* Non-standard chapter kinds (cover / dedication / epigraph / …) use
    centered layout with the block chrome suppressed, so a Dedication

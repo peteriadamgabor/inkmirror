@@ -43,7 +43,7 @@ export const BINDING_META: BindingMeta[] = [
   { action: 'debug.toggle',     label: 'Debug panel',        description: 'Toggle developer telemetry overlay',     defaultCombo: 'Alt+Shift+`' },
 ];
 
-const STORAGE_KEY = 'storyforge.hotkeys';
+const STORAGE_KEY = 'inkmirror.hotkeys';
 
 function defaultsMap(): Record<AppAction, string> {
   const out = {} as Record<AppAction, string>;

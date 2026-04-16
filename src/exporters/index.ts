@@ -85,7 +85,7 @@ export function textBlob(content: string, mimeType: string): Blob {
   return new Blob([content], { type: `${mimeType};charset=utf-8` });
 }
 
-const LAST_EXPORT_KEY = 'storyforge.lastExportAt';
+const LAST_EXPORT_KEY = 'inkmirror.lastExportAt';
 
 export function recordExportTimestamp(): void {
   if (typeof localStorage !== 'undefined') {

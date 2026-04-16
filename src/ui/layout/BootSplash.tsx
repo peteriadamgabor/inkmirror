@@ -9,7 +9,7 @@ export const BootSplash = (props: BootSplashProps) => {
   return (
     <div class="fixed inset-0 flex items-center justify-center bg-stone-100 dark:bg-stone-900">
       <div class="flex flex-col items-center gap-4">
-        <div class="text-2xl font-serif text-stone-700 dark:text-stone-200">StoryForge</div>
+        <div class="text-2xl font-serif text-stone-700 dark:text-stone-200">InkMirror</div>
         <Show
           when={props.error}
           fallback={

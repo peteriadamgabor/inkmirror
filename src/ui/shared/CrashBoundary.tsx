@@ -38,7 +38,7 @@ export const CrashBoundary = (props: { children: JSX.Element }) => (
                 Something went wrong
               </div>
               <div class="font-serif text-lg text-stone-900 dark:text-stone-50">
-                StoryForge hit an unexpected error
+                InkMirror hit an unexpected error
               </div>
             </div>
             <div class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">

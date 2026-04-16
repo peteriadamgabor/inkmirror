@@ -110,7 +110,7 @@ export const BlockTypesHelp = () => (
 
         <div class="flex-1 overflow-auto px-5 py-4 flex flex-col gap-5">
           <div class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-            StoryForge is a block-based editor. Every block has a type that
+            InkMirror is a block-based editor. Every block has a type that
             tells the app what to do with it — how to render it, whether to
             count its words, whether to include it in exports. Change a
             block's type any time from its <code class="font-mono text-[11px] px-1 rounded bg-stone-100 dark:bg-stone-700">⋯</code>{' '}

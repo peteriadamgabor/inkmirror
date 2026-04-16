@@ -8,7 +8,7 @@ let hookInstalled = false;
 function createWorker(): Worker {
   return new Worker(new URL('../workers/ai-worker.ts', import.meta.url), {
     type: 'module',
-    name: 'storyforge-ai',
+    name: 'inkmirror-ai',
   });
 }
 

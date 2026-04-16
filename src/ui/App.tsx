@@ -19,8 +19,8 @@ export const App = (props: { children?: JSX.Element }) => (
   <div
     class="h-full w-full bg-stone-100 dark:bg-stone-900"
     classList={{
-      'storyforge-zen': uiState.zenMode,
-      'storyforge-focus': uiState.focusMode,
+      'inkmirror-zen': uiState.zenMode,
+      'inkmirror-focus': uiState.focusMode,
     }}
   >
     <div

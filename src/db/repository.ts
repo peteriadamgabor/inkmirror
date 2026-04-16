@@ -7,7 +7,7 @@ import {
   type CharacterRow,
   type DocumentRow,
   type SentimentRow,
-  type StoryForgeDb,
+  type InkMirrorDb,
 } from './connection';
 import { logDbError } from './errors';
 
@@ -189,7 +189,7 @@ export function __setTestDb(db: DbLike | null): void {
   testDb = db;
 }
 
-function realDb(idb: StoryForgeDb): DbLike {
+function realDb(idb: InkMirrorDb): DbLike {
   return {
     documents: {
       put: (row) => idb.put('documents', row),

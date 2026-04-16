@@ -13,7 +13,7 @@ export interface UiState {
   debugMode: boolean;
 }
 
-const SPELLCHECK_KEY = 'storyforge.spellcheck';
+const SPELLCHECK_KEY = 'inkmirror.spellcheck';
 
 function loadInitialSpellcheck(): boolean {
   if (typeof localStorage === 'undefined') return true;

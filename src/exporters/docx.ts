@@ -162,7 +162,7 @@ export const docxExporter: Exporter = {
     }
 
     const doc = new Document({
-      creator: input.document.author || 'StoryForge',
+      creator: input.document.author || 'InkMirror',
       title: input.document.title || 'Untitled',
       description: input.document.synopsis || '',
       styles: {

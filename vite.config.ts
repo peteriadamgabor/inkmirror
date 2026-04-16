@@ -25,8 +25,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'StoryForge',
-        short_name: 'StoryForge',
+        name: 'InkMirror',
+        short_name: 'InkMirror',
         description:
           'Offline-first novel writing app. Two hearts, one soul — the writer and the story.',
         theme_color: '#7F77DD',

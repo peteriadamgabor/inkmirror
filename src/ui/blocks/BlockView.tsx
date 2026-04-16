@@ -154,7 +154,7 @@ function focusBlock(blockId: string, caretPosition: 'start' | 'end' | number = '
   });
 }
 
-const DRAG_MIME = 'application/x-storyforge-block-id';
+const DRAG_MIME = 'application/x-inkmirror-block-id';
 
 export const BlockView = (props: { block: Block }) => {
   let el!: HTMLDivElement;

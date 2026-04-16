@@ -2,7 +2,7 @@ import { createSignal, onMount } from 'solid-js';
 
 export type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'storyforge-theme';
+const STORAGE_KEY = 'inkmirror-theme';
 
 function initialTheme(): Theme {
   if (typeof window === 'undefined') return 'light';

@@ -121,7 +121,7 @@ export const Sidebar = () => {
   });
 
   // Collapsible sidebar sections — persisted in localStorage.
-  const COLLAPSE_KEY = 'storyforge.sidebar.collapsed';
+  const COLLAPSE_KEY = 'inkmirror.sidebar.collapsed';
   const loadCollapsed = (): Record<string, boolean> => {
     try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
   };

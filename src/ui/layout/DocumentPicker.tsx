@@ -133,7 +133,7 @@ export const DocumentPicker = (props: Props) => {
       <div class="w-[520px] max-w-[92vw]">
         <div class="text-center mb-8">
           <div class="font-serif text-3xl text-stone-900 dark:text-stone-50 mb-1">
-            StoryForge
+            InkMirror
           </div>
           <div class="text-sm text-stone-500 dark:text-stone-400">
             Two hearts, one soul — the writer's and the story's pulse.
