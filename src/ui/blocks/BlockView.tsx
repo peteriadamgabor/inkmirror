@@ -19,14 +19,12 @@ import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
 import type { MarkType } from '@/types/block';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
-import { IconDots, IconTrash, IconDrag, IconChevron, IconPlus } from '@/ui/shared/icons';
+import { IconDots, IconDrag, IconChevron } from '@/ui/shared/icons';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
-import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
-import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
 
 const TYPE_LABELS: Record<Block['type'], { label: string; className: string; hint: string }> = {
@@ -421,7 +419,6 @@ export const BlockView = (props: { block: Block }) => {
   };
 
   const meta = () => TYPE_LABELS[props.block.type];
-  const sentiment = () => store.sentiments[props.block.id];
   const dialogueSpeakerId = () => {
     if (props.block.metadata.type !== 'dialogue') return '';
     return props.block.metadata.data.speaker_id;
@@ -509,12 +506,6 @@ export const BlockView = (props: { block: Block }) => {
     }
     openContextMenuAt(trigger, items);
   };
-  const mentionedChars = () => {
-    const ids = store.characterMentions[props.block.id] ?? [];
-    return ids
-      .map((id) => store.characters.find((c) => c.id === id))
-      .filter((c): c is NonNullable<typeof c> => !!c);
-  };
 
   // One-click type change from the header label: opens a compact menu
   // right under the label so users don't have to drill into the ⋯ menu
@@ -599,23 +590,6 @@ export const BlockView = (props: { block: Block }) => {
     });
   };
 
-  const onInsertBelow = (e: MouseEvent) => {
-    e.stopPropagation();
-    const newId = createBlockAfter(props.block.id, 'text');
-    focusBlock(newId, 'start');
-  };
-
-  const onTrash = async (e: MouseEvent) => {
-    e.stopPropagation();
-    const ok = await askConfirm({
-      title: 'Delete block?',
-      message: 'The block will be moved to the graveyard and can be restored later.',
-      confirmLabel: 'Delete',
-      danger: true,
-    });
-    if (ok) deleteBlock(props.block.id);
-  };
-
   const openBlockMenu = (e: MouseEvent) => {
     e.stopPropagation();
     const trigger = e.currentTarget as HTMLElement;
@@ -646,32 +620,20 @@ export const BlockView = (props: { block: Block }) => {
     };
 
     openContextMenuAt(trigger, [
-      { kind: 'header', label: 'Block type' },
+      { kind: 'header', label: 'Type' },
       { label: 'Text',     active: currentType === 'text',     onSelect: () => setType('text') },
       { label: 'Dialogue', active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
       { label: 'Scene',    active: currentType === 'scene',    onSelect: () => setType('scene') },
       { label: 'Note',     active: currentType === 'note',     onSelect: () => setType('note') },
       { kind: 'divider' },
-      {
-        label: 'Duplicate',
-        onSelect: () => {
-          const newId = duplicateBlock(props.block.id);
-          if (newId) toast.success('Block duplicated');
-        },
-      },
-      {
-        label: 'Move up',
-        disabled: isFirst,
-        onSelect: () => moveBlock(props.block.id, 'up'),
-      },
-      {
-        label: 'Move down',
-        disabled: isLast,
-        onSelect: () => moveBlock(props.block.id, 'down'),
-      },
+      { label: 'Insert below', onSelect: () => { const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); } },
+      { label: 'Duplicate', onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success('Block duplicated'); } },
       { label: 'Copy content', onSelect: () => void copyContent() },
       { kind: 'divider' },
-      { label: 'Delete block', danger: true, onSelect: () => void onDelete() },
+      { label: 'Move up', disabled: isFirst, onSelect: () => moveBlock(props.block.id, 'up') },
+      { label: 'Move down', disabled: isLast, onSelect: () => moveBlock(props.block.id, 'down') },
+      { kind: 'divider' },
+      { label: 'Delete', danger: true, onSelect: () => void onDelete() },
     ], { align: 'right' });
   };
 
@@ -749,15 +711,6 @@ export const BlockView = (props: { block: Block }) => {
         )}
         <button
           type="button"
-          onClick={onInsertBelow}
-          title="Insert a new text block below"
-          class="text-stone-400 hover:text-violet-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
-          aria-label="Insert block below"
-        >
-          <IconPlus size={14} />
-        </button>
-        <button
-          type="button"
           onClick={openBlockMenu}
           title="Block actions"
           class="text-stone-400 hover:text-violet-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
@@ -765,36 +718,6 @@ export const BlockView = (props: { block: Block }) => {
         >
           <IconDots size={14} />
         </button>
-        <button
-          type="button"
-          onClick={onTrash}
-          title="Delete block"
-          class="text-stone-400 hover:text-red-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
-          aria-label="Delete block"
-        >
-          <IconTrash size={13} />
-        </button>
-        {sentiment() && (
-          <span
-            class={`text-[10px] uppercase tracking-wider font-medium ${
-              SENTIMENT_COLORS[sentiment()!.label] ?? 'text-stone-400'
-            }`}
-          >
-            · {sentiment()!.label}
-          </span>
-        )}
-        <BlockHistory blockId={props.block.id} />
-        {mentionedChars().length > 0 && (
-          <span class="flex items-center gap-1 ml-1">
-            {mentionedChars().map((c) => (
-              <span
-                class="w-2 h-2 rounded-full"
-                style={{ 'background-color': c.color }}
-                title={c.name}
-              />
-            ))}
-          </span>
-        )}
       </div>
       {props.block.type === 'scene' && <SceneMetadataEditor block={props.block} />}
       <div

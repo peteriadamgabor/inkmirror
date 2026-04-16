@@ -13,11 +13,6 @@ import {
 } from '@/store/document';
 import {
   toggleFocusMode,
-  toggleZenMode,
-  toggleGraveyard,
-  togglePlotTimeline,
-  toggleBlockTypesHelp,
-  toggleHotkeysModal,
   toggleCommandPalette,
   returnToPicker,
 } from '@/store/ui-state';
@@ -478,78 +473,29 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      {/* --- Workspace actions --- */}
+      {/* --- Workspace --- */}
       <div class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-700 flex flex-col gap-1">
         <button
           type="button"
           onClick={toggleFocusMode}
           class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Hide sidebars, dim surrounding blocks"
         >
-          <span>Focus mode</span>
-          <span class="font-mono text-[10px] text-stone-400">⌘·</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleZenMode}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Strip all chrome — just prose"
-        >
-          <span>Zen mode</span>
-          <span class="font-mono text-[10px] text-stone-400">∅</span>
-        </button>
-        <button
-          type="button"
-          onClick={togglePlotTimeline}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Timeline of all scene blocks"
-        >
-          <span>Plot timeline</span>
-          <span class="font-mono text-[10px] text-stone-400">~</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleGraveyard}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Review and restore deleted blocks"
-        >
-          <span>Dead text graveyard</span>
-          <span class="font-mono text-[10px] text-stone-400">†</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleBlockTypesHelp}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="What are text / dialogue / scene / note blocks?"
-        >
-          <span>Block types help</span>
-          <span class="font-mono text-[10px] text-stone-400">?</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleCommandPalette}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Search every action"
-        >
-          <span>Command palette</span>
-          <span class="font-mono text-[10px] text-stone-400">⌘K</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleHotkeysModal}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Configure keyboard shortcuts"
-        >
-          <span>Hotkey settings</span>
-          <span class="font-mono text-[10px] text-stone-400">F1</span>
+          <span>Focus</span>
         </button>
         <button
           type="button"
           onClick={returnToPicker}
           class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-          title="Switch to a different document or create a new one"
         >
           <span>Documents</span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleCommandPalette}
+          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
+        >
+          <span>More actions…</span>
+          <span class="font-mono text-[10px] text-stone-400">⌘K</span>
         </button>
       </div>
     </div>
