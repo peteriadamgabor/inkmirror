@@ -3,6 +3,7 @@ import * as repo from '@/db/repository';
 import type { Document } from '@/types';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
+import { useTheme } from '@/ui/theme';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -20,6 +21,7 @@ function timeAgo(iso: string): string {
 }
 
 export const DocumentPicker = (props: Props) => {
+  const { theme, toggleTheme } = useTheme();
   const [docs, { refetch }] = createResource(() => repo.listDocuments());
   const [creating, setCreating] = createSignal(false);
   const [showNewForm, setShowNewForm] = createSignal(false);
@@ -136,6 +138,14 @@ export const DocumentPicker = (props: Props) => {
           <div class="text-sm text-stone-500 dark:text-stone-400">
             Two hearts, one soul — the writer's and the story's pulse.
           </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            class="mt-3 px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme() === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
         </div>
 
         <div class="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-xl overflow-hidden">
