@@ -13,6 +13,8 @@ import {
 } from '@/store/document';
 import {
   toggleFocusMode,
+  toggleBlockTypesHelp,
+  toggleHotkeysModal,
   toggleCommandPalette,
   returnToPicker,
 } from '@/store/ui-state';
@@ -474,27 +476,27 @@ export const Sidebar = () => {
       </div>
 
       {/* --- Workspace --- */}
-      <div class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-700 flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={toggleFocusMode}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-        >
-          <span>Focus</span>
+      <div class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-700 flex flex-col gap-0.5">
+        <button type="button" onClick={toggleFocusMode}
+          class="px-2 py-1 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left">
+          Focus
         </button>
-        <button
-          type="button"
-          onClick={returnToPicker}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-        >
-          <span>Documents</span>
+        <button type="button" onClick={returnToPicker}
+          class="px-2 py-1 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left">
+          Documents
         </button>
-        <button
-          type="button"
-          onClick={toggleCommandPalette}
-          class="flex items-center justify-between px-2 py-1.5 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors"
-        >
-          <span>More actions…</span>
+        <button type="button" onClick={toggleBlockTypesHelp}
+          class="px-2 py-1 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left">
+          Block types help
+        </button>
+        <button type="button" onClick={toggleHotkeysModal}
+          class="px-2 py-1 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left flex items-center justify-between">
+          <span>Hotkeys</span>
+          <span class="font-mono text-[10px] text-stone-400">F1</span>
+        </button>
+        <button type="button" onClick={toggleCommandPalette}
+          class="px-2 py-1 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left flex items-center justify-between">
+          <span>More…</span>
           <span class="font-mono text-[10px] text-stone-400">⌘K</span>
         </button>
       </div>

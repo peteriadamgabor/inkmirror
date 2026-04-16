@@ -195,8 +195,24 @@ export const Editor = () => {
     return store.chapters.find((c) => c.id === id)?.kind ?? 'standard';
   });
 
+  const docTitle = () => store.document?.title || 'Untitled';
+  const chapterTitle = () => {
+    const id = store.activeChapterId;
+    if (!id) return '';
+    return store.chapters.find((c) => c.id === id)?.title ?? '';
+  };
+
   return (
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
+      <div class="flex items-center justify-center px-4 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0">
+        <span class="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+          {docTitle()}
+          <Show when={chapterTitle()}>
+            <span class="text-stone-300 dark:text-stone-600 mx-1.5">/</span>
+            {chapterTitle()}
+          </Show>
+        </span>
+      </div>
       <StoryPulseEcg />
       <div
         ref={scrollEl}

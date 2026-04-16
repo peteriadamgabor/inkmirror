@@ -19,12 +19,14 @@ import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
 import type { MarkType } from '@/types/block';
 import { uiState } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
-import { IconDots, IconDrag, IconChevron } from '@/ui/shared/icons';
+import { IconDots, IconDrag, IconChevron, IconTrash, IconPlus } from '@/ui/shared/icons';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { debounce } from '@/utils/debounce';
+import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
+import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
 
 const TYPE_LABELS: Record<Block['type'], { label: string; className: string; hint: string }> = {
@@ -419,6 +421,13 @@ export const BlockView = (props: { block: Block }) => {
   };
 
   const meta = () => TYPE_LABELS[props.block.type];
+  const sentiment = () => store.sentiments[props.block.id];
+  const mentionedChars = () => {
+    const ids = store.characterMentions[props.block.id] ?? [];
+    return ids
+      .map((id) => store.characters.find((c) => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => !!c);
+  };
   const dialogueSpeakerId = () => {
     if (props.block.metadata.type !== 'dialogue') return '';
     return props.block.metadata.data.speaker_id;
@@ -651,7 +660,7 @@ export const BlockView = (props: { block: Block }) => {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div class="flex items-center gap-2 mb-1 group/header">
+      <div class="flex items-center gap-1.5 mb-1 group/header flex-wrap">
         <div
           draggable="true"
           onDragStart={onDragStart}
@@ -709,11 +718,61 @@ export const BlockView = (props: { block: Block }) => {
             title="Parenthetical — e.g. (whispering), (to Peter)"
           />
         )}
+        {sentiment() && (
+          <span
+            class={`text-[10px] uppercase tracking-wider font-medium ${
+              SENTIMENT_COLORS[sentiment()!.label] ?? 'text-stone-400'
+            }`}
+          >
+            · {sentiment()!.label}
+          </span>
+        )}
+        {mentionedChars().length > 0 && (
+          <span class="flex items-center gap-0.5">
+            {mentionedChars().map((c) => (
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                style={{ 'background-color': c.color }}
+                title={c.name}
+              />
+            ))}
+          </span>
+        )}
+        <span class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); }}
+            title="Insert block below"
+            class="text-stone-400 hover:text-violet-500 px-0.5 leading-none"
+          >
+            <IconPlus size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void (async () => {
+                const ok = await askConfirm({
+                  title: 'Delete block?',
+                  message: 'The block will be moved to the graveyard.',
+                  confirmLabel: 'Delete',
+                  danger: true,
+                });
+                if (ok) deleteBlock(props.block.id);
+              })();
+            }}
+            title="Delete block"
+            class="text-stone-400 hover:text-red-500 px-0.5 leading-none"
+          >
+            <IconTrash size={13} />
+          </button>
+          <BlockHistory blockId={props.block.id} />
+        </span>
         <button
           type="button"
           onClick={openBlockMenu}
           title="Block actions"
-          class="text-stone-400 hover:text-violet-500 px-1 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
+          class="text-stone-400 hover:text-violet-500 px-0.5 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
           aria-label="Open block menu"
         >
           <IconDots size={14} />
