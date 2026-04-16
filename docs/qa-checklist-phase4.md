@@ -135,7 +135,7 @@ reloads.
 4. Toggle back on. Squiggle returns.
 5. Reload. Squiggle still on.
 
-**Storage key:** `localStorage['storyforge.spellcheck']`, value `'0'` or `'1'`.
+**Storage key:** `localStorage['inkmirror.spellcheck']`, value `'0'` or `'1'`.
 
 ---
 
@@ -156,4 +156,4 @@ reloads.
 9. "Reset defaults" in the modal header → all combos return to
    their `BINDING_META.defaultCombo` values.
 
-**Storage key:** `localStorage['storyforge.hotkeys']`, JSON object.
+**Storage key:** `localStorage['inkmirror.hotkeys']`, JSON object.

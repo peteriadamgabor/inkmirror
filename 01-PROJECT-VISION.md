@@ -1,13 +1,13 @@
-# StoryForge — Project Vision
+# InkMirror — Project Vision
 
 > **Two hearts, one soul.**
-> Every novel has two heartbeats. One is the writer's — the rhythm of words being born. The other is the story's — the pulse of the plot, the emotional heartbeat of the characters. StoryForge is the first tool that hears both.
+> Every novel has two heartbeats. One is the writer's — the rhythm of words being born. The other is the story's — the pulse of the plot, the emotional heartbeat of the characters. InkMirror is the first tool that hears both.
 
 ---
 
 ## What is this?
 
-StoryForge is a next-generation, AI-assisted novel writing web application. Offline-first, block-based editor, which uses local (in-browser) AI to find connections and track characters — with zero server-side data leakage.
+InkMirror is a next-generation, AI-assisted novel writing web application. Offline-first, block-based editor, which uses local (in-browser) AI to find connections and track characters — with zero server-side data leakage.
 
 ## The problem
 
@@ -26,7 +26,7 @@ A clean, block-based editor that:
 ## Philosophy
 
 ### "AI doesn't write for you — it holds a mirror up to you."
-StoryForge is not a generative AI tool. It does not write the novel for the user. Instead, it analyzes, reflects, warns, and inspires. Creativity remains with the writer.
+InkMirror is not a generative AI tool. It does not write the novel for the user. Instead, it analyzes, reflects, warns, and inspires. Creativity remains with the writer.
 
 ### "Two hearts, one soul"
 The app measures two parallel pulses:
@@ -44,7 +44,7 @@ The novel never leaves the user's machine unless the user explicitly requests it
 
 | Element | Value |
 |---------|-------|
-| Name | StoryForge |
+| Name | InkMirror |
 | Tagline | Two hearts, one soul |
 | Primary color (Writer) | Violet — `#7F77DD` |
 | Primary color (Story) | Coral — `#D85A30` |
@@ -69,7 +69,7 @@ Secondary: screenwriters, creative writing teachers, worldbuilders.
 
 ## Value Proposition
 
-| The user says | StoryForge's answer |
+| The user says | InkMirror's answer |
 |---------------|---------------------|
 | "Google Docs slows down on my novel" | Canvas-based rendering, virtualization, 60 FPS |
 | "I don't want AI to write it for me" | AI analyzes, it does not generate — it holds a mirror |

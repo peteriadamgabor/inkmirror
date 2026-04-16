@@ -1,4 +1,4 @@
-# StoryForge — Data Model & TypeScript Interfaces
+# InkMirror — Data Model & TypeScript Interfaces
 
 > This file defines the complete data structure. Every AI agent and developer works from this.
 

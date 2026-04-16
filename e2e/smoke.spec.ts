@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 async function clearIdb(page: ReturnType<typeof test['info']> extends never ? never : Awaited<ReturnType<typeof import('@playwright/test')['chromium']['launch']>>['newPage'] extends (...args: unknown[]) => infer R ? Awaited<R> : never) {
   await page.evaluate(() => {
     return new Promise<void>((resolve, reject) => {
-      const req = indexedDB.deleteDatabase('storyforge');
+      const req = indexedDB.deleteDatabase('inkmirror');
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
@@ -14,7 +14,7 @@ async function clearIdb(page: ReturnType<typeof test['info']> extends never ? ne
 test.describe('Boot + Documents', () => {
   test('first boot shows document picker with no documents', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => indexedDB.deleteDatabase('storyforge'));
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
     await page.reload();
     await expect(page.getByText('Your documents')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('No documents yet')).toBeVisible();
@@ -22,7 +22,7 @@ test.describe('Boot + Documents', () => {
 
   test('creating a document opens the editor', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => indexedDB.deleteDatabase('storyforge'));
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
     await page.reload();
     await page.getByText('+ New document').click();
     await page.getByPlaceholder('Document title…').fill('Test Novel');
@@ -35,7 +35,7 @@ test.describe('Boot + Documents', () => {
 test.describe('Editor basics', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => indexedDB.deleteDatabase('storyforge'));
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
     await page.reload();
     await page.getByText('+ New document').click();
     await page.getByPlaceholder('Document title…').fill('E2E Test');

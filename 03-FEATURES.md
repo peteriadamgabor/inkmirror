@@ -1,4 +1,4 @@
-# StoryForge — Features
+# InkMirror — Features
 
 > Every feature starts from a single question: "What does a novelist need that no one has given them yet?"
 

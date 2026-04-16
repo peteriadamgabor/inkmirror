@@ -1,4 +1,4 @@
-# StoryForge — Coding Guidelines & AI Agent Instructions
+# InkMirror — Coding Guidelines & AI Agent Instructions
 
 > This file is for AI coding agents. If you are an AI agent, read it carefully before writing anything.
 

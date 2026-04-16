@@ -1,4 +1,4 @@
-# StoryForge — Tech Stack
+# InkMirror — Tech Stack
 
 > Every technology decision serves a single goal: 60 FPS, 100,000+ words, zero server dependency.
 
@@ -317,8 +317,8 @@ If the user wants a larger AI model (e.g. Claude API), the Worker acts as a rela
 
 ```bash
 # Initialization
-pnpm create vite storyforge -- --template solid-ts
-cd storyforge
+pnpm create vite inkmirror -- --template solid-ts
+cd inkmirror
 pnpm add solid-js @solidjs/router
 pnpm add -D tailwindcss @tailwindcss/vite typescript
 

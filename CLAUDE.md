@@ -1,4 +1,4 @@
-# CLAUDE.md — StoryForge
+# CLAUDE.md — InkMirror
 
 AI-assisted novel writing webapp. **Two hearts, one soul** — the writer's and the story's pulse. Offline-first, everything runs in the browser.
 

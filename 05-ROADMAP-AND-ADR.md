@@ -1,4 +1,4 @@
-# StoryForge — Development Roadmap & Architectural Decisions
+# InkMirror — Development Roadmap & Architectural Decisions
 
 ---
 

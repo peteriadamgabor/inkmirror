@@ -1,4 +1,4 @@
-# StoryForge — Full QA Test Plan
+# InkMirror — Full QA Test Plan
 
 Manual test plan covering every user-facing feature. Run through
 sequentially in a single browser session (~90 minutes). Mark each
@@ -6,7 +6,7 @@ item pass/fail. When a fail is found, note the browser + steps to
 reproduce.
 
 **Browsers to test:** Firefox (primary), Chrome, Safari (if available).
-**Start state:** clear IndexedDB (`Application → Storage → IndexedDB → storyforge → Delete database`) and localStorage for a clean slate.
+**Start state:** clear IndexedDB (`Application → Storage → IndexedDB → inkmirror → Delete database`) and localStorage for a clean slate.
 
 ---
 
@@ -342,7 +342,7 @@ reproduce.
 - [ ] Right panel → **Spellcheck** → toggle between on/off.
 - [ ] When off → no red squiggles on misspelled words.
 - [ ] When on → red squiggles return.
-- [ ] Reload → setting persists (stored in `localStorage['storyforge.spellcheck']`).
+- [ ] Reload → setting persists (stored in `localStorage['inkmirror.spellcheck']`).
 
 ---
 
@@ -480,8 +480,8 @@ reproduce.
 
 ## 22. Backup Reminder
 
-- [ ] Clear `localStorage['storyforge.lastExportAt']` → reload → after ~5s, a toast says "Tip: export your work regularly."
-- [ ] Export any format → `storyforge.lastExportAt` updates.
+- [ ] Clear `localStorage['inkmirror.lastExportAt']` → reload → after ~5s, a toast says "Tip: export your work regularly."
+- [ ] Export any format → `inkmirror.lastExportAt` updates.
 - [ ] Manually set the timestamp to 8 days ago → reload → toast says "You haven't exported in 8 days."
 
 ---

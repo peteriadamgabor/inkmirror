@@ -1,4 +1,4 @@
-# StoryForge Backlog
+# InkMirror Backlog
 
 Informal list of ideas captured during development. Not a roadmap — the real roadmap lives in `05-ROADMAP-AND-ADR.md`. Items here are "worth considering when we get there," not commitments.
 
