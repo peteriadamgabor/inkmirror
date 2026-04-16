@@ -106,3 +106,15 @@ export function toggleDocumentSettings(): void {
 export function setDocumentSettingsOpen(open: boolean): void {
   setUiState('documentSettingsOpen', open);
 }
+
+// Callback set by index.tsx to navigate back to the document picker.
+// Avoids a circular dependency (Sidebar → index → store → Sidebar).
+let returnToPickerFn: (() => void) | null = null;
+
+export function setReturnToPicker(fn: () => void): void {
+  returnToPickerFn = fn;
+}
+
+export function returnToPicker(): void {
+  returnToPickerFn?.();
+}
