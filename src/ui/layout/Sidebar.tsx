@@ -1,4 +1,4 @@
-import { For, createSignal, Show } from 'solid-js';
+import { createEffect, For, createSignal, onCleanup, Show } from 'solid-js';
 import {
   store,
   createChapter,
@@ -99,6 +99,39 @@ export const Sidebar = () => {
   const [draft, setDraft] = createSignal('');
   const [newCharDraft, setNewCharDraft] = createSignal('');
   const [chapterMenuOpen, setChapterMenuOpen] = createSignal(false);
+  let chapterMenuEl: HTMLDivElement | undefined;
+
+  // Dismiss the chapter + dropdown on outside click, scroll, or Esc.
+  createEffect(() => {
+    if (!chapterMenuOpen()) return;
+    const onOutside = (e: MouseEvent) => {
+      if (chapterMenuEl && e.target instanceof Node && chapterMenuEl.contains(e.target)) return;
+      setChapterMenuOpen(false);
+    };
+    const onDismiss = () => setChapterMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setChapterMenuOpen(false); };
+    window.addEventListener('mousedown', onOutside, true);
+    window.addEventListener('scroll', onDismiss, true);
+    window.addEventListener('keydown', onKey);
+    onCleanup(() => {
+      window.removeEventListener('mousedown', onOutside, true);
+      window.removeEventListener('scroll', onDismiss, true);
+      window.removeEventListener('keydown', onKey);
+    });
+  });
+
+  // Collapsible sidebar sections — persisted in localStorage.
+  const COLLAPSE_KEY = 'storyforge.sidebar.collapsed';
+  const loadCollapsed = (): Record<string, boolean> => {
+    try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
+  };
+  const [collapsed, setCollapsed] = createSignal<Record<string, boolean>>(loadCollapsed());
+  const isCollapsed = (key: string) => collapsed()[key] ?? false;
+  const toggleCollapse = (key: string) => {
+    const next = { ...collapsed(), [key]: !isCollapsed(key) };
+    setCollapsed(next);
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next)); } catch { /* */ }
+  };
 
   const startRenameChapter = (id: UUID, currentTitle: string) => {
     setEditingChapterId(id);
@@ -159,10 +192,15 @@ export const Sidebar = () => {
       {/* --- Chapters --- */}
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
-          <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+          <button
+            type="button"
+            onClick={() => toggleCollapse('chapters')}
+            class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+          >
+            <span class="text-[8px]">{isCollapsed('chapters') ? '▸' : '▾'}</span>
             Chapters
-          </div>
-          <div class="relative">
+          </button>
+          <div class="relative" ref={chapterMenuEl}>
             <button
               type="button"
               onClick={() => setChapterMenuOpen((v) => !v)}
@@ -195,6 +233,7 @@ export const Sidebar = () => {
           </div>
         </div>
 
+        <Show when={!isCollapsed('chapters')}>
         <div class="flex flex-col gap-0.5">
           <For
             each={store.chapters}
@@ -323,14 +362,21 @@ export const Sidebar = () => {
             }}
           </For>
         </div>
+        </Show>
       </div>
 
       {/* --- Characters --- */}
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+        <button
+          type="button"
+          onClick={() => toggleCollapse('characters')}
+          class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+        >
+          <span class="text-[8px]">{isCollapsed('characters') ? '▸' : '▾'}</span>
           Characters
-        </div>
+        </button>
 
+        <Show when={!isCollapsed('characters')}>
         <div class="flex flex-col gap-0.5">
           <For
             each={store.characters}
@@ -437,7 +483,7 @@ export const Sidebar = () => {
             aria-label="New character name"
             value={newCharDraft()}
             onInput={(e) => setNewCharDraft(e.currentTarget.value)}
-            onKeyDown={(e) => {
+            onKeyDown={(e: KeyboardEvent) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 handleNewCharacter();
@@ -447,13 +493,20 @@ export const Sidebar = () => {
             class="flex-1 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-xs text-stone-800 dark:text-stone-200 py-1 placeholder-stone-400"
           />
         </div>
+        </Show>
       </div>
 
       {/* --- Export --- */}
       <div class="flex flex-col gap-1.5 mt-2">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
+        <button
+          type="button"
+          onClick={() => toggleCollapse('export')}
+          class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+        >
+          <span class="text-[8px]">{isCollapsed('export') ? '▸' : '▾'}</span>
           Export
-        </div>
+        </button>
+        <Show when={!isCollapsed('export')}>
         <div class="flex flex-wrap gap-1">
           <For each={EXPORTERS}>
             {(exp) => {
@@ -473,6 +526,7 @@ export const Sidebar = () => {
             }}
           </For>
         </div>
+        </Show>
       </div>
 
       {/* --- Workspace --- */}
