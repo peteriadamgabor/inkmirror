@@ -115,29 +115,58 @@ export const Editor = () => {
   let ro: ResizeObserver | null = null;
   const observed = new WeakSet<Element>();
 
+  // Scroll-anchor idle gate: skip anchor restoration while the user is
+  // actively scrolling (wheel events in the last 150ms). Without this,
+  // measurement changes during fast wheel input fight the scroll
+  // momentum and cause visible jitter.
+  let lastWheelAt = 0;
+  const isScrollIdle = () => performance.now() - lastWheelAt > 150;
+
   onMount(() => {
-    if (typeof ResizeObserver === 'undefined') return;
-    ro = new ResizeObserver((entries) => {
-      const anchor = captureAnchor();
-      let anyChange = false;
-      for (const entry of entries) {
-        const el = entry.target as HTMLElement;
-        const id = el.dataset.blockId;
-        if (!id) continue;
-        const height = Math.round(entry.contentRect.height);
-        if (height <= 0) continue;
-        const existing = store.measurements[id];
-        if (existing && Math.abs(existing.height - height) < 0.5) continue;
-        const block = store.blocks[id];
-        const hash = block ? contentHash(block.content) : existing?.contentHash ?? '';
-        setMeasurement(id, { height, contentHash: hash });
-        anyChange = true;
-      }
-      if (anyChange && anchor) {
-        // Restore after Solid has committed the reactive updates.
-        queueMicrotask(() => restoreAnchor(anchor));
-      }
-    });
+    scrollEl.addEventListener('wheel', () => { lastWheelAt = performance.now(); }, { passive: true });
+
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver((entries) => {
+        const anchor = isScrollIdle() ? captureAnchor() : null;
+        let anyChange = false;
+        for (const entry of entries) {
+          const el = entry.target as HTMLElement;
+          const id = el.dataset.blockId;
+          if (!id) continue;
+          const height = Math.round(entry.contentRect.height);
+          if (height <= 0) continue;
+          const existing = store.measurements[id];
+          if (existing && Math.abs(existing.height - height) < 0.5) continue;
+          const block = store.blocks[id];
+          const hash = block ? contentHash(block.content) : existing?.contentHash ?? '';
+          setMeasurement(id, { height, contentHash: hash });
+          anyChange = true;
+        }
+        if (anyChange && anchor) {
+          queueMicrotask(() => restoreAnchor(anchor));
+        }
+      });
+    } else {
+      // ResizeObserver fallback: periodic re-measurement every 500ms.
+      // Extremely rare to hit (all modern browsers ship ResizeObserver)
+      // but prevents silent measurement drift on exotic runtimes.
+      const fallbackInterval = setInterval(() => {
+        const els = document.querySelectorAll<HTMLElement>('[data-block-id]');
+        els.forEach((el) => {
+          const id = el.dataset.blockId;
+          if (!id) return;
+          const rect = el.getBoundingClientRect();
+          const height = Math.round(rect.height);
+          if (height <= 0) return;
+          const existing = store.measurements[id];
+          if (existing && Math.abs(existing.height - height) < 0.5) return;
+          const block = store.blocks[id];
+          const hash = block ? contentHash(block.content) : existing?.contentHash ?? '';
+          setMeasurement(id, { height, contentHash: hash });
+        });
+      }, 500);
+      onCleanup(() => clearInterval(fallbackInterval));
+    }
   });
 
   onCleanup(() => {

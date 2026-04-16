@@ -2,7 +2,7 @@ import { Show } from 'solid-js';
 import { Sidebar } from './layout/Sidebar';
 import { Editor } from './layout/Editor';
 import { RightPanel } from './layout/RightPanel';
-import { FpsOverlay } from './perf/FpsOverlay';
+import { DebugOverlay } from './perf/DebugOverlay';
 import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
 import { BlockTypesHelp } from './features/BlockTypesHelp';
@@ -80,7 +80,7 @@ export const App = (props: { children?: JSX.Element }) => (
       </div>
     </Show>
 
-    <FpsOverlay />
+    <DebugOverlay />
     <Graveyard />
     <PlotTimeline />
     <BlockTypesHelp />

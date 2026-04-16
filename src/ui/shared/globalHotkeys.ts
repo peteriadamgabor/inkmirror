@@ -14,6 +14,7 @@ import {
   toggleHotkeysModal,
   toggleCommandPalette,
   toggleDocumentSettings,
+  toggleDebugMode,
   uiState,
 } from '@/store/ui-state';
 import { createChapter, performUndo, performRedo } from '@/store/document';
@@ -32,6 +33,7 @@ export function runAction(action: AppAction): void {
     case 'document.settings': toggleDocumentSettings(); break;
     case 'undo':              performUndo();            break;
     case 'redo':              performRedo();             break;
+    case 'debug.toggle':     toggleDebugMode();         break;
   }
 }
 

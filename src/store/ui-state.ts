@@ -10,6 +10,7 @@ export interface UiState {
   hotkeysModalOpen: boolean;
   commandPaletteOpen: boolean;
   documentSettingsOpen: boolean;
+  debugMode: boolean;
 }
 
 const SPELLCHECK_KEY = 'storyforge.spellcheck';
@@ -31,6 +32,7 @@ const [uiState, setUiState] = createStore<UiState>({
   hotkeysModalOpen: false,
   commandPaletteOpen: false,
   documentSettingsOpen: false,
+  debugMode: false,
 });
 
 export { uiState };
@@ -105,6 +107,10 @@ export function toggleDocumentSettings(): void {
 
 export function setDocumentSettingsOpen(open: boolean): void {
   setUiState('documentSettingsOpen', open);
+}
+
+export function toggleDebugMode(): void {
+  setUiState('debugMode', (v) => !v);
 }
 
 // Callback set by index.tsx to navigate back to the document picker.

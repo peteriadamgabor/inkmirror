@@ -9,6 +9,7 @@ export default mergeConfig(
       environment: 'jsdom',
       passWithNoTests: true,
       setupFiles: [],
+      exclude: ['e2e/**', 'node_modules/**'],
       deps: {
         optimizer: {
           web: {

@@ -55,7 +55,6 @@ html, body, #root {
   display: none;
 }
 [data-chapter-kind]:not([data-chapter-kind="standard"]) [data-block-id] [data-editable] {
-  border-color: transparent !important;
   text-align: center;
 }
 [data-chapter-kind="cover"] [data-block-id] [data-editable] {

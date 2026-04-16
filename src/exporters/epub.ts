@@ -195,8 +195,24 @@ export const epubExporter: Exporter = {
 
     zip.file('OEBPS/styles.css', STYLES_CSS);
 
+    // Generate a text-based cover page from the document title + author.
+    const coverHtml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+  <body style="display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center;">
+    <div>
+      <h1 style="font-size:2.4em;margin-bottom:0.5em;">${esc(input.document.title || 'Untitled')}</h1>
+      ${input.document.author ? `<p style="font-size:1.2em;font-style:italic;">${esc(input.document.author)}</p>` : ''}
+    </div>
+  </body>
+</html>`;
+    zip.file('OEBPS/cover.xhtml', coverHtml);
+
     const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
-    const chapterFiles: Array<{ file: string; title: string }> = [];
+    const chapterFiles: Array<{ file: string; title: string }> = [
+      { file: 'cover.xhtml', title: 'Cover' },
+    ];
 
     sortedChapters.forEach((chapter, i) => {
       const filename = `chapter-${i + 1}.xhtml`;

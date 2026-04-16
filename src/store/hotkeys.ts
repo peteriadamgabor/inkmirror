@@ -17,7 +17,8 @@ export type AppAction =
   | 'palette.show'
   | 'document.settings'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'debug.toggle';
 
 export interface BindingMeta {
   action: AppAction;
@@ -39,6 +40,7 @@ export const BINDING_META: BindingMeta[] = [
   { action: 'document.settings',label: 'Document settings',   description: 'Edit title, author, synopsis',          defaultCombo: 'Alt+Shift+D' },
   { action: 'undo',              label: 'Undo',               description: 'Undo the last action',                  defaultCombo: 'Ctrl+Z' },
   { action: 'redo',              label: 'Redo',               description: 'Redo the last undone action',            defaultCombo: 'Ctrl+Shift+Z' },
+  { action: 'debug.toggle',     label: 'Debug panel',        description: 'Toggle developer telemetry overlay',     defaultCombo: 'Alt+Shift+`' },
 ];
 
 const STORAGE_KEY = 'storyforge.hotkeys';
