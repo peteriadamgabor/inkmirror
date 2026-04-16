@@ -4,6 +4,7 @@ import { createSignal, Match, Switch } from 'solid-js';
 import { Router, Route } from '@solidjs/router';
 import { EditorRoute } from '@/routes/editor';
 import { PerfHarnessRoute } from '@/routes/perf-harness';
+import { LandingRoute } from '@/routes/landing';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
@@ -89,8 +90,14 @@ setReturnToPicker(() => {
   });
 });
 
+// Landing page is standalone — no boot, no document, no state machine.
+const isLanding = window.location.pathname === '/landing';
+
 render(
-  () => (
+  () =>
+    isLanding ? (
+      <LandingRoute />
+    ) : (
     <CrashBoundary>
       <Switch>
         <Match when={appState().kind === 'loading'}>
@@ -108,11 +115,12 @@ render(
           <Router>
             <Route path="/" component={EditorRoute} />
             <Route path="/perf" component={PerfHarnessRoute} />
+            <Route path="/landing" component={LandingRoute} />
           </Router>
         </Match>
       </Switch>
     </CrashBoundary>
-  ),
+    ),
   rootEl,
 );
 
