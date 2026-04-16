@@ -4,6 +4,18 @@ import { pipeline, env, type TextClassificationPipeline } from '@huggingface/tra
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 
+// Route all HuggingFace model fetches through our Cloudflare Worker
+// proxy so the browser gets the CORS headers HuggingFace's CDN omits
+// for some cross-origin requests. In development (localhost) and any
+// deploy where the origin already has CORS working, this is a no-op
+// routing tweak — our worker.ts just forwards to huggingface.co.
+// The path pattern matches Transformers.js's default remoteURL layout
+// ({host}/{owner}/{model}/resolve/{revision}/{file}).
+if (typeof self !== 'undefined' && self.location?.origin) {
+  env.remoteHost = `${self.location.origin}/hf-proxy`;
+  env.remotePathTemplate = '{model}/resolve/{revision}';
+}
+
 // ---------- model configuration ----------
 
 interface ModelConfig {

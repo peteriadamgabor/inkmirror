@@ -3,7 +3,29 @@ import solid from 'vite-plugin-solid';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
+const HF_BASE = 'https://huggingface.co';
+
 export default defineConfig({
+  server: {
+    proxy: {
+      '/hf-proxy': {
+        target: HF_BASE,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/hf-proxy/, ''),
+        headers: {
+          'User-Agent': 'InkMirror/1.0',
+        },
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*';
+            proxyRes.headers['access-control-allow-methods'] = 'GET, HEAD, OPTIONS';
+            proxyRes.headers['access-control-allow-headers'] = '*';
+            proxyRes.headers['access-control-expose-headers'] = '*';
+          });
+        },
+      },
+    },
+  },
   plugins: [
     solid(),
     VitePWA({
