@@ -7,6 +7,28 @@ html, body, #root {
   margin: 0;
 }
 
+/* Light theme: warm sepia tint on the main surfaces. The Tailwind
+   color classes stay unchanged (stone-100, stone-200, …); we just
+   nudge the root background and key panels toward a papery warmth
+   so the editor feels like a writing desk, not a spreadsheet. Dark
+   mode is unaffected — stone-900 is already warm enough. */
+:root:not(.dark) {
+  --tw-bg-opacity: 1;
+  background-color: #f5f0e8; /* warm cream instead of stone-100 #f5f5f4 */
+}
+:root:not(.dark) .bg-stone-100 {
+  background-color: #f5f0e8;
+}
+:root:not(.dark) .bg-white {
+  background-color: #faf6f0;
+}
+:root:not(.dark) .bg-white\/95 {
+  background-color: rgba(250, 246, 240, 0.95);
+}
+:root:not(.dark) .bg-white\/80 {
+  background-color: rgba(250, 246, 240, 0.8);
+}
+
 /* Zen mode: strip block chrome (type picker, labels, history, sentiment badges)
    so only the prose remains. Focus mode is still active underneath — sidebars
    are hidden, blocks dim on unfocus. Zen goes one step further. */
