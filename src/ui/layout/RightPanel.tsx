@@ -8,6 +8,7 @@ import { WordCount } from '@/ui/features/WordCount';
 import { CharacterSentiment } from '@/ui/features/CharacterSentiment';
 import { toggleRightPanel } from '@/store/ui-state';
 import { IconChevron } from '@/ui/shared/icons';
+import { t } from '@/i18n';
 
 export const RightPanel = () => {
   const ai = getAiClient();
@@ -46,26 +47,26 @@ export const RightPanel = () => {
         type="button"
         onClick={toggleRightPanel}
         class="absolute top-3 right-3 w-6 h-6 rounded text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center justify-center"
-        title="Hide story panel"
-        aria-label="Hide story panel"
+        title={t('topBar.hideStoryPanel')}
+        aria-label={t('topBar.hideStoryPanel')}
       >
         <IconChevron size={12} class="rotate-90" />
       </button>
       <WordCount />
 
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-          Story pulse
+        <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+          {t('rightPanel.storyPulse')}
         </div>
         <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
-          <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">
-            Chapter mood
+          <div class="text-[10px] text-stone-400 mb-2 inkmirror-smallcaps">
+            {t('rightPanel.chapterMood')}
           </div>
           <Show
             when={chapterMood()}
             fallback={
               <div class="text-xs text-stone-400">
-                {ai.isReady() ? 'no analysis yet' : 'model loading…'}
+                {ai.isReady() ? t('rightPanel.noAnalysis') : t('rightPanel.modelLoading')}
               </div>
             }
           >
@@ -89,8 +90,8 @@ export const RightPanel = () => {
       </div>
 
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-          Document mood
+        <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+          {t('rightPanel.documentMood')}
         </div>
         <MoodHeatmap />
       </div>

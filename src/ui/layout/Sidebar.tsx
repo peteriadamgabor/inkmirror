@@ -14,19 +14,20 @@ import {
 import {
   toggleFocusMode,
   toggleBlockTypesHelp,
+  toggleChapterTypesHelp,
   toggleHotkeysModal,
   toggleCommandPalette,
   returnToPicker,
 } from '@/store/ui-state';
 import type { ChapterKind, UUID } from '@/types';
 
-const CHAPTER_KIND_MENU: Array<{ kind: ChapterKind; label: string }> = [
-  { kind: 'standard',        label: 'New chapter' },
-  { kind: 'cover',           label: 'Cover' },
-  { kind: 'dedication',      label: 'Dedication' },
-  { kind: 'epigraph',        label: 'Epigraph' },
-  { kind: 'acknowledgments', label: 'Acknowledgments' },
-  { kind: 'afterword',       label: 'Afterword' },
+const CHAPTER_KIND_MENU: Array<{ kind: ChapterKind; labelKey: string }> = [
+  { kind: 'standard',        labelKey: 'sidebar.newChapter' },
+  { kind: 'cover',           labelKey: 'sidebar.chapterKinds.cover' },
+  { kind: 'dedication',      labelKey: 'sidebar.chapterKinds.dedication' },
+  { kind: 'epigraph',        labelKey: 'sidebar.chapterKinds.epigraph' },
+  { kind: 'acknowledgments', labelKey: 'sidebar.chapterKinds.acknowledgments' },
+  { kind: 'afterword',       labelKey: 'sidebar.chapterKinds.afterword' },
 ];
 
 const CHAPTER_KIND_GLYPH: Record<ChapterKind, string> = {
@@ -54,6 +55,7 @@ import { toast } from '@/ui/shared/toast';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { IconDots, IconStar } from '@/ui/shared/icons';
 import { openFeedback } from '@/ui/shared/feedback';
+import { t } from '@/i18n';
 
 const EXPORTERS: Exporter[] = [
   markdownExporter,
@@ -84,10 +86,12 @@ async function runExport(exporter: Exporter): Promise<void> {
     const blob = await exporter.run(input);
     const name = sanitizeFilename(input.document.title);
     downloadBlob(blob, `${name}.${exporter.extension}`);
-    toast.success(`${exporter.label} exported`);
+    toast.success(t('toast.exportSuccess', { n: 1, unit: exporter.label }));
   } catch (err) {
     toast.error(
-      `${exporter.label} export failed: ${err instanceof Error ? err.message : String(err)}`,
+      t('toast.exportFailed', {
+        error: `${exporter.label}: ${err instanceof Error ? err.message : String(err)}`,
+      }),
     );
   } finally {
     setExportingFormat(null);
@@ -173,15 +177,16 @@ export const Sidebar = () => {
     setChapterMenuOpen(false);
     if (!result) return;
     if (kind !== 'standard') {
-      const label = CHAPTER_KIND_MENU.find((m) => m.kind === kind)?.label ?? kind;
-      toast.info(`${label} added`);
+      const key = CHAPTER_KIND_MENU.find((m) => m.kind === kind)?.labelKey;
+      const label = key ? t(key) : kind;
+      toast.info(`${label} — ${t('common.add').toLowerCase()}`);
     }
   };
 
   const handleNewCharacter = () => {
     const name = newCharDraft().trim();
     if (!name) {
-      toast.error('Character name required');
+      toast.error(t('sidebar.characterName'));
       return;
     }
     createCharacter(name);
@@ -196,16 +201,16 @@ export const Sidebar = () => {
           <button
             type="button"
             onClick={() => toggleCollapse('chapters')}
-            class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+            class="text-[10px] font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1 inkmirror-smallcaps"
           >
             <span class="text-[8px]">{isCollapsed('chapters') ? '▸' : '▾'}</span>
-            Chapters
+            {t('sidebar.chapters')}
           </button>
           <div class="relative" ref={chapterMenuEl}>
             <button
               type="button"
               onClick={() => setChapterMenuOpen((v) => !v)}
-              title="New chapter or front/back matter"
+              title={t('sidebar.newChapter')}
               class="text-stone-500 hover:text-violet-500 dark:text-stone-400 dark:hover:text-violet-400 text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
             >
               +
@@ -225,7 +230,7 @@ export const Sidebar = () => {
                       <span class="w-3 text-[10px] text-stone-400">
                         {CHAPTER_KIND_GLYPH[item.kind]}
                       </span>
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey)}</span>
                     </button>
                   )}
                 </For>
@@ -352,7 +357,7 @@ export const Sidebar = () => {
                     <button
                       type="button"
                       onClick={openMenu}
-                      title="Chapter actions"
+                      title={t('misc.chapterActions')}
                       class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 w-5 h-5 flex items-center justify-center rounded transition-opacity ml-1 shrink-0"
                     >
                       <IconDots size={14} />
@@ -371,31 +376,31 @@ export const Sidebar = () => {
         <button
           type="button"
           onClick={() => toggleCollapse('characters')}
-          class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+          class="text-[10px] font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1 inkmirror-smallcaps"
         >
           <span class="text-[8px]">{isCollapsed('characters') ? '▸' : '▾'}</span>
-          Characters
+          {t('sidebar.characters')}
         </button>
 
         <Show when={!isCollapsed('characters')}>
         <div class="flex flex-col gap-0.5">
           <For
             each={store.characters}
-            fallback={<div class="text-stone-500 text-xs italic">No characters yet</div>}
+            fallback={<div class="text-stone-500 text-xs italic">—</div>}
           >
             {(c) => {
               const isEditing = () => editingCharacterId() === c.id;
               const doDeleteCharacter = async () => {
                 const ok = await askConfirm({
-                  title: `Delete character "${c.name}"?`,
-                  message:
-                    'Character mentions in existing blocks will stop highlighting this person. The character can be recreated by name later.',
-                  confirmLabel: 'Delete',
+                  title: t('sidebar.characterDelete') + ` — ${c.name}`,
+                  message: t('sidebar.characterNotesPlaceholder'),
+                  confirmLabel: t('common.delete'),
+                  cancelLabel: t('common.cancel'),
                   danger: true,
                 });
                 if (!ok) return;
                 deleteCharacter(c.id);
-                toast.info(`Character "${c.name}" deleted`);
+                toast.info(`${c.name} — ${t('common.delete').toLowerCase()}`);
               };
               const isPov = () => store.document?.pov_character_id === c.id;
               const openCharacterMenu = (e: MouseEvent) => {
@@ -466,7 +471,7 @@ export const Sidebar = () => {
                     <button
                       type="button"
                       onClick={openCharacterMenu}
-                      title="Character actions"
+                      title={t('misc.characterActions')}
                       class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 w-5 h-5 flex items-center justify-center rounded transition-opacity"
                     >
                       <IconDots size={14} />
@@ -490,7 +495,7 @@ export const Sidebar = () => {
                 handleNewCharacter();
               }
             }}
-            placeholder="+ Add character"
+            placeholder={`+ ${t('sidebar.characterNew')}`}
             class="flex-1 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-xs text-stone-800 dark:text-stone-200 py-1 placeholder-stone-400"
           />
         </div>
@@ -502,10 +507,10 @@ export const Sidebar = () => {
         <button
           type="button"
           onClick={() => toggleCollapse('export')}
-          class="text-[10px] uppercase tracking-wider font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1"
+          class="text-[10px] font-medium text-stone-400 hover:text-violet-500 transition-colors flex items-center gap-1 inkmirror-smallcaps"
         >
           <span class="text-[8px]">{isCollapsed('export') ? '▸' : '▾'}</span>
-          Export
+          {t('sidebar.export')}
         </button>
         <Show when={!isCollapsed('export')}>
         <div class="flex flex-wrap gap-1">
@@ -536,36 +541,37 @@ export const Sidebar = () => {
           type="button"
           onClick={toggleFocusMode}
           class="flex-1 px-2 py-1 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left"
-          title="Enter focus mode"
+          title={t('sidebar.focus')}
         >
-          Focus
+          {t('sidebar.focus')}
         </button>
         <button
           type="button"
           onClick={toggleCommandPalette}
           class="flex-1 px-2 py-1 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left flex items-center justify-between"
-          title="Open command palette"
+          title={t('sidebar.moreTitle')}
         >
-          <span>More</span>
+          <span>{t('sidebar.more')}</span>
           <span class="font-mono text-[10px] text-stone-400">⌘K</span>
         </button>
         <button
           type="button"
           onClick={(e) => {
             const items: ContextMenuItem[] = [
-              { label: 'Documents', onSelect: returnToPicker },
-              { label: 'Block types help', onSelect: toggleBlockTypesHelp },
-              { label: 'Hotkeys', onSelect: toggleHotkeysModal, hint: 'F1' },
+              { label: t('sidebar.documents'), onSelect: returnToPicker },
+              { label: t('sidebar.blockTypesHelp'), onSelect: toggleBlockTypesHelp },
+              { label: t('sidebar.chapterTypesHelp'), onSelect: toggleChapterTypesHelp },
+              { label: t('sidebar.hotkeys'), onSelect: toggleHotkeysModal, hint: 'F1' },
               { kind: 'divider' },
-              { label: 'Send feedback', onSelect: openFeedback },
+              { label: t('sidebar.sendFeedback'), onSelect: openFeedback },
             ];
             openContextMenuAt(e.currentTarget as HTMLElement, items, {
               align: 'right',
             });
           }}
           class="w-6 h-6 rounded text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center justify-center shrink-0"
-          title="More actions"
-          aria-label="More actions"
+          title={t('sidebar.overflowTitle')}
+          aria-label={t('sidebar.overflowTitle')}
         >
           <IconDots size={14} />
         </button>

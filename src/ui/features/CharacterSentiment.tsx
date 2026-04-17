@@ -2,6 +2,7 @@ import { createMemo, For, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
 import type { Block, UUID } from '@/types';
+import { t } from '@/i18n';
 
 interface CharacterMood {
   characterId: UUID;
@@ -63,8 +64,8 @@ export const CharacterSentiment = () => {
   return (
     <Show when={moods().length > 0}>
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-          Character mood
+        <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+          {t('rightPanel.characterSentiment')}
         </div>
         <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
           <div class="flex flex-col gap-2">

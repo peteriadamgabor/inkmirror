@@ -6,6 +6,7 @@ import {
   updateDocumentSettings,
 } from '@/store/document';
 import { DEFAULT_STACK, FONT_STACKS } from '@/ui/fonts';
+import { LANGUAGES, lang, setLang, t } from '@/i18n';
 
 export const DocumentSettings = () => {
   const doc = () => store.document;
@@ -25,10 +26,10 @@ export const DocumentSettings = () => {
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
             <div>
               <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                Metadata
+                {t('docSettings.metadata')}
               </div>
               <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
-                Document
+                {t('docSettings.document')}
               </div>
             </div>
             <button
@@ -44,7 +45,7 @@ export const DocumentSettings = () => {
           <div class="flex-1 overflow-auto px-5 py-4 flex flex-col gap-5">
             <div class="flex flex-col gap-1">
               <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                Title
+                {t('docSettings.title')}
               </label>
               <input
                 type="text"
@@ -52,18 +53,17 @@ export const DocumentSettings = () => {
                 onInput={(e) =>
                   updateDocumentMeta({ title: e.currentTarget.value })
                 }
-                placeholder="Untitled"
+                placeholder={t('common.untitled')}
                 class="bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-lg py-1"
               />
               <div class="text-[10px] text-stone-400 mt-0.5">
-                Used as the filename for every export and the first line of
-                cover exports.
+                {t('docSettings.titleHelp')}
               </div>
             </div>
 
             <div class="flex flex-col gap-1">
               <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                Author
+                {t('docSettings.author')}
               </label>
               <input
                 type="text"
@@ -78,26 +78,56 @@ export const DocumentSettings = () => {
 
             <div class="flex flex-col gap-1">
               <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                Synopsis
+                {t('docSettings.synopsis')}
               </label>
               <textarea
                 value={doc()?.synopsis ?? ''}
                 onInput={(e) =>
                   updateDocumentMeta({ synopsis: e.currentTarget.value })
                 }
-                placeholder="A short summary of the story, for your own reference."
+                placeholder={t('docSettings.synopsisPlaceholder')}
                 rows={4}
                 class="bg-transparent outline-none border border-stone-200 dark:border-stone-700 rounded-lg focus:border-violet-500 text-stone-800 dark:text-stone-100 text-sm font-serif px-3 py-2 resize-y"
               />
               <div class="text-[10px] text-stone-400 mt-0.5">
-                Appears as a blockquote in Markdown exports and as the
-                description in DOCX / EPUB metadata.
+                {t('docSettings.synopsisHelp')}
               </div>
             </div>
 
             <div class="flex flex-col gap-2 pt-3 border-t border-stone-200 dark:border-stone-700">
               <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                Typeface
+                {t('language.label')}
+              </label>
+              <div class="flex items-center gap-2 flex-wrap">
+                <For each={LANGUAGES}>
+                  {(l) => {
+                    const active = () => lang() === l.code;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setLang(l.code)}
+                        class="px-3 py-1 text-xs rounded-lg border transition-colors"
+                        classList={{
+                          'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-200':
+                            active(),
+                          'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-violet-300 dark:hover:border-violet-700':
+                            !active(),
+                        }}
+                      >
+                        {l.label}
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+              <div class="text-[10px] text-stone-400 mt-1">
+                {t('language.help')}
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 pt-3 border-t border-stone-200 dark:border-stone-700">
+              <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
+                {t('docSettings.typeface')}
               </label>
               <div class="grid grid-cols-2 gap-2">
                 <For each={FONT_STACKS}>
@@ -130,7 +160,7 @@ export const DocumentSettings = () => {
                           class="text-[11px] text-stone-500 dark:text-stone-400 mt-1.5 italic leading-snug"
                           style={{ 'font-family': stack.stack }}
                         >
-                          She read the line twice, weighing it.
+                          {t('docSettings.typefaceSample')}
                         </div>
                       </button>
                     );
@@ -138,13 +168,12 @@ export const DocumentSettings = () => {
                 </For>
               </div>
               <div class="text-[10px] text-stone-400 mt-1">
-                System fonts only — no downloads. Falls back to Georgia if
-                your platform doesn't have the primary face.
+                {t('docSettings.typefaceHelp')}
               </div>
             </div>
 
             <div class="pt-2 border-t border-stone-200 dark:border-stone-700 flex items-center justify-between text-[10px] text-stone-400">
-              <span>Changes save automatically</span>
+              <span>{t('docSettings.autosaveNote')}</span>
               <span class="font-mono tabular-nums">
                 id: {doc()?.id.slice(0, 8)}…
               </span>

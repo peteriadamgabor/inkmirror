@@ -12,6 +12,7 @@ export interface UiState {
   documentSettingsOpen: boolean;
   debugMode: boolean;
   rightPanelCollapsed: boolean;
+  chapterTypesHelpOpen: boolean;
 }
 
 const SPELLCHECK_KEY = 'inkmirror.spellcheck';
@@ -41,6 +42,7 @@ const [uiState, setUiState] = createStore<UiState>({
   documentSettingsOpen: false,
   debugMode: false,
   rightPanelCollapsed: loadInitialRightPanelCollapsed(),
+  chapterTypesHelpOpen: false,
 });
 
 export { uiState };
@@ -119,6 +121,14 @@ export function setDocumentSettingsOpen(open: boolean): void {
 
 export function toggleDebugMode(): void {
   setUiState('debugMode', (v) => !v);
+}
+
+export function toggleChapterTypesHelp(): void {
+  setUiState('chapterTypesHelpOpen', (v) => !v);
+}
+
+export function setChapterTypesHelpOpen(open: boolean): void {
+  setUiState('chapterTypesHelpOpen', open);
 }
 
 export function toggleRightPanel(): void {

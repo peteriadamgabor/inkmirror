@@ -6,6 +6,7 @@ import { DebugOverlay } from './perf/DebugOverlay';
 import { Graveyard } from './features/Graveyard';
 import { PlotTimeline } from './features/PlotTimeline';
 import { BlockTypesHelp } from './features/BlockTypesHelp';
+import { ChapterTypesHelp } from './features/ChapterTypesHelp';
 import { HotkeysModal } from './features/HotkeysModal';
 import { CommandPalette } from './features/CommandPalette';
 import { DocumentSettings } from './features/DocumentSettings';
@@ -20,6 +21,7 @@ import {
   toggleRightPanel,
 } from '@/store/ui-state';
 import { IconChevron } from './shared/icons';
+import { t } from '@/i18n';
 import type { JSX } from 'solid-js';
 
 export const App = (props: { children?: JSX.Element }) => (
@@ -80,8 +82,8 @@ export const App = (props: { children?: JSX.Element }) => (
         type="button"
         onClick={toggleRightPanel}
         class="fixed top-1/2 -translate-y-1/2 right-3 z-20 w-7 h-12 rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 shadow-sm transition-all hover:shadow-md flex items-center justify-center"
-        title="Show story panel"
-        aria-label="Show story panel"
+        title={t('topBar.showStoryPanel')}
+        aria-label={t('topBar.showStoryPanel')}
       >
         <IconChevron size={14} class="-rotate-90" />
       </button>
@@ -94,14 +96,14 @@ export const App = (props: { children?: JSX.Element }) => (
           onClick={toggleZenMode}
           class="px-3 py-1.5 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 shadow-sm transition-colors"
         >
-          {uiState.zenMode ? 'Exit zen' : 'Zen'}
+          Zen
         </button>
         <button
           type="button"
           onClick={toggleFocusMode}
           class="px-3 py-1.5 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-600 dark:text-stone-300 hover:text-violet-500 shadow-sm transition-colors"
         >
-          Exit focus
+          {t('sidebar.focus')}
         </button>
       </div>
     </Show>
@@ -110,6 +112,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <Graveyard />
     <PlotTimeline />
     <BlockTypesHelp />
+    <ChapterTypesHelp />
     <HotkeysModal />
     <CommandPalette />
     <DocumentSettings />

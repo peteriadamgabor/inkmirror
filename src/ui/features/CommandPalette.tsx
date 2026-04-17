@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'so
 import { uiState, setCommandPaletteOpen } from '@/store/ui-state';
 import { BINDING_META, hotkeys, type AppAction } from '@/store/hotkeys';
 import { runAction } from '@/ui/shared/globalHotkeys';
+import { t } from '@/i18n';
 import { jsonExporter } from '@/exporters/json';
 import { markdownExporter } from '@/exporters/markdown';
 import { fountainExporter } from '@/exporters/fountain';
@@ -173,7 +174,7 @@ export const CommandPalette = () => {
               setCursor(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder="Type an action or export format…"
+            placeholder={t('commandPalette.placeholder')}
             class="w-full px-4 py-3 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400"
             aria-label="Command palette input"
           />
@@ -182,7 +183,7 @@ export const CommandPalette = () => {
               when={filtered().length > 0}
               fallback={
                 <div class="text-xs text-stone-400 italic px-3 py-4 text-center">
-                  No matching commands
+                  {t('commandPalette.empty')}
                 </div>
               }
             >

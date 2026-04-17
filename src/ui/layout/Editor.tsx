@@ -8,6 +8,8 @@ import { useTheme } from '@/ui/theme';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
 import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 import { IconSun, IconMoon, IconSpellcheck, IconVolume } from '@/ui/shared/icons';
+import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { t } from '@/i18n';
 import type { Block } from '@/types';
 
 const EDITOR_WIDTH = 680;
@@ -273,11 +275,11 @@ export const Editor = () => {
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
       <div class="flex items-center px-3 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0 gap-2">
         {/* Left: toolbar icons — fixed width to balance the right side */}
-        <div class="flex items-center gap-1 w-[80px] shrink-0">
+        <div class="flex items-center gap-1 w-[120px] shrink-0">
           <button
             type="button"
             onClick={toggleTheme}
-            title={theme() === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            title={theme() === 'dark' ? t('topBar.switchToLight') : t('topBar.switchToDark')}
             class="w-6 h-6 flex items-center justify-center rounded text-stone-400 hover:text-violet-500 transition-colors"
           >
             {theme() === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
@@ -285,7 +287,7 @@ export const Editor = () => {
           <button
             type="button"
             onClick={toggleSpellcheck}
-            title={`Spellcheck: ${uiState.spellcheck ? 'on' : 'off'}`}
+            title={uiState.spellcheck ? t('topBar.spellcheckOn') : t('topBar.spellcheckOff')}
             class="w-6 h-6 flex items-center justify-center rounded transition-colors"
             classList={{
               'text-violet-500': uiState.spellcheck,
@@ -297,7 +299,7 @@ export const Editor = () => {
           <button
             type="button"
             onClick={() => void toggleSono()}
-            title={sonoOn() ? 'Stop ambient tone' : 'Play ambient tone'}
+            title={sonoOn() ? t('topBar.stopTone') : t('topBar.playTone')}
             class="w-6 h-6 flex items-center justify-center rounded transition-colors"
             classList={{
               'text-violet-500': sonoOn(),
@@ -313,7 +315,7 @@ export const Editor = () => {
           <button
             type="button"
             onClick={() => toggleDocumentSettings()}
-            title="Edit document settings"
+            title={t('topBar.editDocSettings')}
             class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 truncate transition-colors"
           >
             {docTitle()}
@@ -326,7 +328,7 @@ export const Editor = () => {
                 <button
                   type="button"
                   onClick={startChapterEdit}
-                  title="Click to rename chapter"
+                  title={t('topBar.renameChapter')}
                   class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 truncate transition-colors"
                 >
                   {chapterTitle()}
@@ -349,13 +351,14 @@ export const Editor = () => {
           </Show>
         </div>
 
-        {/* Right: save state — same width as left for centering */}
-        <div class="w-[80px] text-right shrink-0">
+        {/* Right: save state + language picker — same width as left for centering */}
+        <div class="w-[120px] flex items-center justify-end gap-2 shrink-0">
           <Show when={saveState() !== 'idle'}>
             <span class="text-[10px] text-stone-400">
-              {saveState() === 'saving' ? 'Saving…' : 'Saved'}
+              {saveState() === 'saving' ? t('common.saving') : t('common.saved')}
             </span>
           </Show>
+          <LanguagePicker tone="muted" />
         </div>
       </div>
       <StoryPulseEcg />

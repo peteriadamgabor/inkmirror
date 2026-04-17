@@ -2,6 +2,7 @@ import { For, Show, createMemo } from 'solid-js';
 import { store } from '@/store/document';
 import { uiState, setPlotTimelineOpen } from '@/store/ui-state';
 import type { Block, Chapter, SceneMetadata } from '@/types';
+import { t } from '@/i18n';
 
 interface TimelineEntry {
   chapter: Chapter;
@@ -41,8 +42,10 @@ export const PlotTimeline = () => {
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
             <div>
-              <div class="text-[10px] uppercase tracking-wider text-stone-400">Plot</div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">Timeline</div>
+              <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
+                {t('plotTimeline.subtitle').slice(0, 24)}…
+              </div>
+              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">{t('plotTimeline.title')}</div>
             </div>
             <button
               type="button"
@@ -58,7 +61,7 @@ export const PlotTimeline = () => {
               when={entries().length > 0}
               fallback={
                 <div class="text-sm text-stone-500 italic text-center py-8">
-                  No scenes yet. Change a block type to Scene to start building a timeline.
+                  {t('plotTimeline.empty')}
                 </div>
               }
             >

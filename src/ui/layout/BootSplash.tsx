@@ -1,4 +1,5 @@
 import { Show } from 'solid-js';
+import { t } from '@/i18n';
 
 interface BootSplashProps {
   message?: string;
@@ -32,13 +33,13 @@ export const BootSplash = (props: BootSplashProps) => {
           when={props.error}
           fallback={
             <div class="text-xs text-stone-400 mt-4">
-              {props.message ?? 'opening the manuscript…'}
+              {props.message ?? t('bootSplash.loading')}
             </div>
           }
         >
           <div class="flex flex-col items-center gap-3 mt-4 max-w-md">
             <div class="text-sm text-stone-600 dark:text-stone-300 text-center font-serif">
-              The app couldn't open your library.
+              {t('bootSplash.errorTitle')}
             </div>
             <div class="text-xs text-red-600 dark:text-red-400 text-center break-words">
               {props.error}
@@ -48,7 +49,7 @@ export const BootSplash = (props: BootSplashProps) => {
               onClick={() => window.location.reload()}
               class="text-xs px-4 py-1.5 rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
             >
-              Try again
+              {t('common.retry')}
             </button>
           </div>
         </Show>

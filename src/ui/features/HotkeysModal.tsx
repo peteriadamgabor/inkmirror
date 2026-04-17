@@ -10,6 +10,7 @@ import {
   type AppAction,
 } from '@/store/hotkeys';
 import { toast } from '@/ui/shared/toast';
+import { t } from '@/i18n';
 
 export const HotkeysModal = () => {
   const [capturing, setCapturing] = createSignal<AppAction | null>(null);
@@ -86,16 +87,16 @@ export const HotkeysModal = () => {
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
             <div>
-              <div class="text-[10px] uppercase tracking-wider text-stone-400">Settings</div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">Hotkeys</div>
+              <div class="text-[10px] text-stone-400 inkmirror-smallcaps">{t('sidebar.hotkeys')}</div>
+              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">{t('hotkeys.title')}</div>
             </div>
             <div class="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onReset}
-                class="text-[10px] uppercase tracking-wider text-stone-400 hover:text-violet-500 transition-colors"
+                class="text-[10px] text-stone-400 hover:text-violet-500 transition-colors inkmirror-smallcaps"
               >
-                Reset defaults
+                {t('common.retry')}
               </button>
               <button
                 type="button"

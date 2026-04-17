@@ -1,6 +1,7 @@
 import { createSignal, For, Show, type JSX } from 'solid-js';
 import { toasts, toastHistory, dismissToast, clearToastHistory, type ToastKind } from './toast';
 import { IconInfo, IconCheck, IconAlert, IconHistory } from './icons';
+import { t } from '@/i18n';
 
 const KIND_STYLES: Record<ToastKind, string> = {
   info: 'border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-100',
@@ -55,8 +56,8 @@ export const ToastHost = () => {
           type="button"
           onClick={() => setHistoryOpen((v) => !v)}
           class="pointer-events-auto w-8 h-8 rounded-full bg-white/80 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-sm flex items-center justify-center text-stone-400 hover:text-violet-500 transition-colors"
-          title="Recent activity"
-          aria-label="Toast history"
+          title={t('misc.recentActivity')}
+          aria-label={t('misc.recentActivity')}
         >
           <IconHistory size={14} />
         </button>

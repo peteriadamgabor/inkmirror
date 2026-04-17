@@ -5,6 +5,7 @@ import {
   resetPulse,
   type PulseMetrics,
 } from '@/workers/pulse-client';
+import { t } from '@/i18n';
 
 const POLL_MS = 1500;
 
@@ -49,8 +50,8 @@ export const PulseDashboard = () => {
   return (
     <div class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
-        <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-          Writer pulse
+        <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+          {t('pulse.title')}
         </div>
         <button
           type="button"
@@ -59,7 +60,7 @@ export const PulseDashboard = () => {
             setMetrics(null);
           }}
           class="text-[10px] text-stone-400 hover:text-violet-500 transition-colors"
-          title="Reset session"
+          title={t('misc.resetSession')}
         >
           reset
         </button>
@@ -71,7 +72,7 @@ export const PulseDashboard = () => {
             return m && m.totalKeys > 0 ? m : null;
           })()}
           fallback={
-            <div class="text-xs text-stone-400">start typing to warm up the pulse…</div>
+            <div class="text-xs text-stone-400">—</div>
           }
         >
           {(m) => (
@@ -90,7 +91,7 @@ export const PulseDashboard = () => {
 
 const Stat = (props: { label: string; value: string }) => (
   <div>
-    <div class="text-[10px] uppercase tracking-wider text-stone-400">{props.label}</div>
+    <div class="text-[10px] text-stone-400 inkmirror-smallcaps">{props.label}</div>
     <div class="font-mono text-lg text-stone-800 dark:text-stone-100 leading-tight">
       {props.value}
     </div>

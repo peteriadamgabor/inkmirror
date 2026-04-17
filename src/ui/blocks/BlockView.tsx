@@ -28,12 +28,13 @@ import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
 import { BlockHistory } from './BlockHistory';
 import { recordKeystroke } from '@/workers/pulse-client';
+import { t } from '@/i18n';
 
-const TYPE_LABELS: Record<Block['type'], { label: string; className: string; hint: string }> = {
-  text:     { label: 'TEXT',     className: 'text-violet-500', hint: 'Plain prose — narration, description, action.' },
-  dialogue: { label: 'DIALOGUE', className: 'text-teal-600',   hint: 'Character speech. Pick a speaker or type "Name: Hi" to auto-assign.' },
-  scene:    { label: 'SCENE',    className: 'text-orange-600', hint: 'Scene heading with location / time / mood / cast. Feeds the Plot Timeline.' },
-  note:     { label: 'NOTE',     className: 'text-stone-400',  hint: 'Private notes. Not exported, not counted in word count.' },
+const TYPE_META: Record<Block['type'], { labelKey: string; className: string; hintKey: string }> = {
+  text:     { labelKey: 'block.types.text',     className: 'text-violet-500', hintKey: 'block.hints.text' },
+  dialogue: { labelKey: 'block.types.dialogue', className: 'text-teal-600',   hintKey: 'block.hints.dialogue' },
+  scene:    { labelKey: 'block.types.scene',    className: 'text-orange-600', hintKey: 'block.hints.scene' },
+  note:     { labelKey: 'block.types.note',     className: 'text-stone-400',  hintKey: 'block.hints.note' },
 };
 
 const COMMIT_DEBOUNCE_MS = 300;
@@ -420,7 +421,10 @@ export const BlockView = (props: { block: Block }) => {
     }
   };
 
-  const meta = () => TYPE_LABELS[props.block.type];
+  const meta = () => {
+    const m = TYPE_META[props.block.type];
+    return { label: t(m.labelKey), className: m.className, hint: t(m.hintKey) };
+  };
   const sentiment = () => store.sentiments[props.block.id];
   const mentionedChars = () => {
     const ids = store.characterMentions[props.block.id] ?? [];
@@ -524,15 +528,15 @@ export const BlockView = (props: { block: Block }) => {
     e.stopPropagation();
     const trigger = e.currentTarget as HTMLElement;
     const currentType = props.block.type;
-    const setType = (t: BlockType) => updateBlockType(props.block.id, t);
+    const setType = (bt: BlockType) => updateBlockType(props.block.id, bt);
     openContextMenuAt(
       trigger,
       [
         { kind: 'header', label: 'Block type' },
-        { label: 'Text',     hint: meta().label === 'TEXT' ? '·' : '',     active: currentType === 'text',     onSelect: () => setType('text') },
-        { label: 'Dialogue', active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
-        { label: 'Scene',    active: currentType === 'scene',    onSelect: () => setType('scene') },
-        { label: 'Note',     active: currentType === 'note',     onSelect: () => setType('note') },
+        { label: t('block.types.text'),     hint: currentType === 'text' ? '·' : '',     active: currentType === 'text',     onSelect: () => setType('text') },
+        { label: t('block.types.dialogue'), active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
+        { label: t('block.types.scene'),    active: currentType === 'scene',    onSelect: () => setType('scene') },
+        { label: t('block.types.note'),     active: currentType === 'note',     onSelect: () => setType('note') },
       ],
       { align: 'left' },
     );
@@ -607,7 +611,7 @@ export const BlockView = (props: { block: Block }) => {
     const isFirst = idx === 0;
     const isLast = idx === store.blockOrder.length - 1;
 
-    const setType = (t: BlockType) => updateBlockType(props.block.id, t);
+    const setType = (bt: BlockType) => updateBlockType(props.block.id, bt);
 
     const copyContent = async () => {
       try {
@@ -629,20 +633,20 @@ export const BlockView = (props: { block: Block }) => {
     };
 
     openContextMenuAt(trigger, [
-      { kind: 'header', label: 'Type' },
-      { label: 'Text',     active: currentType === 'text',     onSelect: () => setType('text') },
-      { label: 'Dialogue', active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
-      { label: 'Scene',    active: currentType === 'scene',    onSelect: () => setType('scene') },
-      { label: 'Note',     active: currentType === 'note',     onSelect: () => setType('note') },
+      { kind: 'header', label: t('block.convertTo') },
+      { label: t('block.types.text'),     active: currentType === 'text',     onSelect: () => setType('text') },
+      { label: t('block.types.dialogue'), active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
+      { label: t('block.types.scene'),    active: currentType === 'scene',    onSelect: () => setType('scene') },
+      { label: t('block.types.note'),     active: currentType === 'note',     onSelect: () => setType('note') },
       { kind: 'divider' },
-      { label: 'Insert below', onSelect: () => { const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); } },
-      { label: 'Duplicate', onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success('Block duplicated'); } },
-      { label: 'Copy content', onSelect: () => void copyContent() },
+      { label: t('block.insertBelow'), onSelect: () => { const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); } },
+      { label: t('block.duplicate'), onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success('Block duplicated'); } },
+      { label: t('block.copyContent'), onSelect: () => void copyContent() },
       { kind: 'divider' },
       { label: 'Move up', disabled: isFirst, onSelect: () => moveBlock(props.block.id, 'up') },
       { label: 'Move down', disabled: isLast, onSelect: () => moveBlock(props.block.id, 'down') },
       { kind: 'divider' },
-      { label: 'Delete', danger: true, onSelect: () => void onDelete() },
+      { label: t('block.deleteBlock'), danger: true, onSelect: () => void onDelete() },
     ], { align: 'right' });
   };
 
@@ -680,7 +684,7 @@ export const BlockView = (props: { block: Block }) => {
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           class="flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-40 hover:opacity-100 transition-opacity select-none shrink-0"
-          title="Drag to reorder"
+          title={t('block.dragToReorder')}
           aria-label="Drag handle"
         >
           <IconDrag size={14} />
@@ -689,7 +693,7 @@ export const BlockView = (props: { block: Block }) => {
           type="button"
           onClick={openTypeQuickMenu}
           class={`text-[10px] uppercase tracking-wider font-medium cursor-pointer hover:underline ${meta().className}`}
-          title={`${meta().hint} (click to change type)`}
+          title={`${meta().hint} (${t('block.changeType')})`}
         >
           {meta().label}
         </button>
@@ -704,7 +708,7 @@ export const BlockView = (props: { block: Block }) => {
               'border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-teal-500':
                 !!dialogueSpeaker(),
             }}
-            title="Change speaker"
+            title={t('block.speakerChange')}
           >
             <span
               class="w-2 h-2 rounded-full"
@@ -717,7 +721,7 @@ export const BlockView = (props: { block: Block }) => {
                 'border border-stone-300 dark:border-stone-600': !dialogueSpeakerColor(),
               }}
             />
-            <span>{dialogueSpeaker()?.name ?? 'speaker'}</span>
+            <span>{dialogueSpeaker()?.name ?? t('block.speakerPlaceholder')}</span>
             <IconChevron size={10} class="text-stone-400" />
           </button>
         )}
@@ -727,9 +731,9 @@ export const BlockView = (props: { block: Block }) => {
             value={dialogueParenthetical()}
             onInput={(e) => updateDialogueParenthetical(props.block.id, e.currentTarget.value)}
             onMouseDown={(e) => e.stopPropagation()}
-            placeholder="(aside)"
+            placeholder={`(${t('block.parenthetical')})`}
             class="bg-transparent outline-none text-[10px] italic text-stone-500 dark:text-stone-400 placeholder-stone-300 dark:placeholder-stone-600 border-b border-transparent focus:border-teal-500 w-[110px] py-0.5"
-            title="Parenthetical — e.g. (whispering), (to Peter)"
+            title={t('misc.parentheticalHelp')}
           />
         )}
         {sentiment() && (
@@ -756,7 +760,7 @@ export const BlockView = (props: { block: Block }) => {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); }}
-            title="Insert block below"
+            title={t('block.insertBelow')}
             class="text-stone-400 hover:text-violet-500 px-0.5 leading-none"
           >
             <IconPlus size={13} />
@@ -775,7 +779,7 @@ export const BlockView = (props: { block: Block }) => {
                 if (ok) deleteBlock(props.block.id);
               })();
             }}
-            title="Delete block"
+            title={t('block.deleteBlock')}
             class="text-stone-400 hover:text-red-500 px-0.5 leading-none"
           >
             <IconTrash size={13} />
@@ -785,9 +789,9 @@ export const BlockView = (props: { block: Block }) => {
         <button
           type="button"
           onClick={openBlockMenu}
-          title="Block actions"
+          title={t('misc.blockActions')}
           class="text-stone-400 hover:text-violet-500 px-0.5 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
-          aria-label="Open block menu"
+          aria-label={t('block.openMenu')}
         >
           <IconDots size={14} />
         </button>
@@ -833,7 +837,7 @@ export const BlockView = (props: { block: Block }) => {
             wrapperEl.removeAttribute('data-drop-after');
           }
         }}
-        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-3 py-1.5 rounded border border-stone-200/60 dark:border-stone-700/30 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
+        class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-4 py-2 rounded-xl border border-transparent hover:border-stone-200/60 dark:hover:border-stone-700/40 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
         style={
           dialogueSpeakerColor()
             ? isPovSpeaker()

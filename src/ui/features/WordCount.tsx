@@ -1,6 +1,7 @@
 import { createMemo, Show } from 'solid-js';
 import { store } from '@/store/document';
 import type { Block } from '@/types';
+import { t } from '@/i18n';
 
 function countWords(text: string): number {
   const trimmed = text.trim();
@@ -43,18 +44,18 @@ export const WordCount = () => {
 
   return (
     <div class="flex flex-col gap-2">
-      <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-        Word count
+      <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+        {t('wordCount.words')}
       </div>
       <div class="px-4 py-3 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
         <div class="grid grid-cols-2 gap-x-3 gap-y-2">
           <div>
-            <div class="text-[10px] uppercase tracking-wider text-stone-400">document</div>
+            <div class="text-[10px] text-stone-400 inkmirror-smallcaps">{t('docSettings.document').toLowerCase()}</div>
             <div class="font-mono text-lg leading-tight">{stats().total.toLocaleString()}</div>
           </div>
           <Show when={store.activeChapterId}>
             <div>
-              <div class="text-[10px] uppercase tracking-wider text-stone-400">chapter</div>
+              <div class="text-[10px] text-stone-400 inkmirror-smallcaps">{t('wordCount.chapter')}</div>
               <div class="font-mono text-lg leading-tight">
                 {stats().chapter.toLocaleString()}
               </div>
@@ -62,19 +63,21 @@ export const WordCount = () => {
           </Show>
         </div>
         <div class="flex items-center justify-between mt-1 text-[10px] text-stone-400">
-          <span>~{Math.max(1, Math.ceil(stats().total / 250))} min read</span>
+          <span>{t('wordCount.minRead', { n: Math.max(1, Math.ceil(stats().total / 250)) })}</span>
           <Show when={store.activeChapterId}>
-            <span>chapter ~{Math.max(1, Math.ceil(stats().chapter / 250))} min</span>
+            <span>{t('wordCount.chapterMinRead', { n: Math.max(1, Math.ceil(stats().chapter / 250)) })}</span>
           </Show>
         </div>
         <Show when={stats().dialogue > 0}>
           <div class="mt-2 pt-2 border-t border-stone-100 dark:border-stone-700/50">
             <div class="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400">
               <span>
-                dialogue {stats().dialogue.toLocaleString()} · narration{' '}
-                {stats().narration.toLocaleString()}
+                {t('wordCount.dialogueTotal', {
+                  d: stats().dialogue.toLocaleString(),
+                  n: stats().narration.toLocaleString(),
+                })}
               </span>
-              <span class="font-mono text-teal-600">{dialoguePct()}% dial</span>
+              <span class="font-mono text-teal-600">{t('wordCount.dialoguePct', { n: dialoguePct() })}</span>
             </div>
             <div class="mt-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
               <div

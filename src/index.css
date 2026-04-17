@@ -200,13 +200,14 @@ select:focus-visible {
   padding-top: 20vh;
 }
 
-/* Dialogue blocks render as chat bubbles. The per-speaker background
-   tint comes from an inline color-mix style in BlockView; this block
-   only handles shape, spacing, and the "unassigned" fallback. */
+/* Dialogue: same container shape as every other block. Identity
+   comes from the speaker tint (inline color-mix in BlockView),
+   POV alignment (right-aligned when the speaker is the POV
+   character), and the speaker pill in the header row — not from
+   a different radius or a narrower column. Keeps the app reading
+   as one editor instead of a chat widget bolted onto prose. */
 [data-block-type="dialogue"] [data-editable] {
-  border-radius: 18px;
-  padding: 10px 16px;
-  max-width: 78%;
+  border-color: transparent !important;
 }
 /* Unassigned fallback tint (no character color yet). */
 [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
@@ -222,6 +223,31 @@ select:focus-visible {
 }
 [data-block-type="dialogue"] + [data-block-type="dialogue"] > div:first-child {
   margin-top: -4px;
+}
+
+/* POV alignment: the old iMessage-style right-push relied on the
+   now-removed max-width. With uniform full-width blocks, POV
+   speakers are signalled via the speaker pill in the header +
+   the tinted bubble background; no layout shift needed. */
+
+/* Scene blocks: a subtle orange-tinted left edge marks them in
+   context without shouting. Matches the "feature color only at
+   the feature surface" principle — orange appears right where
+   scenes live, not scattered across unrelated UI. */
+[data-block-type="scene"] [data-editable] {
+  border-left: 2px solid rgba(234, 88, 12, 0.4); /* orange-600 @ 40% */
+  padding-left: 14px;
+}
+
+/* Note blocks: dimmed prose so the eye skips past them when
+   reading the manuscript, but they're still present when
+   scanning for annotations. */
+[data-block-type="note"] [data-editable] {
+  color: rgb(120, 113, 108); /* stone-500 */
+  font-style: italic;
+}
+.dark [data-block-type="note"] [data-editable] {
+  color: rgb(168, 162, 158); /* stone-400 */
 }
 
 /* Alt+↑↓ block move: flash a soft violet glow on the moved block so
@@ -329,14 +355,10 @@ select:focus-visible {
   bottom: 0;
 }
 
-/* POV dialogue: right-align the header row and push the bubble to
-   the right of its column, so "me" sits on the right like an
-   iMessage conversation. The content itself stays left-aligned
-   inside the bubble so reading flow is natural. */
+/* POV dialogue: keep the header row right-aligned so "me" still
+   reads differently from "them" at a glance. The bubble itself
+   is full-width like every other block — the alignment cue lives
+   in the metadata row rather than in the content column. */
 [data-block-type="dialogue"][data-pov-speaker="1"] > div:first-child {
   justify-content: flex-end;
-}
-[data-block-type="dialogue"][data-pov-speaker="1"] [data-editable] {
-  margin-left: auto;
-  margin-right: 0;
 }

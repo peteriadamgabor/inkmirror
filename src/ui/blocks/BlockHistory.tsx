@@ -3,11 +3,12 @@ import type { UUID } from '@/types';
 import { loadBlockRevisions, restoreBlockContent, store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
 import { IconHistory } from '@/ui/shared/icons';
+import { t } from '@/i18n';
 
 function formatRelative(iso: string, now: number): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return iso;
-  const diff = Math.max(0, now - t);
+  const ms = new Date(iso).getTime();
+  if (Number.isNaN(ms)) return iso;
+  const diff = Math.max(0, now - ms);
   const s = Math.round(diff / 1000);
   if (s < 5) return 'just now';
   if (s < 60) return `${s}s ago`;
@@ -15,7 +16,7 @@ function formatRelative(iso: string, now: number): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h ago`;
-  const d = new Date(t);
+  const d = new Date(ms);
   const today = new Date(now);
   const isYesterday =
     d.getDate() === today.getDate() - 1 &&
@@ -76,7 +77,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
   const onRestore = (content: string) => {
     restoreBlockContent(props.blockId, content);
     setOpen(false);
-    toast.success('Block reverted to earlier version');
+    toast.success(t('block.historyRestored'));
   };
 
   return (
@@ -84,7 +85,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
       <button
         type="button"
         onClick={onToggle}
-        title="Block revision history"
+        title={t('misc.revisionHistory')}
         class="text-stone-400 hover:text-violet-500 px-1 leading-none"
         aria-label="Block history"
       >
@@ -97,7 +98,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-stone-400 px-2 pb-1 pt-1">
-            <span>Revisions</span>
+            <span>{t('block.historyTitle')}</span>
             <span class="font-normal normal-case tracking-normal text-stone-400/70">
               {(revisions() ?? []).length} / 20
             </span>
@@ -106,7 +107,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
             when={(revisions() ?? []).length > 0}
             fallback={
               <div class="text-xs text-stone-400 italic px-2 py-3">
-                No history yet — keep writing.
+                {t('block.historyEmpty')}
               </div>
             }
           >

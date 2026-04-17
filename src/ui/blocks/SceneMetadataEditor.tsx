@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js';
 import type { Block, SceneMetadata, UUID } from '@/types';
 import { store, updateSceneMetadata } from '@/store/document';
+import { t } from '@/i18n';
 
 export const SceneMetadataEditor = (props: { block: Block }) => {
   const scene = (): SceneMetadata | null =>
@@ -19,34 +20,34 @@ export const SceneMetadataEditor = (props: { block: Block }) => {
       {(s) => (
         <div class="mb-2 px-3 py-2 rounded-lg border border-orange-200/60 dark:border-orange-900/40 bg-orange-50/40 dark:bg-orange-950/20 text-xs flex flex-col gap-2">
           <div class="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-1 items-center">
-            <label class="text-[10px] uppercase tracking-wider text-stone-500">Location</label>
+            <label class="text-[10px] uppercase tracking-wider text-stone-500">{t('block.sceneLocation')}</label>
             <input
               type="text"
               value={s().location}
               onInput={(e) => updateSceneMetadata(props.block.id, { location: e.currentTarget.value })}
-              placeholder="—"
+              placeholder={t('block.sceneLocationPlaceholder')}
               class="bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-orange-500 text-stone-800 dark:text-stone-200 py-0.5"
             />
-            <label class="text-[10px] uppercase tracking-wider text-stone-500">Time</label>
+            <label class="text-[10px] uppercase tracking-wider text-stone-500">{t('block.sceneTime')}</label>
             <input
               type="text"
               value={s().time}
               onInput={(e) => updateSceneMetadata(props.block.id, { time: e.currentTarget.value })}
-              placeholder="—"
+              placeholder={t('block.sceneTimePlaceholder')}
               class="bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-orange-500 text-stone-800 dark:text-stone-200 py-0.5"
             />
-            <label class="text-[10px] uppercase tracking-wider text-stone-500">Mood</label>
+            <label class="text-[10px] uppercase tracking-wider text-stone-500">{t('block.sceneMood')}</label>
             <input
               type="text"
               value={s().mood}
               onInput={(e) => updateSceneMetadata(props.block.id, { mood: e.currentTarget.value })}
-              placeholder="—"
+              placeholder={t('block.sceneMoodPlaceholder')}
               class="bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-orange-500 text-stone-800 dark:text-stone-200 py-0.5 col-span-3"
             />
           </div>
           <Show when={store.characters.length > 0}>
             <div class="flex flex-wrap gap-1 items-center">
-              <span class="text-[10px] uppercase tracking-wider text-stone-500 mr-1">Cast</span>
+              <span class="text-[10px] uppercase tracking-wider text-stone-500 mr-1">{t('block.sceneCast')}</span>
               <For each={store.characters}>
                 {(c) => {
                   const on = () => s().character_ids.includes(c.id);

@@ -18,6 +18,8 @@ import {
 } from '@/backup/import';
 import { downloadBlob } from '@/exporters';
 import { openFeedback } from '@/ui/shared/feedback';
+import { t } from '@/i18n';
+import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -26,12 +28,12 @@ interface Props {
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.round(ms / 60_000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t('picker.justNow');
+  if (m < 60) return t('picker.minutesAgo', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t('picker.hoursAgo', { n: h });
   const d = Math.round(h / 24);
-  return `${d}d ago`;
+  return t('picker.daysAgo', { n: d });
 }
 
 export const DocumentPicker = (props: Props) => {
@@ -105,7 +107,9 @@ export const DocumentPicker = (props: Props) => {
       const bundle = await exportDocumentBundle(doc.id);
       const blob = bundleToBlob(bundle);
       downloadBlob(blob, documentBundleFilename(doc.title, bundle.exported_at));
-      toast.success(`Exported "${doc.title || 'Untitled'}"`);
+      toast.success(
+        t('picker.exportedToast', { title: doc.title || t('common.untitled') }),
+      );
     } catch (err) {
       toast.error(
         `Export failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -137,33 +141,32 @@ export const DocumentPicker = (props: Props) => {
         const existing = await repo.loadDocument(bundle.document.id);
         let strategy: 'copy' | 'replace' = 'copy';
         if (existing) {
+          const title = existing.document.title || t('common.untitled');
           const choice = await askConfirmChoice({
-            title: `"${existing.document.title || 'Untitled'}" already exists`,
-            message:
-              'A document with this id is already in your library. ' +
-              'Replace it with the imported version (overwrites current content, including the graveyard), ' +
-              'or keep both as separate copies?',
-            confirmLabel: 'Replace',
-            neutralLabel: 'Keep both',
-            cancelLabel: 'Cancel',
+            title: t('picker.collisionTitle', { title }),
+            message: t('picker.collisionBody'),
+            confirmLabel: t('picker.collisionReplace'),
+            neutralLabel: t('picker.collisionKeepBoth'),
+            cancelLabel: t('common.cancel'),
             danger: true,
           });
           if (choice === 'cancel') return; // user aborted
           strategy = choice === 'confirm' ? 'replace' : 'copy';
         }
         const result = await importDocumentBundle(bundle, strategy);
+        const resultTitle = result.documentTitles[0];
         if (result.replaced) {
-          toast.success(`Replaced "${result.documentTitles[0]}"`);
+          toast.success(t('picker.replacedToast', { title: resultTitle }));
         } else {
-          toast.success(`Imported "${result.documentTitles[0]}"`);
+          toast.success(t('picker.importedToast', { title: resultTitle }));
         }
       } else {
         const result = await importDatabaseBackup(bundle);
-        const parts = [`Added ${result.documentsAdded}`];
+        const parts = [t('picker.restoreAdded', { n: result.documentsAdded })];
         if (result.documentsSkipped > 0) {
-          parts.push(`skipped ${result.documentsSkipped} already present`);
+          parts.push(t('picker.restoreSkipped', { n: result.documentsSkipped }));
         }
-        toast.success(`Restore complete — ${parts.join(', ')}`);
+        toast.success(t('picker.restoreComplete', { detail: parts.join(', ') }));
       }
       refetch();
     } catch (err) {
@@ -185,11 +188,12 @@ export const DocumentPicker = (props: Props) => {
   };
 
   const deleteDoc = async (doc: Document) => {
+    const title = doc.title || t('common.untitled');
     const ok = await askConfirm({
-      title: `Delete "${doc.title || 'Untitled'}"?`,
-      message:
-        'This permanently removes the document and all its chapters, blocks, characters, and history from this browser. This cannot be undone.',
-      confirmLabel: 'Delete permanently',
+      title: t('picker.deleteConfirmTitle', { title }),
+      message: t('picker.deleteConfirmBody'),
+      confirmLabel: t('picker.deleteConfirmConfirm'),
+      cancelLabel: t('common.cancel'),
       danger: true,
     });
     if (!ok) return;
@@ -219,7 +223,7 @@ export const DocumentPicker = (props: Props) => {
         await db.delete('sentiments', s.block_id);
       }
       await db.delete('documents', doc.id);
-      toast.success(`"${doc.title || 'Untitled'}" deleted`);
+      toast.success(t('picker.deleteSuccess', { title }));
       refetch();
     } catch (err) {
       toast.error(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -234,38 +238,41 @@ export const DocumentPicker = (props: Props) => {
             InkMirror
           </div>
           <div class="text-sm text-stone-500 dark:text-stone-400">
-            Two hearts, one soul — the writer's and the story's pulse.
+            {t('picker.tagline')}
           </div>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            class="mt-3 px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme() === 'dark' ? 'Light mode' : 'Dark mode'}
-          </button>
+          <div class="mt-3 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme() === 'dark' ? t('picker.lightMode') : t('picker.darkMode')}
+            </button>
+            <LanguagePicker />
+          </div>
         </div>
 
         <div class="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-xl overflow-hidden">
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
-            <div class="text-[10px] uppercase tracking-wider font-medium text-stone-400">
-              Your documents
+            <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+              {t('picker.yourDocuments')}
             </div>
             <div class="flex items-center gap-2">
               <button
                 type="button"
                 onClick={triggerImport}
                 class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
-                title="Import a document or backup"
+                title={t('picker.importTitle')}
               >
-                Import…
+                {t('picker.importButton')}
               </button>
               <button
                 type="button"
                 onClick={() => setShowNewForm(true)}
                 class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
               >
-                + New document
+                {t('picker.newDocument')}
               </button>
             </div>
           </div>
@@ -282,7 +289,7 @@ export const DocumentPicker = (props: Props) => {
                     if (e.key === 'Escape') { e.preventDefault(); setShowNewForm(false); setNewTitle(''); }
                   }}
                   ref={(el) => queueMicrotask(() => el.focus())}
-                  placeholder="Document title…"
+                  placeholder={t('picker.titlePlaceholder')}
                   class="flex-1 bg-transparent outline-none border-b border-violet-300 dark:border-violet-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-base py-1"
                 />
                 <button
@@ -291,7 +298,7 @@ export const DocumentPicker = (props: Props) => {
                   disabled={creating()}
                   class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
                 >
-                  {creating() ? '…' : 'Create'}
+                  {creating() ? '…' : t('common.create')}
                 </button>
                 <button
                   type="button"
@@ -308,13 +315,11 @@ export const DocumentPicker = (props: Props) => {
                 <Show when={!showNewForm()}>
                   <div class="px-5 py-10 text-center flex flex-col items-center gap-2">
                     <div class="font-serif text-base text-stone-500 dark:text-stone-400">
-                      {docs.loading ? 'Loading…' : 'A blank page.'}
+                      {docs.loading ? t('common.loading') : t('picker.emptyTitle')}
                     </div>
                     <Show when={!docs.loading}>
                       <div class="text-[12px] text-stone-400 max-w-[320px] leading-relaxed">
-                        Your library is empty. Start a new document
-                        or import an <span class="font-mono">.inkmirror.json</span>{' '}
-                        bundle from another browser.
+                        {t('picker.emptyBody', { ext: '.inkmirror.json' })}
                       </div>
                     </Show>
                   </div>
@@ -331,25 +336,25 @@ export const DocumentPicker = (props: Props) => {
                         class="flex-1 text-left min-w-0"
                       >
                         <div class="font-serif text-base text-stone-900 dark:text-stone-50 truncate">
-                          {doc.title || 'Untitled'}
+                          {doc.title || t('common.untitled')}
                         </div>
                         <div class="text-[11px] text-stone-400 mt-0.5">
-                          {doc.author || 'No author'} · updated {timeAgo(doc.updated_at)}
+                          {doc.author || t('picker.noAuthor')} · {t('picker.updatedAgo', { ago: timeAgo(doc.updated_at) })}
                         </div>
                       </button>
                       <button
                         type="button"
                         onClick={() => void exportDoc(doc)}
                         class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-[11px] px-1 transition-opacity"
-                        title="Export this document as .inkmirror.json"
+                        title={t('picker.exportTitle')}
                       >
-                        Export
+                        {t('picker.exportLabel')}
                       </button>
                       <button
                         type="button"
                         onClick={() => void deleteDoc(doc)}
                         class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs px-1 transition-opacity"
-                        title="Delete document"
+                        title={t('picker.deleteTitle')}
                       >
                         ×
                       </button>
@@ -361,40 +366,40 @@ export const DocumentPicker = (props: Props) => {
           </div>
 
           <div class="flex items-center justify-between gap-2 px-5 py-2.5 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/40">
-            <div class="text-[10px] uppercase tracking-wider text-stone-400">
-              Backup
+            <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
+              {t('picker.backupLabel')}
             </div>
             <div class="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => void exportAll()}
                 class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 transition-colors"
-                title="Download every document + graveyard + revisions as a single file"
+                title={t('picker.backupAllTitle')}
               >
-                Backup all
+                {t('picker.backupAll')}
               </button>
               <span class="text-stone-300 dark:text-stone-600">·</span>
               <button
                 type="button"
                 onClick={triggerImport}
                 class="text-[11px] text-stone-500 dark:text-stone-400 hover:text-violet-500 transition-colors"
-                title="Restore from a backup or import a single document"
+                title={t('picker.restoreTitle')}
               >
-                Restore…
+                {t('picker.restore')}
               </button>
             </div>
           </div>
         </div>
 
         <div class="mt-3 text-center text-[11px] text-stone-400 dark:text-stone-500">
-          Everything stays on this device. Use Backup to move your work between browsers.
+          {t('picker.privacyTagline')}
           <span class="mx-1.5">·</span>
           <button
             type="button"
             onClick={openFeedback}
             class="underline decoration-dotted underline-offset-2 hover:text-violet-500 transition-colors"
           >
-            Send feedback
+            {t('picker.privacyFeedback')}
           </button>
         </div>
       </div>

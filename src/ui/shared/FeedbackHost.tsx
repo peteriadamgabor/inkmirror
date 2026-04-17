@@ -1,6 +1,7 @@
 import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { closeFeedback, feedbackOpen, submitFeedback } from './feedback';
 import { toast } from './toast';
+import { t } from '@/i18n';
 
 export const FeedbackHost = () => {
   const [message, setMessage] = createSignal('');
@@ -51,11 +52,11 @@ export const FeedbackHost = () => {
     });
     setSending(false);
     if (result.ok) {
-      toast.success('Thanks — feedback sent.');
+      toast.success(t('feedback.sent'));
       closeFeedback();
       reset();
     } else {
-      toast.error(`Couldn't send feedback: ${result.error}`);
+      toast.error(t('feedback.failed', { error: result.error }));
     }
   };
 
@@ -77,18 +78,17 @@ export const FeedbackHost = () => {
               id="feedback-title"
               class="font-serif text-lg text-stone-900 dark:text-stone-100"
             >
-              Send feedback
+              {t('feedback.title')}
             </div>
             <div class="text-sm text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
-              Bug, idea, or just a hello — it all lands in my inbox.
-              Your manuscript content is never included.
+              {t('feedback.subtitle')}
             </div>
           </div>
 
           <textarea
             value={message()}
             onInput={(e) => setMessage(e.currentTarget.value)}
-            placeholder="What's on your mind?"
+            placeholder={t('feedback.placeholder')}
             rows={6}
             maxLength={4000}
             ref={(el) => queueMicrotask(() => el.focus())}
@@ -99,7 +99,7 @@ export const FeedbackHost = () => {
             type="email"
             value={contact()}
             onInput={(e) => setContact(e.currentTarget.value)}
-            placeholder="Your email (optional — only if you want a reply)"
+            placeholder={t('feedback.contactPlaceholder')}
             maxLength={200}
             class="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-1.5 text-sm text-stone-700 dark:text-stone-200 focus:outline-none focus:border-violet-500 transition-colors"
           />
@@ -131,7 +131,7 @@ export const FeedbackHost = () => {
                 onClick={() => closeFeedback()}
                 class="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -139,7 +139,7 @@ export const FeedbackHost = () => {
                 disabled={sending() || message().trim().length === 0}
                 class="px-3 py-1.5 text-sm rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
               >
-                {sending() ? 'Sending…' : 'Send'}
+                {sending() ? t('common.sending') : t('common.send')}
                 <Show when={!sending()}>
                   <span class="font-mono text-[10px] opacity-70">⌘↵</span>
                 </Show>
