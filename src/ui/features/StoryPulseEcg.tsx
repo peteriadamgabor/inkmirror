@@ -1,5 +1,6 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js';
 import { store } from '@/store/document';
+import { visibleBlocksInChapter } from '@/store/selectors';
 import type { UUID } from '@/types';
 import { labelHex, labelValence, labelI18nKey } from '@/ai/label-helpers';
 import { t } from '@/i18n';
@@ -44,14 +45,11 @@ export const StoryPulseEcg = () => {
   const bars = createMemo<BarData[]>(() => {
     const activeId = store.activeChapterId;
     if (!activeId) return [];
-    const ids = store.blockOrder.filter(
-      (id) => store.blocks[id]?.chapter_id === activeId && !store.blocks[id]?.deleted_at,
-    );
-    return ids.map((id) => {
-      const sentiment = store.sentiments[id];
+    return visibleBlocksInChapter(activeId).map((b) => {
+      const sentiment = store.sentiments[b.id];
       if (!sentiment) {
         return {
-          blockId: id,
+          blockId: b.id,
           polarity: 0,
           color: labelHex(null),
           tooltip: t('mood.unanalyzed'),
@@ -59,7 +57,7 @@ export const StoryPulseEcg = () => {
         };
       }
       return {
-        blockId: id,
+        blockId: b.id,
         polarity: polarityFromLabel(sentiment.label, sentiment.score),
         color: labelHex(sentiment.label),
         tooltip: `${t(labelI18nKey(sentiment.label))} · ${Math.round(sentiment.score * 100)}%`,

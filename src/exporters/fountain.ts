@@ -1,5 +1,12 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { contentToRuns, textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import {
+  contentToRuns,
+  speakerNameFor,
+  textBlob,
+  visibleChapterBlocks,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 function renderInline(block: Block): string {
   return contentToRuns(block.content, block.marks)
@@ -26,13 +33,13 @@ function sceneHeading(md: SceneMetadata | null): string {
   return time ? `INT. ${location} - ${time}` : `INT. ${location}`;
 }
 
-function speakerNameFor(
+function speakerCue(
   data: DialogueMetadata,
   characters: readonly Character[],
 ): string {
-  if (!data.speaker_id) return 'SPEAKER';
-  const c = characters.find((x) => x.id === data.speaker_id);
-  return (c?.name ?? 'SPEAKER').toUpperCase();
+  // Fountain cues are ALL CAPS with a 'SPEAKER' fallback when no
+  // character is assigned to the block.
+  return (speakerNameFor(data, characters) ?? 'SPEAKER').toUpperCase();
 }
 
 interface FountainContext {
@@ -55,7 +62,7 @@ function renderBlock(block: Block, ctx: FountainContext): string | null {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
       if (!data) return renderInline(block);
-      const baseName = speakerNameFor(data, ctx.characters);
+      const baseName = speakerCue(data, ctx.characters);
       const isContinuation =
         !!data.speaker_id && data.speaker_id === ctx.previousSpeakerId;
       const cue = isContinuation ? `${baseName} (CONT'D)` : baseName;

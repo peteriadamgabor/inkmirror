@@ -1,5 +1,11 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
+import {
+  contentToRuns,
+  exportableBlocks,
+  speakerNameFor,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 function esc(s: string): string {
   return s
@@ -38,14 +44,6 @@ function paragraphsWithMarks(block: Block): string {
     .filter((p) => p.length > 0)
     .map((p) => `<p>${p}</p>`)
     .join('\n      ');
-}
-
-function speakerNameFor(
-  data: DialogueMetadata,
-  characters: readonly Character[],
-): string | null {
-  if (!data.speaker_id) return null;
-  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
 }
 
 function renderBlockXhtml(block: Block, characters: readonly Character[]): string {

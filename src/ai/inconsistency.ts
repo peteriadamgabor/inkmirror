@@ -18,6 +18,7 @@ import {
   replaceInconsistencyFlags,
   setConsistencyScanProgress,
 } from '@/store/document';
+import { allVisibleBlocks } from '@/store/selectors';
 import { lang as currentLang } from '@/i18n';
 import { extractSentences, candidatePairs } from '@/engine/claim-extraction';
 import { makeFlagId, type InconsistencyFlag } from '@/types';
@@ -73,9 +74,7 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
 
   // Snapshot the blocks and mentions we'll scan. Working on a snapshot
   // avoids racing with user edits mid-scan.
-  const blocks = store.blockOrder
-    .map((id) => store.blocks[id])
-    .filter((b) => b && !b.deleted_at);
+  const blocks = allVisibleBlocks();
   const mentions: Record<string, string[]> = {};
   for (const [blockId, ids] of Object.entries(store.characterMentions)) {
     mentions[blockId] = [...ids];

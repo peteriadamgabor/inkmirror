@@ -1,5 +1,6 @@
 import { createMemo, Show } from 'solid-js';
 import { store } from '@/store/document';
+import { dominantChapterLabel } from '@/store/selectors';
 import { getAiClient } from '@/ai';
 import { labelHex, labelI18nKey } from '@/ai/label-helpers';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
@@ -19,29 +20,7 @@ export const RightPanel = () => {
   const chapterMood = createMemo(() => {
     const activeId = store.activeChapterId;
     if (!activeId) return null;
-    const ids = store.blockOrder.filter(
-      (id) => store.blocks[id]?.chapter_id === activeId && !store.blocks[id]?.deleted_at,
-    );
-    const tally: Record<string, { count: number; scoreSum: number }> = {};
-    let analyzed = 0;
-    for (const id of ids) {
-      const s = store.sentiments[id];
-      if (!s) continue;
-      analyzed++;
-      if (!tally[s.label]) tally[s.label] = { count: 0, scoreSum: 0 };
-      tally[s.label].count++;
-      tally[s.label].scoreSum += s.score;
-    }
-    if (analyzed === 0) return null;
-    const entries = Object.entries(tally);
-    entries.sort((a, b) => b[1].count - a[1].count);
-    const [topLabel, topStats] = entries[0];
-    return {
-      label: topLabel,
-      share: topStats.count / analyzed,
-      analyzed,
-      total: ids.length,
-    };
+    return dominantChapterLabel(activeId);
   });
 
   return (

@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store } from '@/store/document';
+import { dialogueBlocksForSpeaker } from '@/store/selectors';
 import { labelPolarity } from '@/ai/label-helpers';
 import { t } from '@/i18n';
 import type { UUID } from '@/types';
@@ -39,30 +40,28 @@ function computeArcs(): CharacterArc[] {
   const out: CharacterArc[] = [];
 
   for (const ch of store.characters) {
+    const speakerBlocks = dialogueBlocksForSpeaker(ch.id);
+    if (speakerBlocks.length === 0) continue;
+    // Bucket the speaker's dialogues by chapter id → polarity sum + count.
+    const byChapter = new Map<UUID, { sum: number; count: number }>();
+    for (const b of speakerBlocks) {
+      const sentiment = store.sentiments[b.id];
+      if (!sentiment) continue;
+      const bucket = byChapter.get(b.chapter_id) ?? { sum: 0, count: 0 };
+      bucket.sum += labelPolarity(sentiment.label, sentiment.score);
+      bucket.count += 1;
+      byChapter.set(b.chapter_id, bucket);
+    }
     const points: ChapterPoint[] = [];
     chapters.forEach((chap, chapterIdx) => {
-      let sum = 0;
-      let count = 0;
-      for (const blockId of store.blockOrder) {
-        const b = store.blocks[blockId];
-        if (!b || b.deleted_at) continue;
-        if (b.chapter_id !== chap.id) continue;
-        if (b.type !== 'dialogue') continue;
-        if (b.metadata.type !== 'dialogue') continue;
-        if (b.metadata.data.speaker_id !== ch.id) continue;
-        const sentiment = store.sentiments[blockId];
-        if (!sentiment) continue;
-        sum += labelPolarity(sentiment.label, sentiment.score);
-        count++;
-      }
-      if (count > 0) {
-        points.push({
-          chapterIdx,
-          chapterId: chap.id,
-          polarity: sum / count,
-          count,
-        });
-      }
+      const bucket = byChapter.get(chap.id);
+      if (!bucket || bucket.count === 0) return;
+      points.push({
+        chapterIdx,
+        chapterId: chap.id,
+        polarity: bucket.sum / bucket.count,
+        count: bucket.count,
+      });
     });
     if (points.length > 0) {
       out.push({

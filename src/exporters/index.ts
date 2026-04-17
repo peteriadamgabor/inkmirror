@@ -1,5 +1,18 @@
-import type { Block, Chapter, Character, Document, Mark } from '@/types';
+import type { Block, Chapter, Character, DialogueMetadata, Document, Mark } from '@/types';
 import { normalizeMarks } from '@/engine/marks';
+
+/**
+ * Resolve a dialogue block's speaker to a display name. Returns null
+ * when no speaker is assigned. Shared by every exporter — historically
+ * this lived as a copy in each file.
+ */
+export function speakerNameFor(
+  data: DialogueMetadata,
+  characters: readonly Character[],
+): string | null {
+  if (!data.speaker_id) return null;
+  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
+}
 
 export interface TextRun {
   text: string;

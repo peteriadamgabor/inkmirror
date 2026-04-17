@@ -1,6 +1,6 @@
 import { createMemo, Show } from 'solid-js';
 import { store } from '@/store/document';
-import type { Block } from '@/types';
+import { allVisibleBlocks } from '@/store/selectors';
 import { t } from '@/i18n';
 
 function countWords(text: string): number {
@@ -16,9 +16,8 @@ export const WordCount = () => {
     let dialogueTotal = 0;
     let dialogueChapter = 0;
     const activeId = store.activeChapterId;
-    for (const id of store.blockOrder) {
-      const b: Block | undefined = store.blocks[id];
-      if (!b || b.deleted_at || b.type === 'note') continue;
+    for (const b of allVisibleBlocks()) {
+      if (b.type === 'note') continue;
       const words = countWords(b.content);
       total += words;
       if (b.type === 'dialogue') dialogueTotal += words;

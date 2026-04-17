@@ -1,5 +1,11 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
+import {
+  contentToRuns,
+  exportableBlocks,
+  speakerNameFor,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 // Rough A4-manuscript layout. jsPDF uses points (1/72 inch) when unit: 'pt'.
 const PAGE_W = 595.28; // A4 width pt
@@ -8,14 +14,6 @@ const MARGIN = 72; // 1 inch
 const LINE_H = 18;
 const BODY_FONT_SIZE = 12;
 const CONTENT_W = PAGE_W - MARGIN * 2;
-
-function speakerNameFor(
-  data: DialogueMetadata,
-  characters: readonly Character[],
-): string | null {
-  if (!data.speaker_id) return null;
-  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
-}
 
 interface FlatPart {
   kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p';

@@ -1,5 +1,6 @@
 import { createAiClient, type AiClientHandle } from './client';
 import { setSentimentHook, store } from '@/store/document';
+import { allVisibleBlocks } from '@/store/selectors';
 import { detectBackend, getStoredProfile } from './profile';
 import { scheduleSentiment } from './analyze';
 import { contentHash } from '@/utils/hash';
@@ -72,13 +73,10 @@ export function scheduleAiPreload(): void {
 export function backfillSentiments(): void {
   const activeProfile = getStoredProfile();
   const activeSource: 'light' | 'deep' = activeProfile === 'deep' ? 'deep' : 'light';
-  const order = store.blockOrder;
-  for (const id of order) {
-    const block = store.blocks[id];
-    if (!block || block.deleted_at) continue;
+  for (const block of allVisibleBlocks()) {
     const text = block.content.trim();
     if (!text) continue;
-    const existing = store.sentiments[id];
+    const existing = store.sentiments[block.id];
     const rowSource = existing?.source ?? 'light';
     if (
       existing &&
@@ -87,7 +85,7 @@ export function backfillSentiments(): void {
     ) {
       continue;
     }
-    scheduleSentiment(id, block.content);
+    scheduleSentiment(block.id, block.content);
   }
 }
 

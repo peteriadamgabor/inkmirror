@@ -1,7 +1,8 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store } from '@/store/document';
+import { visibleBlocksInChapter, allVisibleBlocks } from '@/store/selectors';
 import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
-import type { Block, UUID } from '@/types';
+import type { UUID } from '@/types';
 import { t } from '@/i18n';
 
 interface CharacterMood {
@@ -16,19 +17,17 @@ interface CharacterMood {
 export const CharacterSentiment = () => {
   const moods = createMemo<CharacterMood[]>(() => {
     const activeId = store.activeChapterId;
+    const blocks = activeId ? visibleBlocksInChapter(activeId) : allVisibleBlocks();
     const perChar = new Map<
       UUID,
       { labels: Record<string, number>; totalScore: number; count: number }
     >();
 
-    for (const id of store.blockOrder) {
-      const b: Block | undefined = store.blocks[id];
-      if (!b || b.deleted_at) continue;
-      if (activeId && b.chapter_id !== activeId) continue;
+    for (const b of blocks) {
       if (b.metadata.type !== 'dialogue') continue;
       const speakerId = b.metadata.data.speaker_id;
       if (!speakerId) continue;
-      const sentiment = store.sentiments[id];
+      const sentiment = store.sentiments[b.id];
       if (!sentiment) continue;
 
       let entry = perChar.get(speakerId);

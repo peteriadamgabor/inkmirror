@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store, setActiveChapter } from '@/store/document';
+import { dominantChapterLabel, visibleBlocksInChapter } from '@/store/selectors';
 import type { UUID } from '@/types';
 import { labelHex, labelI18nKey } from '@/ai/label-helpers';
 import { t } from '@/i18n';
@@ -16,31 +17,17 @@ interface ChapterStat {
 
 function computeChapterStats(): ChapterStat[] {
   return store.chapters.map((chapter) => {
-    const blockIds = store.blockOrder.filter(
-      (id) => store.blocks[id]?.chapter_id === chapter.id && !store.blocks[id]?.deleted_at,
-    );
-    // Weight each label by the block's word count so long prose beats
-    // short dialogue when computing the chapter's dominant mood.
-    const tally: Record<string, number> = {};
-    let analyzed = 0;
-    for (const id of blockIds) {
-      const s = store.sentiments[id];
-      if (!s) continue;
-      analyzed++;
-      const wc = Math.max(1, (store.blocks[id]?.content ?? '').trim().split(/\s+/).length);
-      tally[s.label] = (tally[s.label] ?? 0) + wc;
-    }
-    const entries = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-    const [dominantLabel, dominantWeight] = entries[0] ?? [null, 0];
-    const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
+    const blocks = visibleBlocksInChapter(chapter.id);
+    // Weight by word count so long prose outweighs short dialogue.
+    const dominant = dominantChapterLabel(chapter.id, { weighted: true });
     return {
       id: chapter.id,
       title: chapter.title,
-      blockCount: blockIds.length,
-      analyzed,
-      dominantLabel,
-      dominantShare: totalWeight > 0 ? dominantWeight / totalWeight : 0,
-      color: labelHex(dominantLabel),
+      blockCount: blocks.length,
+      analyzed: dominant?.analyzed ?? 0,
+      dominantLabel: dominant?.label ?? null,
+      dominantShare: dominant?.share ?? 0,
+      color: labelHex(dominant?.label ?? null),
     };
   });
 }

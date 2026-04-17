@@ -5,6 +5,7 @@ import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
 import { contentHash } from '@/utils/hash';
 import { store, setViewport, setMeasurement, saveState, renameChapter } from '@/store/document';
+import { dominantChapterLabel } from '@/store/selectors';
 import { useTheme } from '@/ui/theme';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
 import { getSonificationEngine, resolveMoodLabel, type MoodLabel } from '@/audio/engine';
@@ -237,16 +238,8 @@ export const Editor = () => {
   const activeChapterDominantLabel = createMemo<MoodLabel>(() => {
     const activeId = store.activeChapterId;
     if (!activeId) return 'neutral';
-    const tally: Record<string, number> = {};
-    for (const id of store.blockOrder) {
-      const b = store.blocks[id];
-      if (!b || b.deleted_at || b.chapter_id !== activeId) continue;
-      const s = store.sentiments[id];
-      if (!s) continue;
-      tally[s.label] = (tally[s.label] ?? 0) + 1;
-    }
-    const entries = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-    return resolveMoodLabel(entries[0]?.[0] ?? null);
+    const dominant = dominantChapterLabel(activeId);
+    return resolveMoodLabel(dominant?.label ?? null);
   });
 
   createEffect(() => {

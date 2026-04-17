@@ -1,5 +1,11 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
-import { contentToRuns, exportableBlocks, type Exporter, type ExportInput } from './index';
+import {
+  contentToRuns,
+  exportableBlocks,
+  speakerNameFor,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 // Narrow structural types — avoid importing docx types at module load time
 // so the library stays in a dynamic chunk.
@@ -12,14 +18,6 @@ function sceneHeaderText(md: SceneMetadata | null): string {
   if (md.time) parts.push(md.time);
   if (md.mood) parts.push(`(${md.mood})`);
   return parts.join(' — ');
-}
-
-function speakerNameFor(
-  data: DialogueMetadata,
-  characters: readonly Character[],
-): string | null {
-  if (!data.speaker_id) return null;
-  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
 }
 
 /**

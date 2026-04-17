@@ -1,5 +1,12 @@
 import type { Block, Character, SceneMetadata, DialogueMetadata } from '@/types';
-import { contentToRuns, textBlob, visibleChapterBlocks, type Exporter, type ExportInput } from './index';
+import {
+  contentToRuns,
+  speakerNameFor,
+  textBlob,
+  visibleChapterBlocks,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 function wrapRun(text: string, bold: boolean, italic: boolean): string {
   if (!text) return '';
@@ -13,14 +20,6 @@ function renderInline(block: Block): string {
   return contentToRuns(block.content, block.marks)
     .map((run) => wrapRun(run.text, run.bold, run.italic))
     .join('');
-}
-
-function speakerNameFor(
-  data: DialogueMetadata,
-  characters: readonly Character[],
-): string | null {
-  if (!data.speaker_id) return null;
-  return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
 }
 
 function renderBlock(block: Block, characters: readonly Character[]): string | null {
