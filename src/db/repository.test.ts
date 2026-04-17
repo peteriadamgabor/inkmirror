@@ -9,15 +9,22 @@ import {
   loadSentiments,
   saveRevision,
   loadRevisions,
+  saveInconsistencyFlag,
+  loadInconsistencyFlagsByDocument,
+  loadInconsistencyFlagsByCharacter,
+  loadInconsistencyFlagsByBlock,
+  deleteInconsistencyFlag,
+  setInconsistencyFlagStatus,
   type DbLike,
 } from './repository';
-import type { Block } from '@/types';
+import type { Block, InconsistencyFlag } from '@/types';
 import type {
   BlockRevisionRow,
   BlockRow,
   ChapterRow,
   CharacterRow,
   DocumentRow,
+  InconsistencyRow,
   SentimentRow,
 } from './connection';
 
@@ -28,6 +35,7 @@ interface MockState {
   sentiments: SentimentRow[];
   characters: CharacterRow[];
   blockRevisions: BlockRevisionRow[];
+  inconsistencies: InconsistencyRow[];
   softDeleteCalls: Array<{ id: string; deletedAt: string; deletedFrom: unknown }>;
 }
 
@@ -39,6 +47,7 @@ function createMockDb(): { db: DbLike; state: MockState } {
     sentiments: [],
     characters: [],
     blockRevisions: [],
+    inconsistencies: [],
     softDeleteCalls: [],
   };
   const db: DbLike = {
@@ -126,8 +135,55 @@ function createMockDb(): { db: DbLike; state: MockState } {
         if (idx >= 0) state.blockRevisions.splice(idx, 1);
       },
     },
+    inconsistencies: {
+      async put(row) {
+        const idx = state.inconsistencies.findIndex((r) => r.id === row.id);
+        if (idx >= 0) state.inconsistencies[idx] = row;
+        else state.inconsistencies.push(row);
+      },
+      async get(id) {
+        return state.inconsistencies.find((r) => r.id === id);
+      },
+      async getAllByDocument(documentId) {
+        return state.inconsistencies.filter((r) => r.document_id === documentId);
+      },
+      async getAllByCharacter(characterId) {
+        return state.inconsistencies.filter((r) => r.character_id === characterId);
+      },
+      async getAllByBlock(blockId) {
+        return state.inconsistencies.filter(
+          (r) => r.block_a_id === blockId || r.block_b_id === blockId,
+        );
+      },
+      async delete(id) {
+        const idx = state.inconsistencies.findIndex((r) => r.id === id);
+        if (idx >= 0) state.inconsistencies.splice(idx, 1);
+      },
+    },
   };
   return { db, state };
+}
+
+function makeFlag(overrides: Partial<InconsistencyFlag> = {}): InconsistencyFlag {
+  return {
+    id: 'flag-1',
+    document_id: 'doc-1',
+    character_id: 'char-1',
+    block_a_id: 'blk-a',
+    block_a_hash: 'ha',
+    block_a_sentence_idx: 0,
+    block_a_sentence: 'Ivan has a brother Pyotr.',
+    block_b_id: 'blk-b',
+    block_b_hash: 'hb',
+    block_b_sentence_idx: 2,
+    block_b_sentence: "Pyotr, Ivan's cousin, came home drunk.",
+    trigger_categories: ['kinship'],
+    contradiction_score: 0.88,
+    status: 'active',
+    created_at: 1_700_000_000_000,
+    dismissed_at: null,
+    ...overrides,
+  };
 }
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
@@ -392,5 +448,104 @@ describe('listDocuments', () => {
     );
     const docs = await listDocuments();
     expect(docs.map((d) => d.title)).toEqual(['First', 'Second']);
+  });
+});
+
+describe('sentiment source roundtrip', () => {
+  it('persists and reads back the source field', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveSentiment('doc-1', {
+      blockId: 'b1',
+      label: 'tender',
+      score: 0.9,
+      contentHash: 'h1',
+      analyzedAt: '2026-04-17T00:00:00.000Z',
+      source: 'deep',
+    });
+    expect(state.sentiments[0].source).toBe('deep');
+    const loaded = await loadSentiments('doc-1');
+    expect(loaded[0].source).toBe('deep');
+  });
+
+  it('defaults source to light when absent on the row', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    // Simulate a legacy row written before the field existed.
+    state.sentiments.push({
+      block_id: 'b1',
+      document_id: 'doc-1',
+      label: 'positive',
+      score: 0.8,
+      content_hash: 'h',
+      analyzed_at: '2026-04-14T00:00:00.000Z',
+    });
+    const loaded = await loadSentiments('doc-1');
+    expect(loaded[0].source).toBe('light');
+  });
+});
+
+describe('inconsistency flag repository', () => {
+  it('saves and loads by document', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(makeFlag({ id: 'f1', document_id: 'doc-1' }));
+    await saveInconsistencyFlag(makeFlag({ id: 'f2', document_id: 'doc-2' }));
+    expect(state.inconsistencies).toHaveLength(2);
+    const doc1 = await loadInconsistencyFlagsByDocument('doc-1');
+    expect(doc1.map((f) => f.id)).toEqual(['f1']);
+  });
+
+  it('loads by character', async () => {
+    const { db } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(makeFlag({ id: 'f1', character_id: 'ivan' }));
+    await saveInconsistencyFlag(makeFlag({ id: 'f2', character_id: 'pyotr' }));
+    const ivan = await loadInconsistencyFlagsByCharacter('ivan');
+    expect(ivan.map((f) => f.id)).toEqual(['f1']);
+  });
+
+  it('loads by block (either side of the pair)', async () => {
+    const { db } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(makeFlag({ id: 'f1', block_a_id: 'B', block_b_id: 'C' }));
+    await saveInconsistencyFlag(makeFlag({ id: 'f2', block_a_id: 'A', block_b_id: 'B' }));
+    const hits = await loadInconsistencyFlagsByBlock('B');
+    expect(hits.map((f) => f.id).sort()).toEqual(['f1', 'f2']);
+  });
+
+  it('deletes a flag by id', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(makeFlag({ id: 'f1' }));
+    await deleteInconsistencyFlag('f1');
+    expect(state.inconsistencies).toHaveLength(0);
+  });
+
+  it('dismissing sets status and timestamp', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(makeFlag({ id: 'f1', status: 'active', dismissed_at: null }));
+    await setInconsistencyFlagStatus('f1', 'dismissed');
+    expect(state.inconsistencies[0].status).toBe('dismissed');
+    expect(state.inconsistencies[0].dismissed_at).toBeGreaterThan(0);
+  });
+
+  it('reactivating clears the dismissed timestamp', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await saveInconsistencyFlag(
+      makeFlag({ id: 'f1', status: 'dismissed', dismissed_at: 123 }),
+    );
+    await setInconsistencyFlagStatus('f1', 'active');
+    expect(state.inconsistencies[0].status).toBe('active');
+    expect(state.inconsistencies[0].dismissed_at).toBeNull();
+  });
+
+  it('status update on a missing flag is a no-op', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    await setInconsistencyFlagStatus('does-not-exist', 'dismissed');
+    expect(state.inconsistencies).toHaveLength(0);
   });
 });

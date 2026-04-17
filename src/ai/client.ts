@@ -1,4 +1,5 @@
 import { createSignal, type Accessor } from 'solid-js';
+import type { AiBackend, AiProfile } from './profile';
 import { logAiError } from './errors';
 
 export interface LanguageResult {
@@ -11,6 +12,25 @@ export interface SentimentResult {
   score: number;
 }
 
+export interface MoodResult {
+  label: string;
+  score: number;
+}
+
+export interface NliPairResult {
+  /** P(premise entails hypothesis), softmax over entailment vs contradiction. */
+  entailment: number;
+  /** 1 - entailment. Higher = stronger contradiction signal. */
+  contradiction: number;
+}
+
+export interface ModelProgress {
+  phase: string;
+  percent: number | null;
+}
+
+export type ModelDtype = 'q4' | 'fp16' | 'fp32';
+
 interface PendingRequest {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
@@ -21,9 +41,13 @@ export interface AiClientHandle {
   isReady: Accessor<boolean>;
   isLoading: Accessor<boolean>;
   loadError: Accessor<string | null>;
+  modelProgress: Accessor<ModelProgress | null>;
   preload: () => Promise<void>;
+  configure: (profile: AiProfile, backend: AiBackend, dtype: ModelDtype) => Promise<void>;
   detectLanguage: (text: string) => Promise<LanguageResult[]>;
   detectSentiment: (text: string) => Promise<SentimentResult[]>;
+  classifyMood: (text: string, labels: readonly string[]) => Promise<MoodResult[]>;
+  nliPair: (premise: string, hypothesis: string) => Promise<NliPairResult>;
 }
 
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -36,6 +60,7 @@ export function createAiClient(deps: AiClientDeps): AiClientHandle {
   const [isReady, setIsReady] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
   const [loadError, setLoadError] = createSignal<string | null>(null);
+  const [modelProgress, setModelProgress] = createSignal<ModelProgress | null>(null);
 
   let worker: Worker | null = null;
   const pending = new Map<string, PendingRequest>();
@@ -62,10 +87,13 @@ export function createAiClient(deps: AiClientDeps): AiClientHandle {
     if (msg && msg.kind === 'ready') {
       setIsReady(true);
       setIsLoading(false);
+      setModelProgress(null);
       return;
     }
     if (msg && msg.kind === 'progress') {
-      // Optional hook — currently just dropped. Could set a signal later.
+      const phase = typeof msg.phase === 'string' ? msg.phase : 'loading';
+      const percent = typeof msg.percent === 'number' ? msg.percent : null;
+      setModelProgress({ phase, percent });
       return;
     }
     const id = typeof msg?.id === 'string' ? msg.id : null;
@@ -150,12 +178,39 @@ export function createAiClient(deps: AiClientDeps): AiClientHandle {
     return Array.isArray(result) ? result : [result];
   }
 
+  async function configure(
+    profile: AiProfile,
+    backend: AiBackend,
+    dtype: ModelDtype,
+  ): Promise<void> {
+    await send<null>('configure', { profile, backend, dtype });
+  }
+
+  async function classifyMood(
+    text: string,
+    labels: readonly string[],
+  ): Promise<MoodResult[]> {
+    const result = await send<MoodResult[]>('classify-mood', {
+      text,
+      labels: Array.from(labels),
+    });
+    return result;
+  }
+
+  async function nliPair(premise: string, hypothesis: string): Promise<NliPairResult> {
+    return await send<NliPairResult>('nli-pair', { premise, hypothesis });
+  }
+
   return {
     isReady,
     isLoading,
     loadError,
+    modelProgress,
     preload,
+    configure,
     detectLanguage,
     detectSentiment,
+    classifyMood,
+    nliPair,
   };
 }

@@ -1,5 +1,6 @@
 import { createAiClient, type AiClientHandle } from './client';
 import { setSentimentHook, store } from '@/store/document';
+import { detectBackend, getStoredProfile } from './profile';
 import { scheduleSentiment } from './analyze';
 
 let singleton: AiClientHandle | null = null;
@@ -20,8 +21,20 @@ export function getAiClient(): AiClientHandle {
 }
 
 /**
+ * Reset the client singleton — used by profile switches, which spawn a
+ * fresh worker rather than disposing in-place (transformers.js doesn't
+ * guarantee clean pipeline disposal across versions).
+ */
+export function resetAiClient(): void {
+  singleton = null;
+}
+
+/**
  * Schedule a model preload on main-thread idle and wire the store's
- * sentiment hook so every content commit triggers analysis.
+ * sentiment hook so every content commit triggers analysis. Reads the
+ * persisted AI profile and probes the GPU backend before configuring
+ * the worker — the worker's preload loads whichever model that combo
+ * requires.
  */
 export function scheduleAiPreload(): void {
   const client = getAiClient();
@@ -29,16 +42,22 @@ export function scheduleAiPreload(): void {
     setSentimentHook(scheduleSentiment);
     hookInstalled = true;
   }
-  const kick = () => {
-    client
-      .preload()
-      .then(() => backfillSentiments())
-      .catch(() => undefined);
+  const kick = async () => {
+    try {
+      const profile = getStoredProfile();
+      const backend = await detectBackend();
+      await client.configure(profile, backend, 'q4');
+      await client.preload();
+      backfillSentiments();
+    } catch {
+      // Errors already surface through client.loadError(); swallow here
+      // so the boot path never crashes on AI failure.
+    }
   };
   if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(kick, { timeout: 2000 });
+    requestIdleCallback(() => void kick(), { timeout: 2000 });
   } else {
-    setTimeout(kick, 500);
+    setTimeout(() => void kick(), 500);
   }
 }
 

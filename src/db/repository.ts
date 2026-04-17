@@ -1,4 +1,12 @@
-import type { Block, Chapter, Character, Document, UUID } from '@/types';
+import type {
+  Block,
+  Chapter,
+  Character,
+  Document,
+  InconsistencyFlag,
+  InconsistencyStatus,
+  UUID,
+} from '@/types';
 import {
   getDb,
   type BlockRevisionRow,
@@ -6,6 +14,7 @@ import {
   type ChapterRow,
   type CharacterRow,
   type DocumentRow,
+  type InconsistencyRow,
   type SentimentRow,
   type InkMirrorDb,
 } from './connection';
@@ -30,6 +39,7 @@ export interface SentimentEntry {
   score: number;
   contentHash: string;
   analyzedAt: string;
+  source?: 'light' | 'deep';
 }
 
 function blockToRow(b: Block, documentId: UUID): BlockRow {
@@ -181,6 +191,14 @@ export interface DbLike {
     getAllByBlock(blockId: string): Promise<BlockRevisionRow[]>;
     delete(id: string): Promise<unknown>;
   };
+  inconsistencies: {
+    put(row: InconsistencyRow): Promise<unknown>;
+    get(id: string): Promise<InconsistencyRow | undefined>;
+    getAllByDocument(documentId: string): Promise<InconsistencyRow[]>;
+    getAllByCharacter(characterId: string): Promise<InconsistencyRow[]>;
+    getAllByBlock(blockId: string): Promise<InconsistencyRow[]>;
+    delete(id: string): Promise<unknown>;
+  };
 }
 
 let testDb: DbLike | null = null;
@@ -235,6 +253,30 @@ function realDb(idb: InkMirrorDb): DbLike {
       getAllByBlock: (blockId) =>
         idb.getAllFromIndex('block_revisions', 'by_block', blockId),
       delete: (id) => idb.delete('block_revisions', id),
+    },
+    inconsistencies: {
+      put: (row) => idb.put('inconsistencies', row),
+      get: (id) => idb.get('inconsistencies', id),
+      getAllByDocument: (documentId) =>
+        idb.getAllFromIndex('inconsistencies', 'by_document', documentId),
+      getAllByCharacter: (characterId) =>
+        idb.getAllFromIndex('inconsistencies', 'by_character', characterId),
+      getAllByBlock: async (blockId) => {
+        // A flag references two blocks (A and B). Query both indexes and merge.
+        const [aHits, bHits] = await Promise.all([
+          idb.getAllFromIndex('inconsistencies', 'by_block_a', blockId),
+          idb.getAllFromIndex('inconsistencies', 'by_block_b', blockId),
+        ]);
+        const seen = new Set<string>();
+        const out: InconsistencyRow[] = [];
+        for (const row of [...aHits, ...bHits]) {
+          if (seen.has(row.id)) continue;
+          seen.add(row.id);
+          out.push(row);
+        }
+        return out;
+      },
+      delete: (id) => idb.delete('inconsistencies', id),
     },
   };
 }
@@ -413,6 +455,7 @@ export async function saveSentiment(
       score: entry.score,
       content_hash: entry.contentHash,
       analyzed_at: entry.analyzedAt,
+      source: entry.source,
     };
     const d = await db();
     await d.sentiments.put(row);
@@ -432,9 +475,85 @@ export async function loadSentiments(documentId: UUID): Promise<SentimentEntry[]
       score: r.score,
       contentHash: r.content_hash,
       analyzedAt: r.analyzed_at,
+      source: r.source ?? 'light',
     }));
   } catch (err) {
     logDbError('repository.loadSentiments', err);
+    throw err;
+  }
+}
+
+// ---------- inconsistency flags ----------
+
+export async function saveInconsistencyFlag(flag: InconsistencyFlag): Promise<void> {
+  try {
+    const d = await db();
+    await d.inconsistencies.put(flag);
+  } catch (err) {
+    logDbError('repository.saveInconsistencyFlag', err);
+    throw err;
+  }
+}
+
+export async function loadInconsistencyFlagsByDocument(
+  documentId: UUID,
+): Promise<InconsistencyFlag[]> {
+  try {
+    const d = await db();
+    return await d.inconsistencies.getAllByDocument(documentId);
+  } catch (err) {
+    logDbError('repository.loadInconsistencyFlagsByDocument', err);
+    throw err;
+  }
+}
+
+export async function loadInconsistencyFlagsByCharacter(
+  characterId: UUID,
+): Promise<InconsistencyFlag[]> {
+  try {
+    const d = await db();
+    return await d.inconsistencies.getAllByCharacter(characterId);
+  } catch (err) {
+    logDbError('repository.loadInconsistencyFlagsByCharacter', err);
+    throw err;
+  }
+}
+
+export async function loadInconsistencyFlagsByBlock(
+  blockId: UUID,
+): Promise<InconsistencyFlag[]> {
+  try {
+    const d = await db();
+    return await d.inconsistencies.getAllByBlock(blockId);
+  } catch (err) {
+    logDbError('repository.loadInconsistencyFlagsByBlock', err);
+    throw err;
+  }
+}
+
+export async function deleteInconsistencyFlag(id: string): Promise<void> {
+  try {
+    const d = await db();
+    await d.inconsistencies.delete(id);
+  } catch (err) {
+    logDbError('repository.deleteInconsistencyFlag', err);
+    throw err;
+  }
+}
+
+export async function setInconsistencyFlagStatus(
+  id: string,
+  status: InconsistencyStatus,
+): Promise<void> {
+  try {
+    const d = await db();
+    const existing = await d.inconsistencies.get(id);
+    if (!existing) return;
+    existing.status = status;
+    existing.dismissed_at = status === 'dismissed' ? Date.now() : null;
+    await d.inconsistencies.put(existing);
+  } catch (err) {
+    logDbError('repository.setInconsistencyFlagStatus', err);
     throw err;
   }
 }

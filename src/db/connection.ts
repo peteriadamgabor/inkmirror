@@ -1,4 +1,5 @@
 import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
+import type { InconsistencyFlag, InconsistencyStatus } from '@/types';
 import { logDbError } from './errors';
 
 export interface CharacterRow {
@@ -27,7 +28,17 @@ export interface SentimentRow {
   score: number;
   content_hash: string;
   analyzed_at: string;
+  /**
+   * Which model produced this row.
+   * - `'light'` (or absent) = legacy 3-class distilbert sentiment.
+   * - `'deep'` = mDeBERTa zero-shot mood classification (Near tier).
+   *
+   * Absence is treated as `'light'` at read time; new rows always set it.
+   */
+  source?: 'light' | 'deep';
 }
+
+export type InconsistencyRow = InconsistencyFlag;
 
 export interface BlockRow {
   id: string;
@@ -95,6 +106,17 @@ export interface InkMirrorSchema extends DBSchema {
     value: BlockRevisionRow;
     indexes: { by_block: string };
   };
+  inconsistencies: {
+    key: string;
+    value: InconsistencyRow;
+    indexes: {
+      by_document: string;
+      by_character: string;
+      by_block_a: string;
+      by_block_b: string;
+      by_status: InconsistencyStatus;
+    };
+  };
 }
 
 const DB_NAME = 'inkmirror';
@@ -103,7 +125,8 @@ const DB_NAME = 'inkmirror';
 // v3: add `sentiments` store for Phase 3 slice 2
 // v4: add `characters` store for Phase 3 slice 4
 // v5: add `block_revisions` store for per-block history
-const DB_VERSION = 5;
+// v6: add `inconsistencies` store for the Near tier
+const DB_VERSION = 6;
 
 export type InkMirrorDb = IDBPDatabase<InkMirrorSchema>;
 
@@ -139,6 +162,14 @@ export function getDb(): Promise<InkMirrorDb> {
           if (!db.objectStoreNames.contains('block_revisions')) {
             const revs = db.createObjectStore('block_revisions', { keyPath: 'id' });
             revs.createIndex('by_block', 'block_id');
+          }
+          if (!db.objectStoreNames.contains('inconsistencies')) {
+            const inc = db.createObjectStore('inconsistencies', { keyPath: 'id' });
+            inc.createIndex('by_document', 'document_id');
+            inc.createIndex('by_character', 'character_id');
+            inc.createIndex('by_block_a', 'block_a_id');
+            inc.createIndex('by_block_b', 'block_b_id');
+            inc.createIndex('by_status', 'status');
           }
         },
       });

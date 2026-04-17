@@ -136,4 +136,93 @@ describe('createAiClient', () => {
       vi.useRealTimers();
     }
   });
+
+  it('configure posts profile/backend/dtype to the worker', async () => {
+    const { worker, client } = make();
+    const promise = client.configure('deep', 'wasm', 'q4');
+    expect(worker.posted).toHaveLength(1);
+    const req = worker.posted[0] as {
+      id: string;
+      kind: string;
+      profile: string;
+      backend: string;
+      dtype: string;
+    };
+    expect(req.kind).toBe('configure');
+    expect(req.profile).toBe('deep');
+    expect(req.backend).toBe('wasm');
+    expect(req.dtype).toBe('q4');
+    worker.emitMessage({ id: req.id, ok: true, result: null });
+    await promise;
+  });
+
+  it('classifyMood forwards text + labels and returns the array', async () => {
+    const { worker, client } = make();
+    const promise = client.classifyMood('prose sample', ['tender', 'rage']);
+    const req = worker.posted[0] as {
+      id: string;
+      kind: string;
+      text: string;
+      labels: string[];
+    };
+    expect(req.kind).toBe('classify-mood');
+    expect(req.text).toBe('prose sample');
+    expect(req.labels).toEqual(['tender', 'rage']);
+    const result = [
+      { label: 'tender', score: 0.9 },
+      { label: 'rage', score: 0.1 },
+    ];
+    worker.emitMessage({ id: req.id, ok: true, result });
+    expect(await promise).toEqual(result);
+  });
+
+  it('nliPair returns entailment + contradiction', async () => {
+    const { worker, client } = make();
+    const promise = client.nliPair('A', 'B');
+    const req = worker.posted[0] as {
+      id: string;
+      kind: string;
+      premise: string;
+      hypothesis: string;
+    };
+    expect(req.kind).toBe('nli-pair');
+    expect(req.premise).toBe('A');
+    expect(req.hypothesis).toBe('B');
+    worker.emitMessage({
+      id: req.id,
+      ok: true,
+      result: { entailment: 0.2, contradiction: 0.8 },
+    });
+    const out = await promise;
+    expect(out.entailment).toBe(0.2);
+    expect(out.contradiction).toBe(0.8);
+  });
+
+  it('progress messages feed modelProgress signal', async () => {
+    const { worker, client } = make();
+    // Kick ensureWorker so the message listener is attached.
+    const pending = client.preload().catch(() => undefined);
+    expect(client.modelProgress()).toBeNull();
+    worker.emitMessage({ kind: 'progress', phase: 'mood:download:model.onnx', percent: 42 });
+    expect(client.modelProgress()).toEqual({
+      phase: 'mood:download:model.onnx',
+      percent: 42,
+    });
+    // Settle the preload to avoid unhandled-rejection noise.
+    const req = worker.posted[0] as { id: string };
+    worker.emitMessage({ id: req.id, ok: true, result: null });
+    await pending;
+  });
+
+  it('ready message clears modelProgress', async () => {
+    const { worker, client } = make();
+    const pending = client.preload().catch(() => undefined);
+    worker.emitMessage({ kind: 'progress', phase: 'loading', percent: 50 });
+    expect(client.modelProgress()).not.toBeNull();
+    worker.emitMessage({ kind: 'ready' });
+    expect(client.modelProgress()).toBeNull();
+    const req = worker.posted[0] as { id: string };
+    worker.emitMessage({ id: req.id, ok: true, result: null });
+    await pending;
+  });
 });
