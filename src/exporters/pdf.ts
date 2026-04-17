@@ -17,14 +17,20 @@ function speakerNameFor(
   return characters.find((c) => c.id === data.speaker_id)?.name ?? null;
 }
 
+interface FlatPart {
+  kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p';
+  text: string;
+}
+
 function flatten(
   block: Block,
   characters: readonly Character[],
-): Array<{ kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p'; text: string }> {
+  previousSpeakerId: string | null,
+): FlatPart[] {
   switch (block.type) {
     case 'scene': {
       const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
-      const parts: Array<{ kind: 'scene' | 'p'; text: string }> = [];
+      const parts: FlatPart[] = [];
       if (md) {
         const header = [md.location, md.time, md.mood ? `(${md.mood})` : '']
           .filter(Boolean)
@@ -40,10 +46,18 @@ function flatten(
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const parts: Array<{ kind: 'speaker' | 'parenthetical' | 'p'; text: string }> = [];
+      const parts: FlatPart[] = [];
       if (data) {
         const speaker = speakerNameFor(data, characters);
-        if (speaker) parts.push({ kind: 'speaker', text: speaker });
+        if (speaker) {
+          // Fountain-style CONT'D: when two consecutive dialogue blocks
+          // share a speaker, the second cue gets "(CONT'D)" appended.
+          // Resets on scene/text blocks or a new chapter via the caller.
+          const isContinuation =
+            !!data.speaker_id && data.speaker_id === previousSpeakerId;
+          const cue = isContinuation ? `${speaker} (CONT'D)` : speaker;
+          parts.push({ kind: 'speaker', text: cue });
+        }
         if (data.parenthetical?.trim()) {
           parts.push({ kind: 'parenthetical', text: `(${data.parenthetical.trim()})` });
         }
@@ -64,6 +78,15 @@ function flatten(
     }
   }
 }
+
+function nextSpeakerId(block: Block): string | null {
+  if (block.type !== 'dialogue') return null;
+  if (block.metadata.type !== 'dialogue') return null;
+  return block.metadata.data.speaker_id || null;
+}
+
+/** Test-only export. Runtime callers go through `pdfExporter.run`. */
+export const __test = { flatten, nextSpeakerId };
 
 export const pdfExporter: Exporter = {
   format: 'pdf',
@@ -168,8 +191,12 @@ export const pdfExporter: Exporter = {
       y = PAGE_H / 4;
       writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
       y += LINE_H * 2;
+      // CONT'D tracking is scoped to a chapter — a new chapter always
+      // starts with a fresh speaker cue, even if the prior chapter
+      // ended on the same character's dialogue.
+      let previousSpeakerId: string | null = null;
       for (const block of exportableBlocks(chapter, input.blocks)) {
-        for (const part of flatten(block, input.characters)) {
+        for (const part of flatten(block, input.characters, previousSpeakerId)) {
           if (part.kind === 'scene') {
             y += LINE_H * 0.5;
             writeLines(part.text, { size: BODY_FONT_SIZE, style: 'italic', align: 'center' });
@@ -185,6 +212,7 @@ export const pdfExporter: Exporter = {
             break; // writeRichBlock handles the full block content; skip remaining flat parts.
           }
         }
+        previousSpeakerId = nextSpeakerId(block);
       }
     }
 

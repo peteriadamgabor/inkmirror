@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderJson } from './json';
 import { renderMarkdown } from './markdown';
 import { renderFountain } from './fountain';
+import { __test as pdfInternals } from './pdf';
 import type { Block, Chapter, Character, Document } from '@/types';
 import type { ExportInput } from './index';
 
@@ -133,6 +134,38 @@ describe('fountainExporter', () => {
   it('excludes notes and deleted blocks', () => {
     expect(out).not.toContain('Remember to fix this later');
     expect(out).not.toContain('Deleted');
+  });
+});
+
+describe('pdfExporter — CONT\'D on consecutive same-speaker dialogue', () => {
+  const input = makeInput();
+  const { flatten, nextSpeakerId } = pdfInternals;
+  const b2 = input.blocks.find((b) => b.id === 'b2')!;
+  const b2b = input.blocks.find((b) => b.id === 'b2b')!;
+  const b1 = input.blocks.find((b) => b.id === 'b1')!;
+
+  it('first dialogue in a chapter renders as the bare name', () => {
+    const parts = flatten(b2, input.characters, null);
+    const speaker = parts.find((p) => p.kind === 'speaker');
+    expect(speaker?.text).toBe('Alice');
+  });
+
+  it('second consecutive dialogue by same speaker gets (CONT\'D)', () => {
+    const parts = flatten(b2b, input.characters, nextSpeakerId(b2));
+    const speaker = parts.find((p) => p.kind === 'speaker');
+    expect(speaker?.text).toBe("Alice (CONT'D)");
+  });
+
+  it('a non-dialogue block between two dialogues resets CONT\'D', () => {
+    // b2 → b1 (text) → b2b. nextSpeakerId(b1) returns null, so b2b is bare.
+    const parts = flatten(b2b, input.characters, nextSpeakerId(b1));
+    const speaker = parts.find((p) => p.kind === 'speaker');
+    expect(speaker?.text).toBe('Alice');
+  });
+
+  it('nextSpeakerId returns null for non-dialogue blocks', () => {
+    expect(nextSpeakerId(b1)).toBeNull();
+    expect(nextSpeakerId(b2)).toBe('x');
   });
 });
 
