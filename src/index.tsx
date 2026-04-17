@@ -7,7 +7,6 @@ import { PerfHarnessRoute } from '@/routes/perf-harness';
 import { LandingRoute } from '@/routes/landing';
 import { RoadmapRoute } from '@/routes/roadmap';
 import { NotFoundRoute } from '@/routes/not-found';
-import { DevAiPocRoute } from '@/routes/dev-ai-poc';
 import { hasVisited, markVisited } from '@/ui/shared/first-visit';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
@@ -98,17 +97,10 @@ setReturnToPicker(() => {
 // Known top-level paths. Anything else renders 404 *without booting*
 // the DB — we don't want a bogus URL to trigger IDB init, AI preload,
 // hotkey install, etc.
-const KNOWN_PATHS = new Set<string>([
-  '/',
-  '/perf',
-  '/landing',
-  '/roadmap',
-  '/dev/ai-poc',
-]);
+const KNOWN_PATHS = new Set<string>(['/', '/perf', '/landing', '/roadmap']);
 const currentPath = window.location.pathname;
 const isLanding = currentPath === '/landing';
 const isRoadmap = currentPath === '/roadmap';
-const isDevAiPoc = currentPath === '/dev/ai-poc';
 const isKnownPath = KNOWN_PATHS.has(currentPath);
 
 // First-visit redirect: sync, runs BEFORE render so a brand-new visitor
@@ -132,8 +124,6 @@ render(
       <LandingRoute />
     ) : isRoadmap ? (
       <RoadmapRoute />
-    ) : isDevAiPoc ? (
-      <DevAiPocRoute />
     ) : (
     <CrashBoundary>
       <Switch>
@@ -171,7 +161,7 @@ render(
 // for a seamless single-document experience.
 // Skipped on the landing/roadmap pages and on unknown paths — no point
 // opening the DB for a URL that will never touch it.
-if (isKnownPath && !isLanding && !isRoadmap && !isDevAiPoc) {
+if (isKnownPath && !isLanding && !isRoadmap) {
   void initDb()
     .then(async () => {
       const docs = await repo.listDocuments();
