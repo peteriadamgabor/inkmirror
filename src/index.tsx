@@ -5,7 +5,9 @@ import { Router, Route } from '@solidjs/router';
 import { EditorRoute } from '@/routes/editor';
 import { PerfHarnessRoute } from '@/routes/perf-harness';
 import { LandingRoute } from '@/routes/landing';
+import { RoadmapRoute } from '@/routes/roadmap';
 import { NotFoundRoute } from '@/routes/not-found';
+import { hasVisited, markVisited } from '@/ui/shared/first-visit';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
@@ -95,10 +97,24 @@ setReturnToPicker(() => {
 // Known top-level paths. Anything else renders 404 *without booting*
 // the DB — we don't want a bogus URL to trigger IDB init, AI preload,
 // hotkey install, etc.
-const KNOWN_PATHS = new Set<string>(['/', '/perf', '/landing']);
+const KNOWN_PATHS = new Set<string>(['/', '/perf', '/landing', '/roadmap']);
 const currentPath = window.location.pathname;
 const isLanding = currentPath === '/landing';
+const isRoadmap = currentPath === '/roadmap';
 const isKnownPath = KNOWN_PATHS.has(currentPath);
+
+// First-visit redirect: sync, runs BEFORE render so a brand-new visitor
+// never even flashes the boot splash — they land on /landing first.
+// Only redirects from `/` (the editor entry); /roadmap, /landing, /perf
+// are self-contained and always reachable directly.
+if (currentPath === '/' && !hasVisited()) {
+  window.location.replace('/landing');
+} else if (currentPath === '/') {
+  // Ensure the marker is set for returning visitors who entered via
+  // a bookmark or direct link — once they've loaded the app, they've
+  // "visited" for the purpose of future landing redirects.
+  markVisited();
+}
 
 render(
   () =>
@@ -106,6 +122,8 @@ render(
       <NotFoundRoute />
     ) : isLanding ? (
       <LandingRoute />
+    ) : isRoadmap ? (
+      <RoadmapRoute />
     ) : (
     <CrashBoundary>
       <Switch>
@@ -126,6 +144,7 @@ render(
             <Route path="/" component={EditorRoute} />
             <Route path="/perf" component={PerfHarnessRoute} />
             <Route path="/landing" component={LandingRoute} />
+            <Route path="/roadmap" component={RoadmapRoute} />
             {/* Belt-and-suspenders: unknown paths that somehow reach
                 the Router (client-side nav to a bad URL) still resolve. */}
             <Route path="*" component={NotFoundRoute} />
@@ -140,9 +159,9 @@ render(
 // Boot: init IDB then show the picker. If exactly one document exists
 // and the user hasn't explicitly returned to the picker, auto-open it
 // for a seamless single-document experience.
-// Skipped on the landing page and on unknown paths — no point opening
-// the DB for a URL that will never touch it.
-if (isKnownPath && !isLanding) {
+// Skipped on the landing/roadmap pages and on unknown paths — no point
+// opening the DB for a URL that will never touch it.
+if (isKnownPath && !isLanding && !isRoadmap) {
   void initDb()
     .then(async () => {
       const docs = await repo.listDocuments();

@@ -385,6 +385,79 @@ export const en = {
     },
     footer: 'InkMirror · Offline-first novel writing · Built with Solid.js + Tailwind',
   },
+  nav: {
+    // Shared top-nav (landing + roadmap). Tiny sans-serif, low-contrast.
+    home: 'InkMirror',
+    roadmap: 'Roadmap',
+    feedback: 'Feedback',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+  },
+  roadmap: {
+    pageTitle: 'Roadmap — InkMirror',
+    // Section header + prose. Each paragraph is its own key so the
+    // translator can rework the rhythm instead of fighting a
+    // pre-broken English sentence.
+    status: {
+      shipped: 'SHIPPED',
+      inProgress: 'IN PROGRESS',
+      planned: 'PLANNED',
+      maybe: 'MAYBE',
+    },
+    opening: {
+      header: 'A quiet beginning.',
+      body:
+        "InkMirror is a writing tool that holds a mirror up to the story. It lives inside your browser, never phones home, and grows slowly, on purpose. This page is an honest note from the work — where it has been, where it is now, and where it is quietly heading.",
+    },
+    shipped: {
+      header: "What's here now.",
+      intro: 'The foundation is set. The app already does what it was built to do, and a few things its early sketches never dared.',
+      p1:
+        "The editor is block-based. Prose, dialogue, scenes, and private notes each carry a shape; each shape reaches every export format correctly. Paste a multi-paragraph passage and it splits into blocks automatically. Delete one and it lands in the Dead Text Graveyard — nothing is ever truly lost.",
+      p2:
+        "A small multilingual sentiment model runs inside a Web Worker. Each block becomes a heartbeat on the Story Pulse ECG and a band on the mood heatmap. The AI never writes. It only listens back.",
+      p3:
+        "Six export formats ship today: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Every document can leave as an .inkmirror.json bundle that carries its chapters, characters, graveyard, and sentiments along with it. Full-database backup with collision handling is there too.",
+      p4:
+        'The UI speaks English and Magyar today, and a third or fifth language will cost less than a megabyte each to add. A premium motion pack gives blocks their enter, the ECG its draw, and the mirror its breath — while respecting prefers-reduced-motion without asking.',
+    },
+    inProgress: {
+      header: "What's being made now.",
+      intro: 'The next cycle is underway. Two features at once, because they share a model.',
+      p1:
+        'Rich moods. The current sentiment pipeline knows only positive, neutral, and negative — the wrong vocabulary for fiction. A multilingual zero-shot model is replacing it so the ECG can speak in tender, dread, longing, awe, grief, wonder, and the full palette a novel actually uses.',
+      p2:
+        'Inconsistency detection. The same model pairs claims across chapters and flags contradictions — eye color, kinship, who knew what and when. Every flag is dismissible. The writer is still in charge; the AI is only the mirror.',
+      p3:
+        'AI profile settings. The lightweight model stays the default. Richer features will be opt-in — a single choice in settings that starts the larger download. The app will never grow heavier than you asked it to.',
+    },
+    planned: {
+      header: "What's being imagined.",
+      intro: "Further out. Written down because the intent matters, not because the date is fixed.",
+      // Each item is one short paragraph. Some carry a MAYBE tag —
+      // use the array `maybeItems` set below to decide which.
+      i1:
+        'Outline view. Scene cards as a second navigation axis — the corkboard alongside the manuscript, so you can see structure and text at the same time.',
+      i2:
+        'Mobile polish. The editor already installs as a PWA on any device; the touch UX deserves its own sprint before it feels native on a phone.',
+      i3:
+        "Scrivener and Manuskript import. Writers moving from other tools shouldn't have to start from a blank page.",
+      i4:
+        'Bring-your-own local LLM. The app itself will never ship generation — but an opt-in Ollama or LM Studio endpoint would let advanced writers plug in their own model for analysis.',
+      i5:
+        'Inline footnotes and margin comments. Writer-to-self notes inside the flow of the text, not outside it.',
+      i6:
+        'Character relationship graph. Who knows whom, who wronged whom, where the threads cross.',
+      i7:
+        'Accessibility pass. Full screen reader support, keyboard-only navigation, focus trap discipline — not an afterthought.',
+    },
+    closing: {
+      header: 'A letter, if you have one.',
+      body:
+        'If any of this matters to you — if something feels right, or wrong, or worth asking for — write me. The form below goes to a private channel I actually read.',
+      cta: 'Send feedback',
+    },
+  },
   block: {
     types: {
       text: 'TEXT',

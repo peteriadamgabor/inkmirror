@@ -520,4 +520,71 @@ export const hu: Messages = {
     },
     footer: 'InkMirror · Offline-első regényírás · Solid.js + Tailwind',
   },
+  nav: {
+    home: 'InkMirror',
+    roadmap: 'Útiterv',
+    feedback: 'Visszajelzés',
+    openMenu: 'Menü megnyitása',
+    closeMenu: 'Menü bezárása',
+  },
+  roadmap: {
+    pageTitle: 'Útiterv — InkMirror',
+    status: {
+      shipped: 'KÉSZ',
+      inProgress: 'FOLYAMATBAN',
+      planned: 'TERVEZETT',
+      maybe: 'TALÁN',
+    },
+    opening: {
+      header: 'Csendes kezdés.',
+      body:
+        'Az InkMirror egy írói eszköz, amely tükröt tart a történet elé. A böngésződben él, sehova nem jelent, és lassan — szándékosan lassan — nő. Ez az oldal egy őszinte feljegyzés a munkából: hol volt, hol van most, és merre tart halkan.',
+    },
+    shipped: {
+      header: 'Ami már itt van.',
+      intro: 'Az alap elkészült. Az app már teszi azt, amire szánták, és néhány olyat is, amit az első vázlatok még nem mertek.',
+      p1:
+        'A szerkesztő blokkalapú. A próza, a párbeszéd, a jelenetek és a privát jegyzetek külön formát kapnak; mindegyik a saját alakjában érkezik meg minden exportba. Több bekezdést beillesztve a szöveg magától blokkokra szakad. Egy blokk törlése a Halott szöveg temetőjébe kerül — semmi nem vész el igazán.',
+      p2:
+        'Egy kis többnyelvű érzelmi modell fut egy Web Workerben. Minden blokk egy dobbanás lesz a Story Pulse EKG-n és egy sáv a hangulattérképen. Az AI nem ír. Csak visszahallgat.',
+      p3:
+        'Hat export-formátum érhető el már most: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Minden dokumentum .inkmirror.json csomagként távozhat, a fejezeteivel, karaktereivel, temetőjével és érzelmi adataival együtt. Teljes adatbázis-mentés ütközéskezeléssel szintén megvan.',
+      p4:
+        'A felület ma angolul és magyarul beszél, és egy harmadik vagy ötödik nyelv alig egy megabájt többletbe kerül. A premium mozgáskészlet megadja a blokkoknak a belépést, az EKG-nek a rajzolódást, a tükörnek a lélegzetét — miközben kérés nélkül tiszteletben tartja a prefers-reduced-motion beállítást.',
+    },
+    inProgress: {
+      header: 'Ami most készül.',
+      intro: 'A következő kör már fut. Két funkció egyszerre, mert ugyanazt a modellt osztják.',
+      p1:
+        'Gazdag hangulatok. A jelenlegi érzelmi csővezeték csak pozitívat, semlegeset és negatívat ismer — ez a szókincs nem a szépirodalomé. Egy többnyelvű zero-shot modell veszi át a helyét, hogy az EKG a gyengéd, rettegés, vágyakozás, áhítat, gyász, csoda teljes palettáján tudjon megszólalni — abban, amit a regény valóban használ.',
+      p2:
+        'Ellentmondás-felismerés. Ugyanaz a modell párosítja a fejezeteken átívelő állításokat, és jelzi a következetlenségeket — szemszín, rokonság, ki mit és mikor tudott. Minden jelzés elvethető. Az író marad az irányításban; az AI csak a tükör.',
+      p3:
+        'AI-profil beállítások. A könnyű modell marad az alapértelmezés. A gazdagabb funkciók választhatók lesznek — egyetlen kattintás a beállításokban indítja a nagyobb letöltést. Az app soha nem lesz nehezebb, mint amennyit kértél.',
+    },
+    planned: {
+      header: 'Amit éppen elképzelek.',
+      intro: 'Távolabb. Azért van leírva, mert a szándék számít, nem azért, mert a dátum fix.',
+      i1:
+        'Vázlatnézet. Jelenetkártyák második navigációs tengelyként — a parafatábla a kézirat mellett, hogy a szerkezet és a szöveg egyszerre látszódjon.',
+      i2:
+        'Mobil csiszolás. A szerkesztő már PWA-ként telepíthető bármelyik eszközre; az érintéses élmény még megérdemel egy saját szprintet, hogy telefonon is otthonosan szóljon.',
+      i3:
+        'Scrivener és Manuskript import. Aki más eszközről érkezik, ne kelljen üres lappal kezdenie.',
+      i4:
+        'Saját helyi LLM. Az app magában soha nem fog szöveget generálni — de egy opcionális Ollama vagy LM Studio végpont lehetővé teheti, hogy a tapasztaltabb írók a saját modellüket kapcsolják be elemzésre.',
+      i5:
+        'Lábjegyzetek és margójegyzetek a szövegben. Író-önmagához írt feljegyzések a szöveg folyamában, nem mellette.',
+      i6:
+        'Karakterkapcsolati háló. Ki ismer kit, ki bántott kit, hol keresztezik egymást a szálak.',
+      i7:
+        'Akadálymentesítés. Teljes képernyőolvasó-támogatás, csak billentyűzettel bejárható felület, fókuszcsapda-fegyelem — nem utólagos toldalékként.',
+    },
+    closing: {
+      header: 'Egy levél, ha van.',
+      body:
+        'Ha bármi ebből számít neked — ha valami jónak, rossznak vagy kérésre méltónak érződik — írj. Az alábbi űrlap egy privát csatornára érkezik, amit tényleg olvasok.',
+      cta: 'Visszajelzés küldése',
+    },
+  },
 };

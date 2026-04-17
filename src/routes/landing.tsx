@@ -1,5 +1,7 @@
 import { For } from 'solid-js';
-import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { SiteNav } from '@/ui/layout/SiteNav';
+import { markVisited } from '@/ui/shared/first-visit';
+import { FeedbackHost } from '@/ui/shared/FeedbackHost';
 import { t } from '@/i18n';
 
 const FEATURE_ACCENTS = [
@@ -21,10 +23,8 @@ const MORE = Array.from({ length: 16 }, (_, i) => `landing.more.item${i + 1}`);
 
 export const LandingRoute = () => (
   <div class="bg-stone-950 text-stone-100 font-sans scroll-smooth">
-    {/* Fixed top-right: language picker, available on every scroll position. */}
-    <div class="fixed top-4 right-4 z-50">
-      <LanguagePicker tone="onDark" />
-    </div>
+    <SiteNav current="/landing" />
+    <FeedbackHost />
     {/* --- Hero --- */}
     <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-violet-950/40 via-stone-950 to-stone-950 pointer-events-none" />
@@ -72,6 +72,7 @@ export const LandingRoute = () => (
         </p>
         <a
           href="/"
+          onClick={() => markVisited()}
           class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
         >
           {t('landing.hero.cta')}
@@ -191,6 +192,7 @@ export const LandingRoute = () => (
       </p>
       <a
         href="/"
+        onClick={() => markVisited()}
         class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
       >
         {t('landing.cta.button')}
