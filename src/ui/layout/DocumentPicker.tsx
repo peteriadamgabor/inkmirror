@@ -306,8 +306,17 @@ export const DocumentPicker = (props: Props) => {
               when={!docs.loading && (docs() ?? []).length > 0}
               fallback={
                 <Show when={!showNewForm()}>
-                  <div class="px-5 py-8 text-center text-sm text-stone-400">
-                    {docs.loading ? 'Loading…' : 'No documents yet. Create your first one.'}
+                  <div class="px-5 py-10 text-center flex flex-col items-center gap-2">
+                    <div class="font-serif text-base text-stone-500 dark:text-stone-400">
+                      {docs.loading ? 'Loading…' : 'A blank page.'}
+                    </div>
+                    <Show when={!docs.loading}>
+                      <div class="text-[12px] text-stone-400 max-w-[320px] leading-relaxed">
+                        Your library is empty. Start a new document
+                        or import an <span class="font-mono">.inkmirror.json</span>{' '}
+                        bundle from another browser.
+                      </div>
+                    </Show>
                   </div>
                 </Show>
               }
