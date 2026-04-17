@@ -578,6 +578,8 @@ export const en = {
   hotkeys: {
     title: 'Keyboard shortcuts',
     subtitle: 'Work at the speed of thought. Most of these work from anywhere in the app.',
+    reset: 'Reset to defaults',
+    pressKey: 'press key…',
     sections: {
       movement: 'Movement',
       formatting: 'Formatting',

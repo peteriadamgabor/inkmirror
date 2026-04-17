@@ -280,6 +280,8 @@ export const hu: Messages = {
   hotkeys: {
     title: 'Billentyűparancsok',
     subtitle: 'A gondolat sebességével. A legtöbb bárhonnan működik az alkalmazásban.',
+    reset: 'Alapértelmezettek visszaállítása',
+    pressKey: 'nyomj meg egy billentyűt…',
     sections: {
       movement: 'Mozgás',
       formatting: 'Formázás',

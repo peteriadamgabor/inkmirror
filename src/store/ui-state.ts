@@ -7,14 +7,16 @@ export interface UiState {
   graveyardOpen: boolean;
   plotTimelineOpen: boolean;
   blockTypesHelpOpen: boolean;
-  hotkeysModalOpen: boolean;
   commandPaletteOpen: boolean;
   documentSettingsOpen: boolean;
   debugMode: boolean;
   rightPanelCollapsed: boolean;
   chapterTypesHelpOpen: boolean;
   settingsModalOpen: boolean;
+  settingsModalTab: SettingsModalTab;
 }
+
+export type SettingsModalTab = 'ai' | 'hotkeys' | 'language';
 
 const SPELLCHECK_KEY = 'inkmirror.spellcheck';
 const RIGHT_PANEL_KEY = 'inkmirror.rightPanel.collapsed';
@@ -38,13 +40,13 @@ const [uiState, setUiState] = createStore<UiState>({
   graveyardOpen: false,
   plotTimelineOpen: false,
   blockTypesHelpOpen: false,
-  hotkeysModalOpen: false,
   commandPaletteOpen: false,
   documentSettingsOpen: false,
   debugMode: false,
   rightPanelCollapsed: loadInitialRightPanelCollapsed(),
   chapterTypesHelpOpen: false,
   settingsModalOpen: false,
+  settingsModalTab: 'ai',
 });
 
 export { uiState };
@@ -97,13 +99,18 @@ export function setBlockTypesHelpOpen(open: boolean): void {
   setUiState('blockTypesHelpOpen', open);
 }
 
+/**
+ * Legacy alias: pre-Near-tier "Hotkeys modal" now lives as a tab inside
+ * Settings. Toggling routes to Settings on the Hotkeys tab.
+ */
 export function toggleHotkeysModal(): void {
-  setUiState('hotkeysModalOpen', (v) => !v);
+  if (uiState.settingsModalOpen && uiState.settingsModalTab === 'hotkeys') {
+    setUiState('settingsModalOpen', false);
+    return;
+  }
+  openSettingsModal('hotkeys');
 }
 
-export function setHotkeysModalOpen(open: boolean): void {
-  setUiState('hotkeysModalOpen', open);
-}
 
 export function toggleCommandPalette(): void {
   setUiState('commandPaletteOpen', (v) => !v);
@@ -139,6 +146,15 @@ export function toggleSettingsModal(): void {
 
 export function setSettingsModalOpen(open: boolean): void {
   setUiState('settingsModalOpen', open);
+}
+
+export function openSettingsModal(tab: SettingsModalTab = 'ai'): void {
+  setUiState('settingsModalTab', tab);
+  setUiState('settingsModalOpen', true);
+}
+
+export function setSettingsModalTab(tab: SettingsModalTab): void {
+  setUiState('settingsModalTab', tab);
 }
 
 export function toggleRightPanel(): void {

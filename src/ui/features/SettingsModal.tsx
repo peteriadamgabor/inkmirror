@@ -1,6 +1,7 @@
-import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
-import { t } from '@/i18n';
+import { createEffect, createMemo, createSignal, For, onMount, Show } from 'solid-js';
+import { LANGUAGES, lang, setLang, t } from '@/i18n';
 import { askConfirm } from '@/ui/shared/confirm';
+import { toast } from '@/ui/shared/toast';
 import {
   detectBackend,
   getStoredProfile,
@@ -9,24 +10,37 @@ import {
   type AiProfile,
 } from '@/ai/profile';
 import { backfillSentiments, getAiClient, resetAiClient } from '@/ai';
-import { uiState, setSettingsModalOpen } from '@/store/ui-state';
-
-type TabId = 'ai' | 'hotkeys' | 'language' | 'export';
+import {
+  uiState,
+  setSettingsModalOpen,
+  setSettingsModalTab,
+  type SettingsModalTab,
+} from '@/store/ui-state';
+import {
+  BINDING_META,
+  hotkeys,
+  setHotkey,
+  resetHotkeys,
+  comboFromEvent,
+  isModifierOnly,
+  type AppAction,
+} from '@/store/hotkeys';
 
 interface SidebarTab {
-  id: TabId;
+  id: SettingsModalTab;
   label: string;
-  enabled: boolean;
 }
 
 export const SettingsModal = () => {
   const [profile, setProfile] = createSignal<AiProfile>(getStoredProfile());
   const [backend, setBackend] = createSignal<AiBackend | null>(null);
-  const [activeTab, setActiveTab] = createSignal<TabId>('ai');
+  const activeTab = () => uiState.settingsModalTab;
   const [clientVersion, setClientVersion] = createSignal(0);
   const [switching, setSwitching] = createSignal(false);
   const [lastError, setLastError] = createSignal<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = createSignal(false);
+  const [capturing, setCapturing] = createSignal<AppAction | null>(null);
+  let currentFinish: (() => void) | null = null;
 
   const client = createMemo(() => {
     clientVersion();
@@ -36,6 +50,58 @@ export const SettingsModal = () => {
   onMount(async () => {
     setBackend(await detectBackend());
   });
+
+  // Cancel any in-flight hotkey capture when the modal closes.
+  createEffect(() => {
+    if (!uiState.settingsModalOpen && currentFinish) {
+      currentFinish();
+    }
+  });
+
+  const labelFor = (action: AppAction) =>
+    BINDING_META.find((m) => m.action === action)?.label ?? action;
+
+  function startCapture(action: AppAction) {
+    currentFinish?.();
+    setCapturing(action);
+    document.body.dataset.hotkeyCapture = '1';
+
+    const onKey = (e: KeyboardEvent) => {
+      if (isModifierOnly(e.key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        finish();
+        return;
+      }
+      const combo = comboFromEvent(e);
+      const clash = (Object.entries(hotkeys) as [AppAction, string][]).find(
+        ([a, c]) => c === combo && a !== action,
+      );
+      if (clash) {
+        const previousCombo = hotkeys[action];
+        setHotkey(clash[0], previousCombo);
+        toast.info(`Swapped with "${labelFor(clash[0])}"`);
+      }
+      setHotkey(action, combo);
+      finish();
+    };
+
+    const finish = () => {
+      setCapturing(null);
+      delete document.body.dataset.hotkeyCapture;
+      window.removeEventListener('keydown', onKey, true);
+      currentFinish = null;
+    };
+
+    currentFinish = finish;
+    window.addEventListener('keydown', onKey, true);
+  }
+
+  function onResetHotkeys() {
+    resetHotkeys();
+    toast.success(t('hotkeys.reset'));
+  }
 
   const modelName = createMemo(() =>
     profile() === 'deep' ? 'mDeBERTa-v3-base' : 'distilbert-multilingual',
@@ -87,10 +153,9 @@ export const SettingsModal = () => {
   }
 
   const tabs: SidebarTab[] = [
-    { id: 'ai', label: t('settings.tabs.ai'), enabled: true },
-    { id: 'hotkeys', label: t('settings.tabs.hotkeys'), enabled: false },
-    { id: 'language', label: t('settings.tabs.language'), enabled: false },
-    { id: 'export', label: t('settings.tabs.export'), enabled: false },
+    { id: 'ai', label: t('settings.tabs.ai') },
+    { id: 'hotkeys', label: t('settings.tabs.hotkeys') },
+    { id: 'language', label: t('settings.tabs.language') },
   ];
 
   return (
@@ -100,7 +165,7 @@ export const SettingsModal = () => {
         onClick={() => setSettingsModalOpen(false)}
       >
         <div
-          class="w-[720px] max-w-[92vw] max-h-[80vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
+          class="w-[720px] max-w-[92vw] max-h-[80vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -131,24 +196,16 @@ export const SettingsModal = () => {
                 {(tab) => (
                   <button
                     type="button"
-                    disabled={!tab.enabled}
-                    onClick={() => tab.enabled && setActiveTab(tab.id)}
-                    title={tab.enabled ? undefined : t('settings.tabs.comingSoon')}
+                    onClick={() => setSettingsModalTab(tab.id)}
                     class="text-left px-3 py-2 rounded-lg transition-colors"
                     classList={{
                       'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-300 font-semibold':
-                        activeTab() === tab.id && tab.enabled,
-                      'text-stone-400 cursor-not-allowed': !tab.enabled,
+                        activeTab() === tab.id,
                       'hover:bg-stone-100 dark:hover:bg-stone-700':
-                        tab.enabled && activeTab() !== tab.id,
+                        activeTab() !== tab.id,
                     }}
                   >
-                    <span>{tab.label}</span>
-                    <Show when={!tab.enabled}>
-                      <span class="block mt-0.5 text-[9px] uppercase tracking-wide text-stone-400">
-                        {t('settings.tabs.comingSoon')}
-                      </span>
-                    </Show>
+                    {tab.label}
                   </button>
                 )}
               </For>
@@ -293,6 +350,92 @@ export const SettingsModal = () => {
                   </div>
                 </Show>
               </Show>
+
+              <Show when={activeTab() === 'hotkeys'}>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+                      {t('hotkeys.title')}
+                    </h2>
+                    <p class="text-sm text-stone-600 dark:text-stone-400">
+                      {t('hotkeys.subtitle')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onResetHotkeys}
+                    class="text-[11px] text-stone-500 hover:text-violet-500 transition-colors inkmirror-smallcaps shrink-0 ml-4"
+                  >
+                    {t('hotkeys.reset')}
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <For each={BINDING_META}>
+                    {(meta) => {
+                      const isCapturing = () => capturing() === meta.action;
+                      return (
+                        <div class="flex items-center justify-between gap-4 py-2.5 border-b border-stone-200 dark:border-stone-700 last:border-b-0">
+                          <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium text-stone-900 dark:text-stone-50">
+                              {meta.label}
+                            </div>
+                            <div class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                              {meta.description}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startCapture(meta.action)}
+                            class="font-mono text-xs px-3 py-1.5 rounded-lg border-2 transition-colors shrink-0 min-w-[130px] text-center bg-stone-50 dark:bg-stone-900/50"
+                            classList={{
+                              'border-violet-500 text-violet-500 bg-violet-50 dark:bg-violet-950/30 animate-pulse':
+                                isCapturing(),
+                              'border-stone-200 dark:border-stone-600 text-stone-800 dark:text-stone-100 hover:border-violet-500 hover:text-violet-500':
+                                !isCapturing(),
+                            }}
+                          >
+                            {isCapturing() ? t('hotkeys.pressKey') : hotkeys[meta.action]}
+                          </button>
+                        </div>
+                      );
+                    }}
+                  </For>
+                </div>
+              </Show>
+
+              <Show when={activeTab() === 'language'}>
+                <div>
+                  <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+                    {t('language.label')}
+                  </h2>
+                  <p class="text-sm text-stone-600 dark:text-stone-400">
+                    {t('language.help')}
+                  </p>
+                </div>
+                <div class="flex flex-wrap gap-2" data-testid="language-choices">
+                  <For each={LANGUAGES}>
+                    {(l) => {
+                      const active = () => lang() === l.code;
+                      return (
+                        <button
+                          type="button"
+                          data-lang={l.code}
+                          onClick={() => setLang(l.code)}
+                          class="px-4 py-2 text-sm rounded-lg border transition-colors"
+                          classList={{
+                            'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-200 font-semibold':
+                              active(),
+                            'border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-violet-300':
+                              !active(),
+                          }}
+                        >
+                          {l.label}
+                        </button>
+                      );
+                    }}
+                  </For>
+                </div>
+              </Show>
             </section>
           </div>
         </div>
@@ -328,7 +471,7 @@ function ProfileCard(props: ProfileCardProps) {
       }}
     >
       <div class="flex items-baseline justify-between mb-1">
-        <span class="font-semibold">{props.title}</span>
+        <span class="font-semibold text-stone-900 dark:text-stone-100">{props.title}</span>
         <Show
           when={props.active}
           fallback={

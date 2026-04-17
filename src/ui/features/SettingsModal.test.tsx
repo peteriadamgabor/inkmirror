@@ -1,15 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, fireEvent, waitFor } from '@solidjs/testing-library';
 import { SettingsModal } from './SettingsModal';
-import { setSettingsModalOpen } from '@/store/ui-state';
+import {
+  openSettingsModal,
+  setSettingsModalOpen,
+  setSettingsModalTab,
+} from '@/store/ui-state';
 import { PROFILE_STORAGE_KEY } from '@/ai/profile';
 import { pendingConfirm, resolveConfirm } from '@/ui/shared/confirm';
+import { lang, setLang } from '@/i18n';
 
 describe('SettingsModal', () => {
   beforeEach(() => {
     localStorage.clear();
     delete (navigator as unknown as { gpu?: unknown }).gpu;
     setSettingsModalOpen(false);
+    setSettingsModalTab('ai');
   });
 
   afterEach(() => {
@@ -114,5 +120,40 @@ describe('SettingsModal', () => {
     await waitFor(() => {
       expect(r.container.textContent).toMatch(/Acceleration: CPU/);
     });
+  });
+
+  it('openSettingsModal("hotkeys") lands on the Hotkeys tab', async () => {
+    openSettingsModal('hotkeys');
+    const r = render(() => <SettingsModal />);
+    await waitFor(() => {
+      // Hotkey binding rows expose the combo text; look for any monospace
+      // binding button ("press key…" placeholder or an actual combo).
+      expect(r.container.querySelector('.font-mono')).toBeTruthy();
+    });
+  });
+
+  it('openSettingsModal("language") shows the language choices', async () => {
+    openSettingsModal('language');
+    const r = render(() => <SettingsModal />);
+    await waitFor(() => {
+      expect(r.container.querySelector('[data-testid="language-choices"]')).toBeTruthy();
+    });
+  });
+
+  it('clicking a language button switches active language', async () => {
+    const originalLang = lang();
+    try {
+      openSettingsModal('language');
+      const r = render(() => <SettingsModal />);
+      await waitFor(() =>
+        expect(r.container.querySelector('[data-testid="language-choices"]')).toBeTruthy(),
+      );
+      const target = originalLang === 'hu' ? 'en' : 'hu';
+      const btn = r.container.querySelector(`[data-lang="${target}"]`) as HTMLElement;
+      fireEvent.click(btn);
+      expect(lang()).toBe(target);
+    } finally {
+      setLang(originalLang);
+    }
   });
 });
