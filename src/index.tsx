@@ -5,6 +5,7 @@ import { Router, Route } from '@solidjs/router';
 import { EditorRoute } from '@/routes/editor';
 import { PerfHarnessRoute } from '@/routes/perf-harness';
 import { LandingRoute } from '@/routes/landing';
+import { NotFoundRoute } from '@/routes/not-found';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
@@ -91,12 +92,19 @@ setReturnToPicker(() => {
   });
 });
 
-// Landing page is standalone — no boot, no document, no state machine.
-const isLanding = window.location.pathname === '/landing';
+// Known top-level paths. Anything else renders 404 *without booting*
+// the DB — we don't want a bogus URL to trigger IDB init, AI preload,
+// hotkey install, etc.
+const KNOWN_PATHS = new Set<string>(['/', '/perf', '/landing']);
+const currentPath = window.location.pathname;
+const isLanding = currentPath === '/landing';
+const isKnownPath = KNOWN_PATHS.has(currentPath);
 
 render(
   () =>
-    isLanding ? (
+    !isKnownPath ? (
+      <NotFoundRoute />
+    ) : isLanding ? (
       <LandingRoute />
     ) : (
     <CrashBoundary>
@@ -118,6 +126,9 @@ render(
             <Route path="/" component={EditorRoute} />
             <Route path="/perf" component={PerfHarnessRoute} />
             <Route path="/landing" component={LandingRoute} />
+            {/* Belt-and-suspenders: unknown paths that somehow reach
+                the Router (client-side nav to a bad URL) still resolve. */}
+            <Route path="*" component={NotFoundRoute} />
           </Router>
         </Match>
       </Switch>
@@ -129,22 +140,26 @@ render(
 // Boot: init IDB then show the picker. If exactly one document exists
 // and the user hasn't explicitly returned to the picker, auto-open it
 // for a seamless single-document experience.
-void initDb()
-  .then(async () => {
-    const docs = await repo.listDocuments();
-    if (docs.length === 1) {
-      await openDocument(docs[0].id);
-    } else {
-      setAppState({ kind: 'picker' });
-    }
-  })
-  .catch((err) => {
-    setAppState({
-      kind: 'error',
-      message: err instanceof Error ? err.message : String(err),
+// Skipped on the landing page and on unknown paths — no point opening
+// the DB for a URL that will never touch it.
+if (isKnownPath && !isLanding) {
+  void initDb()
+    .then(async () => {
+      const docs = await repo.listDocuments();
+      if (docs.length === 1) {
+        await openDocument(docs[0].id);
+      } else {
+        setAppState({ kind: 'picker' });
+      }
+    })
+    .catch((err) => {
+      setAppState({
+        kind: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
     });
-  });
 
-window.addEventListener('beforeunload', () => {
-  void flushPendingWrites(200);
-});
+  window.addEventListener('beforeunload', () => {
+    void flushPendingWrites(200);
+  });
+}
