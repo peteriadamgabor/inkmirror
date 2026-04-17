@@ -246,6 +246,21 @@ export const hu: Messages = {
     idle: 'üresjárat',
     typing: 'írás',
   },
+  characterArcs: {
+    title: 'Karakterívek',
+    empty: 'Adj hozzá legalább két szereplőt párbeszéddel, hogy lásd az ívüket fejezetenként.',
+    legend: {
+      positive: 'reménykedő',
+      negative: 'sötét',
+      neutral: 'semleges',
+    },
+    tooltip: '{{name}} · {{chapter}}. fejezet · {{n}} replika',
+  },
+  sessionNotes: {
+    title: 'Munkamenet-jegyzetek',
+    placeholder: 'Gondolatok, emlékeztetők, ötletek — ezzel a dokumentummal marad.',
+    savedHint: 'Automatikusan mentve',
+  },
   consistency: {
     title: 'Következetesség',
     runNow: 'Ellenőrzés most',

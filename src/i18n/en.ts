@@ -544,6 +544,21 @@ export const en = {
     idle: 'idle',
     typing: 'typing',
   },
+  characterArcs: {
+    title: 'Character arcs',
+    empty: 'Add at least two characters with dialogue to see arcs over chapters.',
+    legend: {
+      positive: 'hopeful',
+      negative: 'dark',
+      neutral: 'neutral',
+    },
+    tooltip: '{{name}} · Ch {{chapter}} · {{n}} lines',
+  },
+  sessionNotes: {
+    title: 'Session notes',
+    placeholder: 'Thoughts, reminders, ideas — stays with this document.',
+    savedHint: 'Auto-saved',
+  },
   consistency: {
     title: 'Consistency',
     runNow: 'Check now',

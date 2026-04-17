@@ -6,7 +6,9 @@ import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { WordCount } from '@/ui/features/WordCount';
 import { CharacterSentiment } from '@/ui/features/CharacterSentiment';
+import { CharacterArcs } from '@/ui/features/CharacterArcs';
 import { ConsistencyPanel } from '@/ui/features/ConsistencyPanel';
+import { SessionNotes } from '@/ui/features/SessionNotes';
 import { toggleRightPanel } from '@/store/ui-state';
 import { IconChevron } from '@/ui/shared/icons';
 import { t } from '@/i18n';
@@ -102,7 +104,11 @@ export const RightPanel = () => {
 
       <CharacterSentiment />
 
+      <CharacterArcs />
+
       <ConsistencyPanel />
+
+      <SessionNotes />
 
       <PulseDashboard />
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { labelHex, labelValence, labelI18nKey, SENTIMENT_HEX } from './label-helpers';
+import { labelHex, labelValence, labelI18nKey, labelPolarity, SENTIMENT_HEX } from './label-helpers';
 import { MOOD_HUE } from '@/types';
 
 describe('labelHex', () => {
@@ -50,5 +50,26 @@ describe('labelI18nKey', () => {
 
   it('falls back to mood.unanalyzed for unknown', () => {
     expect(labelI18nKey('bogus')).toBe('mood.unanalyzed');
+  });
+});
+
+describe('labelPolarity', () => {
+  it('returns positive score for light positive labels', () => {
+    expect(labelPolarity('positive', 0.8)).toBe(0.8);
+  });
+  it('returns negative score for light negative labels', () => {
+    expect(labelPolarity('negative', 0.6)).toBe(-0.6);
+  });
+  it('returns zero for light neutral labels', () => {
+    expect(labelPolarity('neutral', 0.9)).toBe(0);
+  });
+  it('maps deep moods via valence: joy positive, grief negative', () => {
+    expect(labelPolarity('joy', 0.7)).toBe(0.7);
+    expect(labelPolarity('grief', 0.7)).toBe(-0.7);
+    expect(labelPolarity('longing', 0.7)).toBe(0);
+  });
+  it('returns zero for unknown or null labels', () => {
+    expect(labelPolarity('bogus', 0.5)).toBe(0);
+    expect(labelPolarity(null, 0.5)).toBe(0);
   });
 });

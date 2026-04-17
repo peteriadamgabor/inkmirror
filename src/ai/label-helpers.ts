@@ -38,6 +38,18 @@ export function labelValence(label: string | null | undefined): Valence {
 }
 
 /**
+ * Signed polarity in [-1, 1]. Positive labels return +score, negative
+ * labels return -score, neutral/unknown return 0. Used for plotting
+ * character arcs where direction and magnitude both matter.
+ */
+export function labelPolarity(label: string | null | undefined, score: number): number {
+  const valence = labelValence(label);
+  if (valence === 'positive') return score;
+  if (valence === 'negative') return -score;
+  return 0;
+}
+
+/**
  * i18n key for the label. Falls back to `mood.unanalyzed` for unknown
  * labels so the UI never shows a raw model output.
  */
