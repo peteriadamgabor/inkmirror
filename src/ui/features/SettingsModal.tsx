@@ -10,6 +10,7 @@ import {
   type AiProfile,
 } from '@/ai/profile';
 import { backfillSentiments, getAiClient, resetAiClient } from '@/ai';
+import { runConsistencyScan } from '@/ai/inconsistency';
 import {
   uiState,
   setSettingsModalOpen,
@@ -150,6 +151,15 @@ export const SettingsModal = () => {
       await c.configure(next, b, 'q4');
       await c.preload();
       backfillSentiments();
+      // First time a user flips to Rich: fire a full consistency sweep
+      // once the manuscript has been mood-backfilled. Scheduled via a
+      // timeout rather than awaited so the modal can close immediately
+      // — the scan shows its progress inside the Consistency panel.
+      if (next === 'deep') {
+        setTimeout(() => {
+          void runConsistencyScan();
+        }, 0);
+      }
     } catch (err) {
       setLastError(err instanceof Error ? err.message : String(err));
     } finally {

@@ -1,22 +1,24 @@
 /**
- * Minimal sonification baseline.
+ * Sonification engine. Maps the active chapter's dominant label to a
+ * looping tone — the app's ambient heartbeat while drafting.
  *
- * Maps the active chapter's dominant sentiment to a looping tone:
- *   positive → bright, fast, high frequency (major)
- *   neutral  → medium, medium, medium
- *   negative → dark, slow, low frequency (minor)
+ * Handles both the legacy 3-class sentiment ('positive'/'neutral'/'negative')
+ * and the Near tier's 10 moods. Unknown labels fall back to the neutral
+ * profile. Per-mood tuning is deliberately conservative: clear
+ * intervalic differences between nearby moods (tender vs calm vs joy)
+ * but nothing jarring — the audio should sit under the prose, not in
+ * front of it.
  *
- * One synth, one gain, one filter, one loop. No reverb chain. Designed
- * as a baseline — richer mappings belong to later phases once we have
- * real mood granularity.
- *
- * Tone.js is dynamically imported on first start() so the ~240 KB
- * runtime stays off the main chunk until the user actually opts in.
- * AudioContext is locked by the browser until a user gesture — start()
- * must be called from a click handler.
+ * One synth, one gain, one filter, one loop. No reverb chain. Tone.js
+ * is dynamically imported on first start() so its ~240 KB runtime
+ * stays off the main chunk. AudioContext is locked until a user
+ * gesture — start() must be called from a click handler.
  */
 
-export type MoodLabel = 'positive' | 'neutral' | 'negative';
+export type MoodLabel =
+  | 'positive' | 'neutral' | 'negative'
+  | 'tender' | 'tension' | 'dread' | 'longing' | 'grief'
+  | 'hope' | 'joy' | 'wonder' | 'rage' | 'calm';
 
 interface MoodProfile {
   baseFreq: number;
@@ -26,25 +28,38 @@ interface MoodProfile {
 }
 
 const PROFILES: Record<MoodLabel, MoodProfile> = {
-  positive: {
-    baseFreq: 440, // A4
-    intervalHz: [1, 1.26, 1.5], // major triad ratios
-    stepMs: 600,
-    filterHz: 3000,
-  },
-  neutral: {
-    baseFreq: 293, // D4
-    intervalHz: [1, 1.189], // minor third
-    stepMs: 1000,
-    filterHz: 1500,
-  },
-  negative: {
-    baseFreq: 196, // G3
-    intervalHz: [1, 1.189, 1.414], // diminished feel
-    stepMs: 1400,
-    filterHz: 700,
-  },
+  // Legacy 3-class — Basic profile
+  positive: { baseFreq: 440, intervalHz: [1, 1.26, 1.5],        stepMs: 600,  filterHz: 3000 },
+  neutral:  { baseFreq: 293, intervalHz: [1, 1.189],              stepMs: 1000, filterHz: 1500 },
+  negative: { baseFreq: 196, intervalHz: [1, 1.189, 1.414],       stepMs: 1400, filterHz: 700  },
+
+  // Near tier — 10 moods, tuned to sit on a valence+arousal grid.
+  // Positive / high-arousal (joy, hope, wonder): bright, quick.
+  joy:     { baseFreq: 523, intervalHz: [1, 1.26, 1.5, 2],        stepMs: 480,  filterHz: 3800 }, // C5 major 7
+  hope:    { baseFreq: 440, intervalHz: [1, 1.2, 1.5],             stepMs: 680,  filterHz: 2800 }, // A4 major
+  wonder:  { baseFreq: 392, intervalHz: [1, 1.25, 1.5, 1.875],     stepMs: 760,  filterHz: 3200 }, // G4 suspended, shimmering
+  // Positive / low-arousal (tender, calm): warm, slow.
+  tender:  { baseFreq: 349, intervalHz: [1, 1.2, 1.5],             stepMs: 1100, filterHz: 1900 }, // F4 major, soft
+  calm:    { baseFreq: 294, intervalHz: [1, 1.25, 1.5],             stepMs: 1400, filterHz: 1400 }, // D4 major, still
+  // Neutral-ish, yearning.
+  longing: { baseFreq: 311, intervalHz: [1, 1.189, 1.5],           stepMs: 1200, filterHz: 1600 }, // Eb4 minor, hanging
+  // Negative / high-arousal (tension, rage): sharp, driving.
+  tension: { baseFreq: 277, intervalHz: [1, 1.09, 1.19],            stepMs: 500,  filterHz: 2200 }, // C#4 tight, pulsing
+  rage:    { baseFreq: 233, intervalHz: [1, 1.189, 1.414, 1.682],  stepMs: 420,  filterHz: 2600 }, // Bb3 diminished, driving
+  // Negative / low-arousal (dread, grief): dark, heavy.
+  dread:   { baseFreq: 174, intervalHz: [1, 1.06, 1.414],          stepMs: 1800, filterHz: 500  }, // F3 semitone + tritone
+  grief:   { baseFreq: 196, intervalHz: [1, 1.189, 1.5],            stepMs: 1600, filterHz: 600  }, // G3 minor, slow
 };
+
+/**
+ * Resolve any label to a valid MoodLabel profile key. Unknown strings
+ * fall back to 'neutral' so a stray model output or old row never
+ * hangs the audio loop.
+ */
+export function resolveMoodLabel(label: string | null | undefined): MoodLabel {
+  if (!label) return 'neutral';
+  return (label in PROFILES ? label : 'neutral') as MoodLabel;
+}
 
 // Loosely typed Tone.js references so the main chunk doesn't pull in
 // Tone types. Narrowed at runtime after dynamic import.

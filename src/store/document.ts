@@ -15,6 +15,7 @@ import type { SyntheticDoc } from '@/engine/synthetic';
 import type { BlockRevision, LoadedDocument, SentimentEntry } from '@/db/repository';
 import * as repo from '@/db/repository';
 import { findMentions } from '@/engine/character-matcher';
+import { contentHash } from '@/utils/hash';
 
 export interface ViewportState {
   scrollTop: number;
@@ -453,7 +454,31 @@ export function updateBlockContent(
     }
     return out;
   });
+
+  // Near tier: any inconsistency flag whose stored block hash no longer
+  // matches the fresh content is stale — delete it. The writer is
+  // changing the exact text the flag was scored against. Re-running
+  // "Check now" (or the deep-opt-in auto-sweep) will re-emerge the flag
+  // if the contradiction actually survived the edit.
+  if (existing.content !== nextContent) {
+    invalidateFlagsForBlock(blockId, nextContent);
+  }
+
   scheduleBlockContentWrite(blockId);
+}
+
+function invalidateFlagsForBlock(blockId: UUID, newContent: string): void {
+  const newHash = contentHash(newContent);
+  const flags = store.inconsistencyFlags;
+  for (const id of Object.keys(flags)) {
+    const f = flags[id];
+    const stale =
+      (f.block_a_id === blockId && f.block_a_hash !== newHash) ||
+      (f.block_b_id === blockId && f.block_b_hash !== newHash);
+    if (stale) {
+      removeInconsistencyFlag(id);
+    }
+  }
 }
 
 export function createBlockAfter(blockId: UUID, type: BlockType = 'text'): UUID {

@@ -7,7 +7,7 @@ import { contentHash } from '@/utils/hash';
 import { store, setViewport, setMeasurement, saveState, renameChapter } from '@/store/document';
 import { useTheme } from '@/ui/theme';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
-import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
+import { getSonificationEngine, resolveMoodLabel, type MoodLabel } from '@/audio/engine';
 import { IconSun, IconMoon, IconSpellcheck, IconVolume } from '@/ui/shared/icons';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 import { DemoBanner } from '@/ui/shared/DemoBanner';
@@ -229,6 +229,31 @@ export const Editor = () => {
   const { theme, toggleTheme } = useTheme();
   const sono = getSonificationEngine();
   const [sonoOn, setSonoOn] = createSignal(false);
+
+  // Dominant label for the active chapter, resolved to a MoodLabel the
+  // audio engine understands. Feeds setMood whenever the chapter's
+  // dominant label shifts so tender/rage/grief/etc. each get their own
+  // tone profile — not just valence-collapsed.
+  const activeChapterDominantLabel = createMemo<MoodLabel>(() => {
+    const activeId = store.activeChapterId;
+    if (!activeId) return 'neutral';
+    const tally: Record<string, number> = {};
+    for (const id of store.blockOrder) {
+      const b = store.blocks[id];
+      if (!b || b.deleted_at || b.chapter_id !== activeId) continue;
+      const s = store.sentiments[id];
+      if (!s) continue;
+      tally[s.label] = (tally[s.label] ?? 0) + 1;
+    }
+    const entries = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    return resolveMoodLabel(entries[0]?.[0] ?? null);
+  });
+
+  createEffect(() => {
+    // Silent no-op when the engine isn't running; setMood short-circuits
+    // if the profile is already active.
+    sono.setMood(activeChapterDominantLabel());
+  });
 
   const docTitle = () => store.document?.title || 'Untitled';
   const chapterTitle = () => {
