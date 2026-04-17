@@ -1,6 +1,8 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js';
 import { store } from '@/store/document';
 import type { UUID } from '@/types';
+import { labelHex, labelValence, labelI18nKey } from '@/ai/label-helpers';
+import { t } from '@/i18n';
 
 const STRIP_HEIGHT = 60;
 const BAR_WIDTH = 6;
@@ -15,17 +17,11 @@ interface BarData {
   analyzed: boolean;
 }
 
-function polarityFromSentiment(label: string, score: number): number {
-  if (label === 'positive') return score;
-  if (label === 'negative') return -score;
+function polarityFromLabel(label: string, score: number): number {
+  const valence = labelValence(label);
+  if (valence === 'positive') return score;
+  if (valence === 'negative') return -score;
   return 0;
-}
-
-function colorFromLabel(label: string | null): string {
-  if (label === 'positive') return '#10b981'; // emerald-500
-  if (label === 'negative') return '#ef4444'; // red-500
-  if (label === 'neutral') return '#a8a29e'; // stone-400
-  return '#57534e'; // stone-600 — un-analyzed
 }
 
 export const StoryPulseEcg = () => {
@@ -57,16 +53,16 @@ export const StoryPulseEcg = () => {
         return {
           blockId: id,
           polarity: 0,
-          color: colorFromLabel(null),
-          tooltip: 'not yet analyzed',
+          color: labelHex(null),
+          tooltip: t('mood.unanalyzed'),
           analyzed: false,
         };
       }
       return {
         blockId: id,
-        polarity: polarityFromSentiment(sentiment.label, sentiment.score),
-        color: colorFromLabel(sentiment.label),
-        tooltip: `${sentiment.label} · ${Math.round(sentiment.score * 100)}%`,
+        polarity: polarityFromLabel(sentiment.label, sentiment.score),
+        color: labelHex(sentiment.label),
+        tooltip: `${t(labelI18nKey(sentiment.label))} · ${Math.round(sentiment.score * 100)}%`,
         analyzed: true,
       };
     });

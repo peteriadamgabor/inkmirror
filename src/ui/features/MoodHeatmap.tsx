@@ -1,12 +1,8 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store, setActiveChapter } from '@/store/document';
 import type { UUID } from '@/types';
-
-const SENTIMENT_HEX: Record<string, string> = {
-  positive: '#10b981',
-  neutral: '#a8a29e',
-  negative: '#ef4444',
-};
+import { labelHex, labelI18nKey } from '@/ai/label-helpers';
+import { t } from '@/i18n';
 
 interface ChapterStat {
   id: UUID;
@@ -23,24 +19,28 @@ function computeChapterStats(): ChapterStat[] {
     const blockIds = store.blockOrder.filter(
       (id) => store.blocks[id]?.chapter_id === chapter.id && !store.blocks[id]?.deleted_at,
     );
+    // Weight each label by the block's word count so long prose beats
+    // short dialogue when computing the chapter's dominant mood.
     const tally: Record<string, number> = {};
     let analyzed = 0;
     for (const id of blockIds) {
       const s = store.sentiments[id];
       if (!s) continue;
       analyzed++;
-      tally[s.label] = (tally[s.label] ?? 0) + 1;
+      const wc = Math.max(1, (store.blocks[id]?.content ?? '').trim().split(/\s+/).length);
+      tally[s.label] = (tally[s.label] ?? 0) + wc;
     }
     const entries = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-    const [dominantLabel, dominantCount] = entries[0] ?? [null, 0];
+    const [dominantLabel, dominantWeight] = entries[0] ?? [null, 0];
+    const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
     return {
       id: chapter.id,
       title: chapter.title,
       blockCount: blockIds.length,
       analyzed,
       dominantLabel,
-      dominantShare: analyzed > 0 ? dominantCount / analyzed : 0,
-      color: dominantLabel ? SENTIMENT_HEX[dominantLabel] ?? '#57534e' : '#57534e',
+      dominantShare: totalWeight > 0 ? dominantWeight / totalWeight : 0,
+      color: labelHex(dominantLabel),
     };
   });
 }
@@ -66,7 +66,7 @@ export const MoodHeatmap = () => {
                 <button
                   type="button"
                   onClick={() => setActiveChapter(s.id)}
-                  title={`${s.title} — ${s.dominantLabel ?? 'no analysis'} (${s.analyzed}/${s.blockCount})`}
+                  title={`${s.title} — ${s.dominantLabel ? t(labelI18nKey(s.dominantLabel)) : t('mood.unanalyzed')} (${s.analyzed}/${s.blockCount})`}
                   style={{
                     width: `${widthPct}%`,
                     'background-color': s.color,

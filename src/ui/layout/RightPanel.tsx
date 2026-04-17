@@ -1,7 +1,7 @@
 import { createMemo, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { getAiClient } from '@/ai';
-import { SENTIMENT_COLORS } from '@/ui/blocks/sentiment-colors';
+import { labelHex, labelI18nKey } from '@/ai/label-helpers';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { WordCount } from '@/ui/features/WordCount';
@@ -72,8 +72,11 @@ export const RightPanel = () => {
           >
             {(mood) => (
               <div class="flex items-baseline justify-between">
-                <span class={`text-lg font-semibold capitalize ${SENTIMENT_COLORS[mood().label] ?? 'text-stone-500'}`}>
-                  {mood().label}
+                <span
+                  class="text-lg font-semibold"
+                  style={{ color: labelHex(mood().label) }}
+                >
+                  {t(labelI18nKey(mood().label))}
                 </span>
                 <span class="font-mono text-[10px] text-stone-500 dark:text-stone-400">
                   {mood().analyzed}/{mood().total} · {Math.round(mood().share * 100)}%

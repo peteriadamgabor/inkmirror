@@ -8,6 +8,7 @@ import { PlotTimeline } from './features/PlotTimeline';
 import { BlockTypesHelp } from './features/BlockTypesHelp';
 import { ChapterTypesHelp } from './features/ChapterTypesHelp';
 import { HotkeysModal } from './features/HotkeysModal';
+import { SettingsModal } from './features/SettingsModal';
 import { CommandPalette } from './features/CommandPalette';
 import { DocumentSettings } from './features/DocumentSettings';
 import { ToastHost } from './shared/ToastHost';
@@ -114,6 +115,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <BlockTypesHelp />
     <ChapterTypesHelp />
     <HotkeysModal />
+    <SettingsModal />
     <CommandPalette />
     <DocumentSettings />
     <ConfirmHost />

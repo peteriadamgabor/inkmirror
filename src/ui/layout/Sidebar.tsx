@@ -17,6 +17,7 @@ import {
   toggleChapterTypesHelp,
   toggleHotkeysModal,
   toggleCommandPalette,
+  toggleSettingsModal,
   returnToPicker,
 } from '@/store/ui-state';
 import type { ChapterKind, UUID } from '@/types';
@@ -562,12 +563,7 @@ export const Sidebar = () => {
               { label: t('sidebar.blockTypesHelp'), onSelect: toggleBlockTypesHelp },
               { label: t('sidebar.chapterTypesHelp'), onSelect: toggleChapterTypesHelp },
               { label: t('sidebar.hotkeys'), onSelect: toggleHotkeysModal, hint: 'F1' },
-              {
-                label: t('sidebar.settings'),
-                onSelect: () => {
-                  window.location.assign('/settings');
-                },
-              },
+              { label: t('sidebar.settings'), onSelect: toggleSettingsModal },
               { kind: 'divider' },
               { label: t('sidebar.sendFeedback'), onSelect: openFeedback },
             ];

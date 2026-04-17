@@ -31,6 +31,12 @@ export interface BlockSentiment {
   score: number;
   contentHash: string;
   analyzedAt: string;
+  /**
+   * Which model produced this row.
+   * - `'light'` or absent = legacy 3-class distilbert sentiment.
+   * - `'deep'` = mDeBERTa mood classification (Near tier).
+   */
+  source?: 'light' | 'deep';
 }
 
 export interface AppState {

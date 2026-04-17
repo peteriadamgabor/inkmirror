@@ -69,10 +69,14 @@ function contentHash(s: string): string {
 
 /**
  * After the model is ready, walk every block in the current store and
- * analyze any that are missing a sentiment row OR whose content hash
- * no longer matches the stored one. Runs once per boot.
+ * analyze any that are missing a sentiment row, have a stale content
+ * hash, OR were analyzed under a different profile than the active one
+ * (e.g., user just opted into 'deep' — every 'light' row gets re-scored
+ * with the mood vocabulary). Runs once per boot and after profile switches.
  */
-function backfillSentiments(): void {
+export function backfillSentiments(): void {
+  const activeProfile = getStoredProfile();
+  const activeSource: 'light' | 'deep' = activeProfile === 'deep' ? 'deep' : 'light';
   const order = store.blockOrder;
   for (const id of order) {
     const block = store.blocks[id];
@@ -80,7 +84,14 @@ function backfillSentiments(): void {
     const text = block.content.trim();
     if (!text) continue;
     const existing = store.sentiments[id];
-    if (existing && existing.contentHash === contentHash(block.content)) continue;
+    const rowSource = existing?.source ?? 'light';
+    if (
+      existing &&
+      existing.contentHash === contentHash(block.content) &&
+      rowSource === activeSource
+    ) {
+      continue;
+    }
     scheduleSentiment(id, block.content);
   }
 }

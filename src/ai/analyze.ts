@@ -1,6 +1,7 @@
 import { setSentiment } from '@/store/document';
-import type { UUID } from '@/types';
+import { MOODS, type UUID } from '@/types';
 import { getAiClient } from './index';
+import { getStoredProfile } from './profile';
 import { logAiError } from './errors';
 
 function contentHash(s: string): string {
@@ -49,14 +50,28 @@ async function runAnalysis(blockId: UUID, text: string): Promise<void> {
       client.preload().catch(() => undefined);
       return;
     }
-    const result = await client.detectSentiment(text);
-    const top = result[0];
-    if (!top) return;
+    const profile = getStoredProfile();
+    let label: string;
+    let score: number;
+    if (profile === 'deep') {
+      const result = await client.classifyMood(text, MOODS);
+      const top = result[0];
+      if (!top) return;
+      label = top.label;
+      score = top.score;
+    } else {
+      const result = await client.detectSentiment(text);
+      const top = result[0];
+      if (!top) return;
+      label = top.label;
+      score = top.score;
+    }
     setSentiment(blockId, {
-      label: top.label,
-      score: top.score,
+      label,
+      score,
       contentHash: contentHash(text),
       analyzedAt: new Date().toISOString(),
+      source: profile === 'deep' ? 'deep' : 'light',
     });
   } catch (err) {
     logAiError('analyze.runAnalysis', err);
