@@ -165,7 +165,7 @@ export const SettingsModal = () => {
         onClick={() => setSettingsModalOpen(false)}
       >
         <div
-          class="w-[720px] max-w-[92vw] max-h-[80vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
+          class="w-[760px] max-w-[92vw] h-[620px] max-h-[86vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
