@@ -125,6 +125,20 @@ select:focus-visible {
   background-color: rgba(250, 246, 240, 0.8);
 }
 
+/* Quiet by default — block chrome dims to ~25% opacity and reveals
+   on hover / focus-within. The prose stays at full opacity always;
+   only the chrome (type picker, speaker, drag handle, etc.) dims.
+   Zen mode (below) still strips it entirely; this is a softer step
+   for normal editing so the page breathes. */
+[data-block-id] > div:first-child {
+  opacity: 0.25;
+  transition: opacity 150ms ease-out;
+}
+[data-block-id]:hover > div:first-child,
+[data-block-id]:focus-within > div:first-child {
+  opacity: 1;
+}
+
 /* Zen mode: strip block chrome (type picker, labels, history, sentiment badges)
    so only the prose remains. Focus mode is still active underneath — sidebars
    are hidden, blocks dim on unfocus. Zen goes one step further. */

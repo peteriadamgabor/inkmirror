@@ -11,9 +11,16 @@ export interface UiState {
   commandPaletteOpen: boolean;
   documentSettingsOpen: boolean;
   debugMode: boolean;
+  rightPanelCollapsed: boolean;
 }
 
 const SPELLCHECK_KEY = 'inkmirror.spellcheck';
+const RIGHT_PANEL_KEY = 'inkmirror.rightPanel.collapsed';
+
+function loadInitialRightPanelCollapsed(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(RIGHT_PANEL_KEY) === '1';
+}
 
 function loadInitialSpellcheck(): boolean {
   if (typeof localStorage === 'undefined') return true;
@@ -33,6 +40,7 @@ const [uiState, setUiState] = createStore<UiState>({
   commandPaletteOpen: false,
   documentSettingsOpen: false,
   debugMode: false,
+  rightPanelCollapsed: loadInitialRightPanelCollapsed(),
 });
 
 export { uiState };
@@ -111,6 +119,14 @@ export function setDocumentSettingsOpen(open: boolean): void {
 
 export function toggleDebugMode(): void {
   setUiState('debugMode', (v) => !v);
+}
+
+export function toggleRightPanel(): void {
+  const next = !uiState.rightPanelCollapsed;
+  setUiState('rightPanelCollapsed', next);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(RIGHT_PANEL_KEY, next ? '1' : '0');
+  }
 }
 
 // Callback set by index.tsx to navigate back to the document picker.

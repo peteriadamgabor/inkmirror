@@ -13,7 +13,13 @@ import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
 import { FeedbackHost } from './shared/FeedbackHost';
-import { uiState, toggleFocusMode, toggleZenMode } from '@/store/ui-state';
+import {
+  uiState,
+  toggleFocusMode,
+  toggleZenMode,
+  toggleRightPanel,
+} from '@/store/ui-state';
+import { IconChevron } from './shared/icons';
 import type { JSX } from 'solid-js';
 
 export const App = (props: { children?: JSX.Element }) => (
@@ -27,7 +33,11 @@ export const App = (props: { children?: JSX.Element }) => (
     <div
       class="h-full w-full grid gap-4 p-4 transition-all duration-300 ease-out min-h-0"
       style={{
-        'grid-template-columns': uiState.focusMode ? '0fr 1fr 0fr' : '260px 1fr 280px',
+        'grid-template-columns': uiState.focusMode
+          ? '0fr 1fr 0fr'
+          : uiState.rightPanelCollapsed
+            ? '260px 1fr 0fr'
+            : '260px 1fr 280px',
         'grid-template-rows': 'minmax(0, 1fr)',
       }}
     >
@@ -54,13 +64,28 @@ export const App = (props: { children?: JSX.Element }) => (
       <div
         class="h-full min-h-0 overflow-hidden transition-opacity duration-200"
         style={{
-          opacity: uiState.focusMode ? 0 : 1,
-          'pointer-events': uiState.focusMode ? 'none' : 'auto',
+          opacity: uiState.focusMode || uiState.rightPanelCollapsed ? 0 : 1,
+          'pointer-events':
+            uiState.focusMode || uiState.rightPanelCollapsed ? 'none' : 'auto',
         }}
       >
         <RightPanel />
       </div>
     </div>
+
+    {/* Reveal button — appears only when the right panel is collapsed
+        and focus mode is off. Single chevron glyph at the right edge. */}
+    <Show when={!uiState.focusMode && uiState.rightPanelCollapsed}>
+      <button
+        type="button"
+        onClick={toggleRightPanel}
+        class="fixed top-1/2 -translate-y-1/2 right-3 z-20 w-7 h-12 rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 shadow-sm transition-all hover:shadow-md flex items-center justify-center"
+        title="Show story panel"
+        aria-label="Show story panel"
+      >
+        <IconChevron size={14} class="-rotate-90" />
+      </button>
+    </Show>
 
     <Show when={uiState.focusMode}>
       <div class="fixed top-4 right-4 z-30 flex gap-2">

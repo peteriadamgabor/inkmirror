@@ -6,6 +6,8 @@ import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { WordCount } from '@/ui/features/WordCount';
 import { CharacterSentiment } from '@/ui/features/CharacterSentiment';
+import { toggleRightPanel } from '@/store/ui-state';
+import { IconChevron } from '@/ui/shared/icons';
 
 export const RightPanel = () => {
   const ai = getAiClient();
@@ -39,7 +41,16 @@ export const RightPanel = () => {
   });
 
   return (
-    <div class="h-full bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-4 flex flex-col gap-3 overflow-auto">
+    <div class="h-full bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-4 flex flex-col gap-3 overflow-auto relative">
+      <button
+        type="button"
+        onClick={toggleRightPanel}
+        class="absolute top-3 right-3 w-6 h-6 rounded text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center justify-center"
+        title="Hide story panel"
+        aria-label="Hide story panel"
+      >
+        <IconChevron size={12} class="rotate-90" />
+      </button>
       <WordCount />
 
       <div class="flex flex-col gap-2">
