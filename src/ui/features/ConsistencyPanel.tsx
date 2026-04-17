@@ -1,7 +1,7 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store, setInconsistencyFlagStatus } from '@/store/document';
 import { runConsistencyScan } from '@/ai/inconsistency';
-import { getStoredProfile } from '@/ai/profile';
+import { profile } from '@/ai/profile';
 import { t } from '@/i18n';
 import type { InconsistencyFlag, UUID } from '@/types';
 
@@ -44,9 +44,10 @@ function scrollToBlock(blockId: UUID) {
 }
 
 export const ConsistencyPanel = () => {
-  // Only renders when profile=deep. The guard inside the Solid memo lets
-  // the RightPanel mount us unconditionally; we render nothing on light.
-  const visible = createMemo(() => getStoredProfile() === 'deep');
+  // Only renders when profile=deep. Uses the reactive `profile` signal
+  // so flipping the profile in Settings live-updates the right panel
+  // without a page reload.
+  const visible = createMemo(() => profile() === 'deep');
 
   const activeFlags = createMemo(() =>
     Object.values(store.inconsistencyFlags).filter((f) => f.status === 'active'),

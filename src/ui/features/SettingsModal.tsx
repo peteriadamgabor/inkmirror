@@ -4,7 +4,7 @@ import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import {
   detectBackend,
-  getStoredProfile,
+  profile,
   setStoredProfile,
   type AiBackend,
   type AiProfile,
@@ -32,7 +32,6 @@ interface SidebarTab {
 }
 
 export const SettingsModal = () => {
-  const [profile, setProfile] = createSignal<AiProfile>(getStoredProfile());
   const [backend, setBackend] = createSignal<AiBackend | null>(null);
   const activeTab = () => uiState.settingsModalTab;
   const [clientVersion, setClientVersion] = createSignal(0);
@@ -143,7 +142,6 @@ export const SettingsModal = () => {
     setLastError(null);
     setSwitching(true);
     setStoredProfile(next);
-    setProfile(next);
     resetAiClient();
     setClientVersion((v) => v + 1);
     try {

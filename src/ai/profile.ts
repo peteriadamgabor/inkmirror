@@ -5,8 +5,12 @@
  * `'deep'`: mDeBERTa zero-shot + NLI. Opt-in one-time download, unlocks rich
  * moods and inconsistency detection.
  *
- * Profile persists across sessions via localStorage.
+ * Profile persists across sessions via localStorage AND is exposed as a
+ * reactive Solid signal so components that gate on the profile re-render
+ * when the user flips it in Settings.
  */
+
+import { createSignal, type Accessor } from 'solid-js';
 
 export type AiProfile = 'lightweight' | 'deep';
 
@@ -16,7 +20,7 @@ export const PROFILE_STORAGE_KEY = 'inkmirror.aiProfile';
 
 const VALID_PROFILES: readonly AiProfile[] = ['lightweight', 'deep'];
 
-export function getStoredProfile(): AiProfile {
+function readFromStorage(): AiProfile {
   try {
     const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
     if (raw && (VALID_PROFILES as readonly string[]).includes(raw)) {
@@ -28,12 +32,29 @@ export function getStoredProfile(): AiProfile {
   return 'lightweight';
 }
 
-export function setStoredProfile(profile: AiProfile): void {
+const [profileSignal, setProfileSignal] = createSignal<AiProfile>(readFromStorage());
+
+/**
+ * Reactive accessor — Solid components that read this re-run when the
+ * profile changes. Equivalent to `store.profile()` if we had a store.
+ */
+export const profile: Accessor<AiProfile> = profileSignal;
+
+/**
+ * Plain read (non-reactive) — prefer `profile()` inside Solid scopes.
+ * Kept for call sites outside reactive contexts (worker setup, etc.).
+ */
+export function getStoredProfile(): AiProfile {
+  return profileSignal();
+}
+
+export function setStoredProfile(next: AiProfile): void {
   try {
-    localStorage.setItem(PROFILE_STORAGE_KEY, profile);
+    localStorage.setItem(PROFILE_STORAGE_KEY, next);
   } catch {
     // swallow — opt-in failure surfaces elsewhere
   }
+  setProfileSignal(next);
 }
 
 /**

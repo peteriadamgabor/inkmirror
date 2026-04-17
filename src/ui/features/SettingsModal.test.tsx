@@ -6,13 +6,18 @@ import {
   setSettingsModalOpen,
   setSettingsModalTab,
 } from '@/store/ui-state';
-import { PROFILE_STORAGE_KEY } from '@/ai/profile';
+import {
+  PROFILE_STORAGE_KEY,
+  getStoredProfile,
+  setStoredProfile,
+} from '@/ai/profile';
 import { pendingConfirm, resolveConfirm } from '@/ui/shared/confirm';
 import { lang, setLang } from '@/i18n';
 
 describe('SettingsModal', () => {
   beforeEach(() => {
     localStorage.clear();
+    setStoredProfile('lightweight');
     delete (navigator as unknown as { gpu?: unknown }).gpu;
     setSettingsModalOpen(false);
     setSettingsModalTab('ai');
@@ -78,7 +83,7 @@ describe('SettingsModal', () => {
     fireEvent.click(rich);
     await waitFor(() => expect(pendingConfirm()).not.toBeNull());
     resolveConfirm('cancel');
-    expect(localStorage.getItem(PROFILE_STORAGE_KEY)).toBeNull();
+    expect(getStoredProfile()).toBe('lightweight');
   });
 
   it('confirming Rich persists profile=deep', async () => {
@@ -95,7 +100,7 @@ describe('SettingsModal', () => {
   });
 
   it('reflects stored profile on mount', async () => {
-    localStorage.setItem(PROFILE_STORAGE_KEY, 'deep');
+    setStoredProfile('deep');
     setSettingsModalOpen(true);
     const r = render(() => <SettingsModal />);
     await waitFor(() => expect(r.container.querySelector('[role="dialog"]')).toBeTruthy());
@@ -104,7 +109,7 @@ describe('SettingsModal', () => {
   });
 
   it('Advanced + Revert appear only when profile is deep', async () => {
-    localStorage.setItem(PROFILE_STORAGE_KEY, 'deep');
+    setStoredProfile('deep');
     setSettingsModalOpen(true);
     const r = render(() => <SettingsModal />);
     await waitFor(() => expect(r.container.querySelector('[role="dialog"]')).toBeTruthy());
