@@ -198,6 +198,77 @@ select:focus-visible {
   animation: block-move-flash 350ms ease-out;
 }
 
+/* ===========================================================
+ * Motion pack.
+ * All animations respect prefers-reduced-motion — users who
+ * turn motion off at the OS level get the pre-motion behavior
+ * (snappy, no transitions) everywhere.
+ * =========================================================== */
+
+/* Block enter: fresh blocks (created_at within the last half
+   second) ease in with a tiny upward slide. Existing blocks that
+   just scroll into view via the virtualizer are untouched. */
+@keyframes block-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+[data-block-id][data-just-added="1"] {
+  animation: block-enter 180ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Modal entrance: backdrop fades, panel scales + fades. */
+@keyframes modal-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-panel-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.inkmirror-modal-backdrop {
+  animation: modal-backdrop-enter 140ms ease-out;
+}
+.inkmirror-modal-panel {
+  animation: modal-panel-enter 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  transform-origin: center;
+}
+
+/* Mirror breath: very slow scale + opacity oscillation on the
+   landing/404 hero reflections. Subliminal — meant to suggest
+   "alive" without catching the eye. */
+@keyframes mirror-breath {
+  0%, 100% { transform: scaleY(-1) scale(1);    opacity: 0.5; }
+  50%      { transform: scaleY(-1) scale(1.01); opacity: 0.42; }
+}
+.inkmirror-mirror-breath {
+  animation: mirror-breath 6s ease-in-out infinite;
+}
+
+/* ECG draw-in: sweep a mask left-to-right on first render of the
+   strip (and on chapter switch) so the bars appear to draw across
+   the page. */
+@keyframes ecg-reveal {
+  from { mask-size: 0% 100%; -webkit-mask-size: 0% 100%; }
+  to   { mask-size: 100% 100%; -webkit-mask-size: 100% 100%; }
+}
+.inkmirror-ecg-drawing svg {
+  mask-image: linear-gradient(to right, black 0%, black 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 100%);
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  animation: ecg-reveal 600ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-block-id][data-just-added="1"],
+  .inkmirror-modal-backdrop,
+  .inkmirror-modal-panel,
+  .inkmirror-mirror-breath,
+  .inkmirror-ecg-drawing svg {
+    animation: none !important;
+  }
+}
+
 /* Drag-and-drop reorder affordances. The source block dims while
    it's in flight; the hover target gets a violet line above or
    below depending on which half the pointer sits in. */

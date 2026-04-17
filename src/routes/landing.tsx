@@ -80,12 +80,10 @@ export const LandingRoute = () => (
           />
           {/* Mirror reflection */}
           <div
-            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-300"
+            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-300 inkmirror-mirror-breath"
             style={{
-              transform: 'scaleY(-1)',
               'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
               '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
-              opacity: '0.5',
               'line-height': '1',
               filter: 'blur(0.5px)',
             }}

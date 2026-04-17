@@ -62,11 +62,11 @@ export const FeedbackHost = () => {
   return (
     <Show when={feedbackOpen()}>
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm inkmirror-modal-backdrop"
         onClick={() => closeFeedback()}
       >
         <div
-          class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl p-5 flex flex-col gap-4"
+          class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl p-5 flex flex-col gap-4 inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

@@ -1,4 +1,4 @@
-import { createMemo, For, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js';
 import { store } from '@/store/document';
 import type { UUID } from '@/types';
 
@@ -29,6 +29,22 @@ function colorFromLabel(label: string | null): string {
 }
 
 export const StoryPulseEcg = () => {
+  // Trigger the left-to-right draw animation each time the user
+  // switches chapters. The `drawing` flag flips true for ~600ms,
+  // and the matching CSS on `.inkmirror-ecg-drawing` animates the
+  // SVG's mask-size from 0% → 100%.
+  const [drawing, setDrawing] = createSignal(false);
+  createEffect(
+    on(
+      () => store.activeChapterId,
+      () => {
+        setDrawing(true);
+        const t = setTimeout(() => setDrawing(false), 650);
+        return () => clearTimeout(t);
+      },
+    ),
+  );
+
   const bars = createMemo<BarData[]>(() => {
     const activeId = store.activeChapterId;
     if (!activeId) return [];
@@ -87,6 +103,7 @@ export const StoryPulseEcg = () => {
     >
       <div
         class="inkmirror-ecg flex items-center gap-3 px-4 border-b border-stone-200 dark:border-stone-700 overflow-x-auto"
+        classList={{ 'inkmirror-ecg-drawing': drawing() }}
         style={{ height: `${STRIP_HEIGHT}px` }}
       >
         <div class="text-[9px] uppercase tracking-wider text-stone-400 shrink-0 select-none">

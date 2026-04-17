@@ -646,9 +646,23 @@ export const BlockView = (props: { block: Block }) => {
     ], { align: 'right' });
   };
 
+  // Fresh blocks (created within the last half second) get a one-shot
+  // enter animation. Long-existing blocks that scroll into view via
+  // the virtualizer are not re-animated.
+  const isFreshBlock = () => {
+    const created = new Date(props.block.created_at).getTime();
+    return Date.now() - created < 500;
+  };
+
   return (
     <div
-      ref={wrapperEl}
+      ref={(el) => {
+        wrapperEl = el;
+        if (isFreshBlock()) {
+          el.dataset.justAdded = '1';
+          setTimeout(() => delete el.dataset.justAdded, 250);
+        }
+      }}
       class="py-2 transition-opacity duration-150 relative group/block"
       classList={{
         'opacity-30 hover:opacity-100 focus-within:opacity-100': uiState.focusMode,

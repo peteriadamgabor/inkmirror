@@ -7,14 +7,12 @@ export const NotFoundRoute = () => {
             404
           </div>
           <div
-            class="font-serif text-[96px] leading-none tracking-tight select-none pointer-events-none text-violet-300"
+            class="font-serif text-[96px] leading-none tracking-tight select-none pointer-events-none text-violet-300 inkmirror-mirror-breath"
             style={{
-              transform: 'scaleY(-1)',
               'mask-image':
                 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 80%)',
               '-webkit-mask-image':
                 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 80%)',
-              opacity: '0.45',
               'margin-top': '-4px',
               filter: 'blur(0.5px)',
             }}
