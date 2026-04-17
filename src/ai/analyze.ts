@@ -1,14 +1,9 @@
 import { setSentiment } from '@/store/document';
 import { MOODS, type UUID } from '@/types';
+import { contentHash } from '@/utils/hash';
 import { getAiClient } from './index';
 import { getStoredProfile } from './profile';
 import { logAiError } from './errors';
-
-function contentHash(s: string): string {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return h.toString(36);
-}
 
 // Serialize analysis per block id — if a block is edited again while its
 // previous analysis is in-flight, we queue a re-run and drop intermediate

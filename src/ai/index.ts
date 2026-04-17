@@ -2,6 +2,7 @@ import { createAiClient, type AiClientHandle } from './client';
 import { setSentimentHook, store } from '@/store/document';
 import { detectBackend, getStoredProfile } from './profile';
 import { scheduleSentiment } from './analyze';
+import { contentHash } from '@/utils/hash';
 
 let singleton: AiClientHandle | null = null;
 let hookInstalled = false;
@@ -59,12 +60,6 @@ export function scheduleAiPreload(): void {
   } else {
     setTimeout(() => void kick(), 500);
   }
-}
-
-function contentHash(s: string): string {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return h.toString(36);
 }
 
 /**

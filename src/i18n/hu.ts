@@ -246,6 +246,31 @@ export const hu: Messages = {
     idle: 'üresjárat',
     typing: 'írás',
   },
+  consistency: {
+    title: 'Következetesség',
+    runNow: 'Ellenőrzés most',
+    running: 'Ellenőrzés… {{processed}} / {{total}}',
+    empty: {
+      noCharacters: 'Adj hozzá szereplőket az oldalsávban, hogy ellenőrizhessem az ellentmondásokat.',
+      noFlags: 'Nem találtam ellentmondást. A történeted rendben van.',
+      notYetRun: 'Futtasd le az ellenőrzést, hogy átnézzem a kéziratot a karakterek közti ellentmondásokért.',
+    },
+    flag: {
+      score: 'biztonság {{score}}',
+      dismiss: 'Elvetés',
+      category: {
+        kinship: 'rokonság',
+        body: 'testi jegy',
+        profession: 'foglalkozás',
+      },
+    },
+    dismissed: {
+      header: 'Elvetve ({{n}})',
+      show: 'Mutat',
+      hide: 'Elrejt',
+      reactivate: 'Újra aktív',
+    },
+  },
   mood: {
     positive: 'Pozitív',
     neutral: 'Semleges',

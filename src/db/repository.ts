@@ -596,6 +596,7 @@ export interface LoadedDocument {
   blocks: Block[];
   sentiments: SentimentEntry[];
   characters: Character[];
+  inconsistencyFlags: InconsistencyFlag[];
 }
 
 /**
@@ -644,6 +645,7 @@ export async function loadDocument(documentId: UUID): Promise<LoadedDocument | n
 
     const sentiments = await loadSentiments(documentId);
     const characters = await loadCharacters(documentId);
+    const inconsistencyFlags = await loadInconsistencyFlagsByDocument(documentId);
 
     return {
       document: rowToDocument(docRow),
@@ -651,6 +653,7 @@ export async function loadDocument(documentId: UUID): Promise<LoadedDocument | n
       blocks: visibleBlocks.map(rowToBlock),
       sentiments,
       characters,
+      inconsistencyFlags,
     };
   } catch (err) {
     logDbError('repository.loadDocument', err);

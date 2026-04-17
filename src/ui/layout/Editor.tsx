@@ -3,6 +3,7 @@ import { BlockView } from '@/ui/blocks/BlockView';
 import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
+import { contentHash } from '@/utils/hash';
 import { store, setViewport, setMeasurement, saveState, renameChapter } from '@/store/document';
 import { useTheme } from '@/ui/theme';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
@@ -35,12 +36,6 @@ const BLOCK_CHROME_PX = 32;
 const INITIAL_BLOCK_HEIGHT = 400;
 
 const measurer = createMemoizedMeasurer(createPretextMeasurer());
-
-function contentHash(s: string): string {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return h.toString(36);
-}
 
 export const Editor = () => {
   let scrollEl!: HTMLDivElement;

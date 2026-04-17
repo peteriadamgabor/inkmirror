@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 import { createStore, reconcile, unwrap } from 'solid-js/store';
-import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, Mark, SceneMetadata, UUID } from '@/types';
+import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, InconsistencyFlag, Mark, SceneMetadata, UUID } from '@/types';
 import { normalizeMarks } from '@/engine/marks';
 import {
   trackContentChange,
@@ -39,6 +39,12 @@ export interface BlockSentiment {
   source?: 'light' | 'deep';
 }
 
+export interface ConsistencyScanProgress {
+  processed: number;
+  total: number;
+  running: boolean;
+}
+
 export interface AppState {
   document: Document | null;
   chapters: Chapter[];
@@ -50,6 +56,10 @@ export interface AppState {
   characters: Character[];
   /** Derived: block id → character ids mentioned in that block. */
   characterMentions: Record<UUID, UUID[]>;
+  /** Near tier: inconsistency flags for the active document, keyed by id. */
+  inconsistencyFlags: Record<string, InconsistencyFlag>;
+  /** Near tier: live progress of an in-flight consistency scan. */
+  consistencyScan: ConsistencyScanProgress | null;
   viewport: ViewportState;
 }
 
@@ -63,6 +73,8 @@ const initialState: AppState = {
   sentiments: {},
   characters: [],
   characterMentions: {},
+  inconsistencyFlags: {},
+  consistencyScan: null,
   viewport: { scrollTop: 0, viewportHeight: 0 },
 };
 
@@ -211,6 +223,8 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     sentiments: {},
     characters: [],
     characterMentions: {},
+    inconsistencyFlags: {},
+    consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -229,6 +243,7 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
       score: s.score,
       contentHash: s.contentHash,
       analyzedAt: s.analyzedAt,
+      source: s.source ?? 'light',
     };
   }
   const mentions: Record<UUID, UUID[]> = {};
@@ -236,6 +251,10 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     if (!b.content.trim()) continue;
     const ids = findMentions(b.content, loaded.characters);
     if (ids.length > 0) mentions[b.id] = ids;
+  }
+  const flags: Record<string, InconsistencyFlag> = {};
+  for (const f of loaded.inconsistencyFlags) {
+    flags[f.id] = f;
   }
   setStore({
     document: loaded.document,
@@ -247,6 +266,8 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     sentiments,
     characters: loaded.characters,
     characterMentions: mentions,
+    inconsistencyFlags: flags,
+    consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
 }
@@ -260,9 +281,55 @@ export function setSentiment(blockId: UUID, sentiment: BlockSentiment): void {
       score: sentiment.score,
       contentHash: sentiment.contentHash,
       analyzedAt: sentiment.analyzedAt,
+      source: sentiment.source,
     };
     track(repo.saveSentiment(store.document.id, entry).catch(() => undefined));
   }
+}
+
+// ---------- inconsistency flags ----------
+
+export function setInconsistencyFlag(flag: InconsistencyFlag): void {
+  setStore('inconsistencyFlags', flag.id, flag);
+  if (persistEnabled) {
+    track(repo.saveInconsistencyFlag(unwrap(flag) as InconsistencyFlag).catch(() => undefined));
+  }
+}
+
+export function removeInconsistencyFlag(id: string): void {
+  setStore('inconsistencyFlags', id, undefined as unknown as InconsistencyFlag);
+  if (persistEnabled) {
+    track(repo.deleteInconsistencyFlag(id).catch(() => undefined));
+  }
+}
+
+export function setInconsistencyFlagStatus(
+  id: string,
+  status: 'active' | 'dismissed',
+): void {
+  const existing = store.inconsistencyFlags[id];
+  if (!existing) return;
+  const next: InconsistencyFlag = {
+    ...existing,
+    status,
+    dismissed_at: status === 'dismissed' ? Date.now() : null,
+  };
+  setStore('inconsistencyFlags', id, next);
+  if (persistEnabled) {
+    track(repo.setInconsistencyFlagStatus(id, status).catch(() => undefined));
+  }
+}
+
+export function replaceInconsistencyFlags(flags: InconsistencyFlag[]): void {
+  const map: Record<string, InconsistencyFlag> = {};
+  for (const f of flags) map[f.id] = f;
+  setStore('inconsistencyFlags', reconcile(map));
+}
+
+export function setConsistencyScanProgress(
+  progress: ConsistencyScanProgress | null,
+): void {
+  setStore('consistencyScan', progress);
 }
 
 // ---------- viewport + measurements ----------

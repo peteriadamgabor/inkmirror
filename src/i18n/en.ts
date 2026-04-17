@@ -544,6 +544,31 @@ export const en = {
     idle: 'idle',
     typing: 'typing',
   },
+  consistency: {
+    title: 'Consistency',
+    runNow: 'Check now',
+    running: 'Checking… {{processed}} / {{total}}',
+    empty: {
+      noCharacters: 'Add characters to the sidebar to start checking for contradictions.',
+      noFlags: 'No inconsistencies found. Your story checks out.',
+      notYetRun: 'Run a check to scan the manuscript for character contradictions.',
+    },
+    flag: {
+      score: 'score {{score}}',
+      dismiss: 'Dismiss',
+      category: {
+        kinship: 'kinship',
+        body: 'body',
+        profession: 'profession',
+      },
+    },
+    dismissed: {
+      header: 'Dismissed ({{n}})',
+      show: 'Show',
+      hide: 'Hide',
+      reactivate: 'Reactivate',
+    },
+  },
   mood: {
     positive: 'Positive',
     neutral: 'Neutral',
