@@ -1,8 +1,8 @@
 import { createAiClient, type AiClientHandle } from './client';
-import { setSentimentHook, store } from '@/store/document';
+import { setDocumentReplacedHook, setSentimentHook, store } from '@/store/document';
 import { allVisibleBlocks } from '@/store/selectors';
 import { detectBackend, getStoredProfile } from './profile';
-import { scheduleSentiment } from './analyze';
+import { resetAnalyzer, scheduleSentiment } from './analyze';
 import { contentHash } from '@/utils/hash';
 
 let singleton: AiClientHandle | null = null;
@@ -42,6 +42,7 @@ export function scheduleAiPreload(): void {
   const client = getAiClient();
   if (!hookInstalled) {
     setSentimentHook(scheduleSentiment);
+    setDocumentReplacedHook(resetAnalyzer);
     hookInstalled = true;
   }
   const kick = async () => {

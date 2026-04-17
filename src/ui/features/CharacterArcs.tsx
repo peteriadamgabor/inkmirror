@@ -1,7 +1,7 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { dialogueBlocksForSpeaker } from '@/store/selectors';
-import { labelPolarity } from '@/ai/label-helpers';
+import { labelPolarity } from '@/engine/labels';
 import { t } from '@/i18n';
 import type { UUID } from '@/types';
 

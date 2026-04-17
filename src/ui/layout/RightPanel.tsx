@@ -1,8 +1,8 @@
 import { createMemo, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { dominantChapterLabel } from '@/store/selectors';
-import { getAiClient } from '@/ai';
-import { labelHex, labelI18nKey } from '@/ai/label-helpers';
+import { getAiClient } from '@/store/ai-facade';
+import { labelHex, labelI18nKey } from '@/engine/labels';
 import { MoodHeatmap } from '@/ui/features/MoodHeatmap';
 import { PulseDashboard } from '@/ui/features/PulseDashboard';
 import { WordCount } from '@/ui/features/WordCount';

@@ -534,6 +534,12 @@ export const en = {
     characterSentiment: 'Character sentiment',
     pulseDashboard: 'Pulse',
   },
+  moodHeatmap: {
+    noChapters: 'no chapters',
+    chapterCount: '{{n}} chapters',
+    analyzedRatio: '{{analyzed}}/{{total}} analyzed',
+    tooltip: '{{title}} — {{label}} ({{analyzed}}/{{total}})',
+  },
   pulse: {
     title: 'Pulse',
     wpm: 'wpm',

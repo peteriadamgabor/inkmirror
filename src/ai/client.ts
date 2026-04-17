@@ -18,9 +18,19 @@ export interface MoodResult {
 }
 
 export interface NliPairResult {
-  /** P(premise entails hypothesis), softmax over entailment vs contradiction. */
+  /**
+   * P(entailment) from the NLI model's binary softmax over
+   * (entailment, contradiction). The neutral class is dropped by the
+   * zero-shot pipeline's `multi_label: true` normalization, so this is
+   * a conditional probability — read it as "given the premise either
+   * supports OR refutes the hypothesis, how likely is support?"
+   */
   entailment: number;
-  /** 1 - entailment. Higher = stronger contradiction signal. */
+  /**
+   * P(contradiction) in the same conditional space — exactly
+   * `1 - entailment`. Higher = stronger contradiction signal. Threshold
+   * tuning lives in src/ai/inconsistency.ts (CONTRADICTION_THRESHOLD).
+   */
   contradiction: number;
 }
 

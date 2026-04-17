@@ -74,6 +74,14 @@ export function isDatabaseBackup(x: unknown): x is DatabaseBackupV1 {
 // referentially so a shape-compatible but broken bundle cannot destroy
 // data in the replace-strategy import path.
 
+/** Upper bounds on per-bundle row counts. Any user-generated manuscript
+ * stays comfortably under these; anything beyond is either a bug or a
+ * hostile payload designed to exhaust memory during the import walk. */
+const MAX_CHAPTERS = 5_000;
+const MAX_BLOCKS = 200_000;
+const MAX_CHARACTERS = 10_000;
+const MAX_SENTIMENTS = 200_000;
+
 const VALID_BLOCK_TYPES = new Set(['text', 'dialogue', 'scene', 'note']);
 const VALID_CHAPTER_KINDS = new Set([
   'standard',
@@ -142,6 +150,19 @@ export function validateDocumentBundle(bundle: DocumentBundleV1): void {
   if (!Array.isArray(bundle.blocks)) throw new Error('blocks not an array');
   if (!Array.isArray(bundle.characters)) throw new Error('characters not an array');
   if (!Array.isArray(bundle.sentiments)) throw new Error('sentiments not an array');
+
+  if (bundle.chapters.length > MAX_CHAPTERS) {
+    throw new Error(`chapters exceeds max ${MAX_CHAPTERS}`);
+  }
+  if (bundle.blocks.length > MAX_BLOCKS) {
+    throw new Error(`blocks exceeds max ${MAX_BLOCKS}`);
+  }
+  if (bundle.characters.length > MAX_CHARACTERS) {
+    throw new Error(`characters exceeds max ${MAX_CHARACTERS}`);
+  }
+  if (bundle.sentiments.length > MAX_SENTIMENTS) {
+    throw new Error(`sentiments exceeds max ${MAX_SENTIMENTS}`);
+  }
 
   const docId = bundle.document.id;
 

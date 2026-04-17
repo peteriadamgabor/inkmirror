@@ -66,11 +66,24 @@ export async function runConsistencyScan(
 async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
   const client = getAiClient();
   if (!client.isReady()) {
-    // If the model isn't loaded, there's nothing useful we can do —
-    // the caller (Settings preload, or user toggling deep) will kick
-    // preload separately. Bail silently.
-    return;
+    // Model still loading — kick preload and wait for it. Surfacing
+    // failure here lets the caller (Settings, ConsistencyPanel) show
+    // the existing load-error UI instead of silently no-op'ing.
+    try {
+      await client.preload();
+    } catch (err) {
+      logAiError('inconsistency.preload', err);
+      return;
+    }
+    if (!client.isReady()) return;
   }
+
+  // The user may switch documents mid-scan. We capture the doc id at
+  // the start and bail at every awaitable step if the active document
+  // no longer matches — otherwise the scan would emit flags scoped to
+  // a closed document into the now-loaded one's store.
+  const stillActive = () => store.document?.id === documentId;
+  if (!stillActive()) return;
 
   // Snapshot the blocks and mentions we'll scan. Working on a snapshot
   // avoids racing with user edits mid-scan.
@@ -95,8 +108,10 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
 
   try {
     for (const pair of pairs) {
-      if (opts.signal?.aborted) break;
+      if (opts.signal?.aborted) return;
+      if (!stillActive()) return; // doc switched mid-scan
       const score = await scorePair(pair.a.text, pair.b.text);
+      if (!stillActive()) return; // re-check after the await
       if (score >= CONTRADICTION_THRESHOLD) {
         const flag = buildFlag(documentId, pair, score);
         // Respect prior dismissal for the exact same block-hash combo.
@@ -120,13 +135,17 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
       opts.onPairComplete?.(processed, pairs.length);
     }
 
-    // Atomic replace of the flags for this document, then persist each.
+    // Final guard before any store mutation: only persist if the doc
+    // we scanned is still the active one.
+    if (!stillActive()) return;
     replaceInconsistencyFlags(emitted);
     for (const flag of emitted) setInconsistencyFlag(flag);
   } catch (err) {
     logAiError('inconsistency.doScan', err);
   } finally {
-    setConsistencyScanProgress(null);
+    // Only clear the progress indicator we set — if a different scan
+    // started after a doc switch, leave its progress alone.
+    if (stillActive()) setConsistencyScanProgress(null);
   }
 }
 

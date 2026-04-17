@@ -241,8 +241,13 @@ async function preloadActive(): Promise<void> {
         // NLI via zero-shot pipeline: candidate_labels=[hypothesis] with a
         // bare template ('{}') bypasses the default "This example is {}"
         // wrapping, so the model sees premise/hypothesis as a direct NLI
-        // pair. multi_label normalizes via softmax(entail, contradict),
-        // giving us P(entail) directly.
+        // pair. With `multi_label: true` and a single candidate, the
+        // pipeline applies a binary softmax over the model's entail and
+        // contradict logits (neutral logit is dropped). scores[0] is
+        // therefore P(entail | not neutral); P(contradict | not neutral)
+        // = 1 - scores[0]. This conditional read is what we want for
+        // contradiction detection — neutral pairs naturally land near
+        // 0.5 and won't cross the inconsistency threshold.
         const classifier = await loadMood();
         const output = (await classifier(req.premise, [req.hypothesis], {
           multi_label: true,

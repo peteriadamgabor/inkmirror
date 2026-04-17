@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { labelHex, labelValence, labelI18nKey, labelPolarity, SENTIMENT_HEX } from './label-helpers';
+import { labelHex, labelValence, labelI18nKey, labelPolarity, SENTIMENT_HEX } from './labels';
 import { MOOD_HUE } from '@/types';
 
 describe('labelHex', () => {

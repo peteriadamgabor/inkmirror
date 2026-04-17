@@ -11,13 +11,26 @@ import {
 // so the library stays in a dynamic chunk.
 type DocxMods = typeof import('docx');
 
+/**
+ * Strip XML control chars (NUL, vertical tabs, etc.) that break some
+ * OOXML readers and would never appear in legitimate prose. Defense-in-
+ * depth — the docx library escapes structural markup itself, but it
+ * does not strip code points that are illegal inside an XML 1.0 doc.
+ */
+function sanitizeXmlText(text: string): string {
+  // Allowed: \t (\x09), \n (\x0A), \r (\x0D), and printable >= 0x20.
+  // Strip everything else (including \x00–\x08, \x0B, \x0C, \x0E–\x1F).
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+
 function sceneHeaderText(md: SceneMetadata | null): string {
   if (!md) return '';
   const parts: string[] = [];
   if (md.location) parts.push(md.location);
   if (md.time) parts.push(md.time);
   if (md.mood) parts.push(`(${md.mood})`);
-  return parts.join(' — ');
+  return sanitizeXmlText(parts.join(' — '));
 }
 
 /**
@@ -37,9 +50,10 @@ function contentLinesAsRuns(
     const parts = run.text.split('\n');
     parts.forEach((part, i) => {
       if (i > 0) lines.push([]);
-      if (part.length > 0) {
+      const sanitized = sanitizeXmlText(part);
+      if (sanitized.length > 0) {
         lines[lines.length - 1].push(
-          new TextRun({ text: part, bold: run.bold, italics: run.italic }),
+          new TextRun({ text: sanitized, bold: run.bold, italics: run.italic }),
         );
       }
     });
@@ -80,7 +94,7 @@ function blockParagraphs(
         out.push(
           new Paragraph({
             style: 'DialogueSpeaker',
-            children: [new TextRun(speaker)],
+            children: [new TextRun(sanitizeXmlText(speaker))],
           }),
         );
       }
@@ -88,7 +102,9 @@ function blockParagraphs(
         out.push(
           new Paragraph({
             style: 'Parenthetical',
-            children: [new TextRun(`(${data.parenthetical.trim()})`)],
+            children: [
+              new TextRun(`(${sanitizeXmlText(data.parenthetical.trim())})`),
+            ],
           }),
         );
       }
@@ -129,7 +145,7 @@ export const docxExporter: Exporter = {
         alignment: AlignmentType.CENTER,
         heading: HeadingLevel.TITLE,
         spacing: { before: 480, after: 120 },
-        children: [new TextRun(input.document.title || 'Untitled')],
+        children: [new TextRun(sanitizeXmlText(input.document.title || 'Untitled'))],
       }),
     );
     if (input.document.author) {
@@ -137,7 +153,12 @@ export const docxExporter: Exporter = {
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 480 },
-          children: [new TextRun({ text: input.document.author, italics: true })],
+          children: [
+            new TextRun({
+              text: sanitizeXmlText(input.document.author),
+              italics: true,
+            }),
+          ],
         }),
       );
     }
@@ -150,7 +171,7 @@ export const docxExporter: Exporter = {
           pageBreakBefore: true,
           alignment: AlignmentType.CENTER,
           spacing: { before: 240, after: 240 },
-          children: [new TextRun(chapter.title)],
+          children: [new TextRun(sanitizeXmlText(chapter.title))],
         }),
       );
       for (const block of exportableBlocks(chapter, input.blocks)) {

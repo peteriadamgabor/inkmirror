@@ -1,16 +1,18 @@
-import { createEffect, createMemo, createSignal, For, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { LANGUAGES, lang, setLang, t } from '@/i18n';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import {
+  backfillSentiments,
   detectBackend,
+  getAiClient,
   profile,
+  resetAiClient,
+  runConsistencyScan,
   setStoredProfile,
   type AiBackend,
   type AiProfile,
-} from '@/ai/profile';
-import { backfillSentiments, getAiClient, resetAiClient } from '@/ai';
-import { runConsistencyScan } from '@/ai/inconsistency';
+} from '@/store/ai-facade';
 import {
   uiState,
   setSettingsModalOpen,
@@ -182,11 +184,48 @@ export const SettingsModal = () => {
     }
   }
 
-  const tabs: SidebarTab[] = [
+  // Tabs are a memo so swapping the language re-renders the labels
+  // without re-mounting the modal — `t()` reads `lang()` reactively.
+  const tabs = createMemo<SidebarTab[]>(() => [
     { id: 'ai', label: t('settings.tabs.ai') },
     { id: 'hotkeys', label: t('settings.tabs.hotkeys') },
     { id: 'language', label: t('settings.tabs.language') },
-  ];
+  ]);
+
+  // Track focus before the modal opens so we can restore it on close —
+  // matches the expected behavior of `aria-modal="true"` dialogs.
+  let panelRef: HTMLDivElement | undefined;
+  let focusBeforeOpen: HTMLElement | null = null;
+
+  // Escape closes the modal unless the user is mid-hotkey-capture
+  // (hotkey capture has its own Escape handler that cancels capture).
+  createEffect(() => {
+    if (!uiState.settingsModalOpen) return;
+    focusBeforeOpen = document.activeElement as HTMLElement | null;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (capturing()) return; // capture mode handles Escape itself
+      if (closing()) return;
+      e.preventDefault();
+      requestClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    // Move focus to the panel so screen readers announce the dialog
+    // and keyboard users land inside it instead of on <body>.
+    queueMicrotask(() => panelRef?.focus());
+
+    onCleanup(() => {
+      window.removeEventListener('keydown', onKeyDown);
+      // Restore focus to whatever the user was on before opening.
+      const target = focusBeforeOpen;
+      focusBeforeOpen = null;
+      if (target && typeof target.focus === 'function') {
+        queueMicrotask(() => target.focus());
+      }
+    });
+  });
 
   return (
     <Show when={uiState.settingsModalOpen}>
@@ -196,7 +235,9 @@ export const SettingsModal = () => {
         onClick={requestClose}
       >
         <div
-          class="w-[760px] max-w-[92vw] h-[620px] max-h-[86vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
+          ref={panelRef}
+          tabindex="-1"
+          class="w-[760px] max-w-[92vw] h-[620px] max-h-[86vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel focus:outline-none"
           classList={{ 'inkmirror-modal-panel-exit': closing() }}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
@@ -209,7 +250,7 @@ export const SettingsModal = () => {
                 {t('settings.title')}
               </div>
               <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
-                {tabs.find((tb) => tb.id === activeTab())?.label}
+                {tabs().find((tb) => tb.id === activeTab())?.label}
               </div>
             </div>
             <button
@@ -224,7 +265,7 @@ export const SettingsModal = () => {
 
           <div class="flex-1 flex min-h-0 overflow-hidden">
             <nav class="w-44 shrink-0 border-r border-stone-200 dark:border-stone-700 p-3 flex flex-col gap-1 text-sm overflow-auto">
-              <For each={tabs}>
+              <For each={tabs()}>
                 {(tab) => (
                   <button
                     type="button"

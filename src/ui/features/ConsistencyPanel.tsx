@@ -1,7 +1,6 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store, setInconsistencyFlagStatus } from '@/store/document';
-import { runConsistencyScan } from '@/ai/inconsistency';
-import { profile } from '@/ai/profile';
+import { profile, runConsistencyScan } from '@/store/ai-facade';
 import { t } from '@/i18n';
 import type { InconsistencyFlag, UUID } from '@/types';
 

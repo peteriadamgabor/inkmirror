@@ -15,6 +15,22 @@ const LINE_H = 18;
 const BODY_FONT_SIZE = 12;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
+/**
+ * Hard cap on a single block's content during PDF rendering. jsPDF's
+ * splitTextToSize is O(n) per call but a malicious bundle with one
+ * pathologically long block (a minified blob, a fuzz payload, etc.)
+ * can pin the main thread for many seconds since the PDF exporter
+ * runs on the UI thread. 200 KB per block is ~30k words — well above
+ * any realistic chapter-as-block.
+ */
+const MAX_BLOCK_CHARS = 200_000;
+const TRUNCATION_NOTE = '\n\n[…truncated for export…]';
+
+function clampBlockContent(text: string): string {
+  if (text.length <= MAX_BLOCK_CHARS) return text;
+  return text.slice(0, MAX_BLOCK_CHARS) + TRUNCATION_NOTE;
+}
+
 interface FlatPart {
   kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p';
   text: string;
@@ -35,7 +51,7 @@ function flatten(
           .join(' — ');
         if (header) parts.push({ kind: 'scene', text: header });
       }
-      for (const p of block.content.split(/\n{2,}/)) {
+      for (const p of clampBlockContent(block.content).split(/\n{2,}/)) {
         const t = p.trim();
         if (t) parts.push({ kind: 'p', text: t });
       }
@@ -60,7 +76,7 @@ function flatten(
           parts.push({ kind: 'parenthetical', text: `(${data.parenthetical.trim()})` });
         }
       }
-      for (const p of block.content.split(/\n{2,}/)) {
+      for (const p of clampBlockContent(block.content).split(/\n{2,}/)) {
         const t = p.trim();
         if (t) parts.push({ kind: 'p', text: t });
       }
@@ -68,7 +84,7 @@ function flatten(
     }
     case 'text':
     default: {
-      return block.content
+      return clampBlockContent(block.content)
         .split(/\n{2,}/)
         .map((p) => p.trim())
         .filter((p) => p.length > 0)
@@ -124,15 +140,16 @@ export const pdfExporter: Exporter = {
     // advancing X position and wrap manually when the line exceeds
     // CONTENT_W. Falls back to plain writeLines for blocks with no marks.
     const writeRichBlock = (block: Block, size: number) => {
-      const runs = contentToRuns(block.content, block.marks);
+      const safeContent = clampBlockContent(block.content);
+      const runs = contentToRuns(safeContent, block.marks);
       const hasMarks = runs.some((r) => r.bold || r.italic);
       if (!hasMarks) {
-        writeLines(block.content, { size });
+        writeLines(safeContent, { size });
         return;
       }
 
       // Split content on newlines first, render each visual paragraph.
-      const paragraphs = block.content.split(/\n/);
+      const paragraphs = safeContent.split(/\n/);
       let charOffset = 0;
       for (const para of paragraphs) {
         if (!para.trim()) { charOffset += para.length + 1; continue; }
@@ -147,7 +164,7 @@ export const pdfExporter: Exporter = {
           const overlapStart = Math.max(runCharPos, paraStart);
           const overlapEnd = Math.min(runEnd, paraEnd);
           if (overlapStart < overlapEnd) {
-            const text = block.content.slice(overlapStart, overlapEnd);
+            const text = safeContent.slice(overlapStart, overlapEnd);
             const fontStyle = run.bold && run.italic
               ? 'bolditalic'
               : run.bold ? 'bold' : run.italic ? 'italic' : 'normal';

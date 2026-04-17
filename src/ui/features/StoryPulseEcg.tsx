@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js'
 import { store } from '@/store/document';
 import { visibleBlocksInChapter } from '@/store/selectors';
 import type { UUID } from '@/types';
-import { labelHex, labelValence, labelI18nKey } from '@/ai/label-helpers';
+import { labelHex, labelValence, labelI18nKey } from '@/engine/labels';
 import { t } from '@/i18n';
 
 const STRIP_HEIGHT = 60;

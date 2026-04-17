@@ -236,6 +236,12 @@ export const hu: Messages = {
     characterSentiment: 'Karakter hangulat',
     pulseDashboard: 'Pulzus',
   },
+  moodHeatmap: {
+    noChapters: 'nincs fejezet',
+    chapterCount: '{{n}} fejezet',
+    analyzedRatio: '{{analyzed}}/{{total}} elemezve',
+    tooltip: '{{title}} — {{label}} ({{analyzed}}/{{total}})',
+  },
   pulse: {
     title: 'Pulzus',
     wpm: 'szó/p',

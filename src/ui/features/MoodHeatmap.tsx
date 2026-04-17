@@ -2,7 +2,7 @@ import { createMemo, For, Show } from 'solid-js';
 import { store, setActiveChapter } from '@/store/document';
 import { dominantChapterLabel, visibleBlocksInChapter } from '@/store/selectors';
 import type { UUID } from '@/types';
-import { labelHex, labelI18nKey } from '@/ai/label-helpers';
+import { labelHex, labelI18nKey } from '@/engine/labels';
 import { t } from '@/i18n';
 
 interface ChapterStat {
@@ -41,7 +41,7 @@ export const MoodHeatmap = () => {
   return (
     <Show
       when={stats().length > 0}
-      fallback={<div class="text-xs text-stone-400">no chapters</div>}
+      fallback={<div class="text-xs text-stone-400">{t('moodHeatmap.noChapters')}</div>}
     >
       <div class="flex flex-col gap-1">
         <div class="flex h-8 w-full rounded overflow-hidden border border-stone-200 dark:border-stone-700">
@@ -49,11 +49,18 @@ export const MoodHeatmap = () => {
             {(s) => {
               const widthPct = (Math.max(s.blockCount, 1) / totalBlocks()) * 100;
               const isActive = () => store.activeChapterId === s.id;
+              const tooltip = () =>
+                t('moodHeatmap.tooltip', {
+                  title: s.title,
+                  label: s.dominantLabel ? t(labelI18nKey(s.dominantLabel)) : t('mood.unanalyzed'),
+                  analyzed: String(s.analyzed),
+                  total: String(s.blockCount),
+                });
               return (
                 <button
                   type="button"
                   onClick={() => setActiveChapter(s.id)}
-                  title={`${s.title} — ${s.dominantLabel ? t(labelI18nKey(s.dominantLabel)) : t('mood.unanalyzed')} (${s.analyzed}/${s.blockCount})`}
+                  title={tooltip()}
                   style={{
                     width: `${widthPct}%`,
                     'background-color': s.color,
@@ -69,10 +76,12 @@ export const MoodHeatmap = () => {
           </For>
         </div>
         <div class="text-[9px] text-stone-400 flex justify-between">
-          <span>{stats().length} chapters</span>
+          <span>{t('moodHeatmap.chapterCount', { n: String(stats().length) })}</span>
           <span>
-            {stats().reduce((n, s) => n + s.analyzed, 0)}/
-            {stats().reduce((n, s) => n + s.blockCount, 0)} analyzed
+            {t('moodHeatmap.analyzedRatio', {
+              analyzed: String(stats().reduce((n, s) => n + s.analyzed, 0)),
+              total: String(stats().reduce((n, s) => n + s.blockCount, 0)),
+            })}
           </span>
         </div>
       </div>

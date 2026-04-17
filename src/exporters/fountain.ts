@@ -1,9 +1,9 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import {
   contentToRuns,
+  exportableBlocks,
   speakerNameFor,
   textBlob,
-  visibleChapterBlocks,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -51,6 +51,9 @@ interface FountainContext {
 function renderBlock(block: Block, ctx: FountainContext): string | null {
   switch (block.type) {
     case 'note':
+      // Notes never reach renderBlock once the caller filters with
+      // exportableBlocks(); kept defensively so a future refactor
+      // doesn't silently leak notes into the .fountain output.
       return null;
     case 'scene': {
       const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
@@ -95,15 +98,19 @@ export function renderFountain(input: ExportInput): string {
       characters: input.characters,
       previousSpeakerId: null,
     };
-    const blocks = visibleChapterBlocks(chapter, input.blocks);
+    // Use exportableBlocks() so note blocks are stripped *before* the
+    // CONT'D tracker sees them — otherwise a note between two same-
+    // speaker dialogue blocks would falsely reset previousSpeakerId
+    // and suppress the (CONT'D) marker that should appear.
+    const blocks = exportableBlocks(chapter, input.blocks);
     for (const block of blocks) {
       const rendered = renderBlock(block, ctx);
       if (rendered !== null && rendered.trim().length > 0) {
         parts.push(rendered, '');
       }
       // Update the CONT'D tracker. Dialogue blocks set the previous id;
-      // any non-dialogue block clears it so a later dialogue line under
-      // the same speaker still gets a fresh cue.
+      // any non-dialogue exportable block (scene, text) clears it so
+      // a later dialogue line still gets a fresh cue.
       if (block.type === 'dialogue' && block.metadata.type === 'dialogue') {
         ctx.previousSpeakerId = block.metadata.data.speaker_id || null;
       } else {

@@ -36,6 +36,12 @@ export interface ImportResult {
  */
 export type CollisionStrategy = 'copy' | 'replace';
 
+/** Hard cap on bundle file size. ~50 MB is well above any realistic
+ * single-book payload — `.inkmirror.json` for a 500-page novel is
+ * typically <10 MB even with graveyard + sentiments. Rejecting larger
+ * files protects the tab from JSON.parse OOM on hostile input. */
+const MAX_BUNDLE_BYTES = 50 * 1024 * 1024;
+
 async function readBlobAsText(blob: Blob): Promise<string> {
   if (typeof (blob as Blob & { text?: () => Promise<string> }).text === 'function') {
     return (blob as Blob & { text: () => Promise<string> }).text();
@@ -51,6 +57,11 @@ async function readBlobAsText(blob: Blob): Promise<string> {
 export async function parseBundle(
   file: File,
 ): Promise<DocumentBundleV1 | DatabaseBackupV1> {
+  if (file.size > MAX_BUNDLE_BYTES) {
+    throw new Error(
+      `Bundle too large (${(file.size / 1024 / 1024).toFixed(1)} MB); max ${MAX_BUNDLE_BYTES / 1024 / 1024} MB.`,
+    );
+  }
   const text = await readBlobAsText(file);
   let parsed: unknown;
   try {

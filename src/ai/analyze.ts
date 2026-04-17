@@ -15,6 +15,16 @@ interface AnalysisState {
 
 const state = new Map<UUID, AnalysisState>();
 
+/**
+ * Drop all per-block analysis state. Call when switching documents so
+ * stale block ids don't accumulate and so that an `import 'replace'`
+ * that reuses ids cannot inherit a still-pending in-flight from the
+ * prior document.
+ */
+export function resetAnalyzer(): void {
+  state.clear();
+}
+
 export function scheduleSentiment(blockId: UUID, text: string): void {
   let entry = state.get(blockId);
   if (!entry) {

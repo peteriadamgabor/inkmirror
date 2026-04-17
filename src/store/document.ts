@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { createStore, reconcile, unwrap } from 'solid-js/store';
+import { createStore, produce, reconcile, unwrap } from 'solid-js/store';
 import type { Block, BlockType, BlockMetadata, Chapter, ChapterKind, Character, DialogueMetadata, Document, InconsistencyFlag, Mark, SceneMetadata, UUID } from '@/types';
 import { normalizeMarks } from '@/engine/marks';
 import {
@@ -105,6 +105,16 @@ let sentimentHook: SentimentHook | null = null;
 
 export function setSentimentHook(hook: SentimentHook | null): void {
   sentimentHook = hook;
+}
+
+/** Called whenever the active document is replaced (load, hydrate,
+ * synthetic load). Lets the AI layer drop per-block analyzer state
+ * scoped to the previously-loaded document. */
+type DocumentReplacedHook = () => void;
+let documentReplacedHook: DocumentReplacedHook | null = null;
+
+export function setDocumentReplacedHook(hook: DocumentReplacedHook | null): void {
+  documentReplacedHook = hook;
 }
 
 let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -228,6 +238,7 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
+  documentReplacedHook?.();
 }
 
 export function hydrateFromLoaded(loaded: LoadedDocument): void {
@@ -271,6 +282,7 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
+  documentReplacedHook?.();
 }
 
 export function setSentiment(blockId: UUID, sentiment: BlockSentiment): void {
@@ -298,7 +310,12 @@ export function setInconsistencyFlag(flag: InconsistencyFlag): void {
 }
 
 export function removeInconsistencyFlag(id: string): void {
-  setStore('inconsistencyFlags', id, undefined as unknown as InconsistencyFlag);
+  setStore(
+    'inconsistencyFlags',
+    produce((map: Record<string, InconsistencyFlag>) => {
+      delete map[id];
+    }),
+  );
   if (persistEnabled) {
     track(repo.deleteInconsistencyFlag(id).catch(() => undefined));
   }
