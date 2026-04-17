@@ -18,4 +18,6 @@ export {
   TbOutlineMoon as IconMoon,
   TbOutlineAbc as IconSpellcheck,
   TbOutlineVolume as IconVolume,
+  TbOutlineArrowLeft as IconArrowLeft,
+  TbOutlineSettings as IconSettings,
 } from 'solid-icons/tb';

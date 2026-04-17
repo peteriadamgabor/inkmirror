@@ -40,6 +40,7 @@ export const en = {
     blockTypesHelp: 'Block types help',
     chapterTypesHelp: 'Chapter types help',
     hotkeys: 'Hotkeys',
+    settings: 'Settings',
     sendFeedback: 'Send feedback',
     chapters: 'Chapters',
     characters: 'Characters',
@@ -609,6 +610,67 @@ export const en = {
     lastExportStale: "You haven't exported in {{n}} days. Consider downloading a backup (Sidebar → Export).",
     createDocumentFailed: 'Failed to create document: {{error}}',
     deleteFailed: 'Delete failed: {{error}}',
+  },
+  settings: {
+    title: 'Settings',
+    back: 'Back to editor',
+    tabs: {
+      ai: 'AI',
+      hotkeys: 'Hotkeys',
+      language: 'Language',
+      export: 'Export',
+      comingSoon: 'Coming soon',
+    },
+    ai: {
+      heading: 'AI profile',
+      intro:
+        "InkMirror's analysis runs entirely in your browser. Choose how deeply you want it to read your prose.",
+      privacy: 'Runs entirely in your browser. Nothing leaves your device.',
+      profile: {
+        basic: {
+          title: 'Basic',
+          description:
+            'Sentiment in three tones — positive, neutral, negative. About 60 MB, loaded on first use.',
+        },
+        rich: {
+          title: 'Rich',
+          description:
+            'Literary mood palette (ten emotions) and character-consistency detection across chapters. About 80 MB, downloaded once.',
+        },
+        active: 'Active',
+        switchTo: 'Switch to {{name}}',
+      },
+      download: {
+        confirm: {
+          title: 'Download the Rich model?',
+          body:
+            'One-time ~80 MB download. Unlocks the full mood palette and inconsistency checking. The model stays cached in your browser — nothing is ever uploaded.',
+          cta: 'Download and enable',
+          cancel: 'Not yet',
+        },
+        progress: 'Loading model… {{phase}} ({{percent}}%)',
+        progressNoPercent: 'Loading model… {{phase}}',
+        failed: 'Model load failed: {{error}}',
+        retry: 'Try again',
+      },
+      status: {
+        model: 'Model: {{name}}',
+        accelerationWebgpu: 'Acceleration: WebGPU',
+        accelerationWasm: 'Acceleration: CPU',
+        languages: 'Language coverage: EN, HU, and 100+ more',
+      },
+      advanced: {
+        heading: 'Advanced',
+        expand: 'Show advanced',
+        collapse: 'Hide advanced',
+      },
+      revert: {
+        title: 'Revert to Basic',
+        description:
+          'Switch back to the lightweight model. Rich mood analysis already in your documents stays until you edit those blocks.',
+        cta: 'Revert',
+      },
+    },
   },
 } as const;
 

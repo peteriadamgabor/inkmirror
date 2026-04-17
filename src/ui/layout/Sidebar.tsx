@@ -562,6 +562,12 @@ export const Sidebar = () => {
               { label: t('sidebar.blockTypesHelp'), onSelect: toggleBlockTypesHelp },
               { label: t('sidebar.chapterTypesHelp'), onSelect: toggleChapterTypesHelp },
               { label: t('sidebar.hotkeys'), onSelect: toggleHotkeysModal, hint: 'F1' },
+              {
+                label: t('sidebar.settings'),
+                onSelect: () => {
+                  window.location.assign('/settings');
+                },
+              },
               { kind: 'divider' },
               { label: t('sidebar.sendFeedback'), onSelect: openFeedback },
             ];

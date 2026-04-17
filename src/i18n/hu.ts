@@ -41,6 +41,7 @@ export const hu: Messages = {
     blockTypesHelp: 'Blokk típusok súgó',
     chapterTypesHelp: 'Fejezet típusok súgó',
     hotkeys: 'Gyorsbillentyűk',
+    settings: 'Beállítások',
     sendFeedback: 'Visszajelzés küldése',
     chapters: 'Fejezetek',
     characters: 'Karakterek',
@@ -601,6 +602,67 @@ export const hu: Messages = {
       body:
         'Ha bármi ebből számít neked — ha valami jónak, rossznak vagy kérésre méltónak érződik — írj. Az alábbi űrlap egy privát csatornára érkezik, amit tényleg olvasok.',
       cta: 'Visszajelzés küldése',
+    },
+  },
+  settings: {
+    title: 'Beállítások',
+    back: 'Vissza a szerkesztőhöz',
+    tabs: {
+      ai: 'MI',
+      hotkeys: 'Gyorsbillentyűk',
+      language: 'Nyelv',
+      export: 'Exportálás',
+      comingSoon: 'Hamarosan',
+    },
+    ai: {
+      heading: 'MI-profil',
+      intro:
+        'Az InkMirror elemzése teljes egészében a böngésződben fut. Válaszd ki, milyen mélyen olvasson a szövegbe.',
+      privacy: 'Minden a böngésződben fut. Semmi nem hagyja el az eszközödet.',
+      profile: {
+        basic: {
+          title: 'Alap',
+          description:
+            'Hangulat három árnyalatban — pozitív, semleges, negatív. Körülbelül 60 MB, első használatkor töltődik be.',
+        },
+        rich: {
+          title: 'Gazdag',
+          description:
+            'Irodalmi hangulatpaletta (tíz érzelem) és karakterek közötti következetlenség-felismerés fejezeteken át. Körülbelül 80 MB, egyszeri letöltés.',
+        },
+        active: 'Aktív',
+        switchTo: 'Váltás: {{name}}',
+      },
+      download: {
+        confirm: {
+          title: 'Letöltsük a Gazdag modellt?',
+          body:
+            'Egyszeri, kb. 80 MB letöltés. Feloldja a teljes hangulatpalettát és a következetlenség-ellenőrzést. A modell a böngésződben marad — semmi nem kerül fel sehová.',
+          cta: 'Letöltés és bekapcsolás',
+          cancel: 'Most nem',
+        },
+        progress: 'Modell betöltése… {{phase}} ({{percent}}%)',
+        progressNoPercent: 'Modell betöltése… {{phase}}',
+        failed: 'A modell betöltése sikertelen: {{error}}',
+        retry: 'Újra',
+      },
+      status: {
+        model: 'Modell: {{name}}',
+        accelerationWebgpu: 'Gyorsítás: WebGPU',
+        accelerationWasm: 'Gyorsítás: CPU',
+        languages: 'Nyelvi lefedettség: angol, magyar és további 100+',
+      },
+      advanced: {
+        heading: 'Haladó',
+        expand: 'Haladó mutatása',
+        collapse: 'Haladó elrejtése',
+      },
+      revert: {
+        title: 'Visszaváltás Alapra',
+        description:
+          'Váltás vissza a könnyű modellre. A dokumentumaidban már meglévő gazdag hangulatok maradnak, amíg az adott blokkokat nem szerkeszted.',
+        cta: 'Visszaváltás',
+      },
     },
   },
 };
