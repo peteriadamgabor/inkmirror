@@ -12,6 +12,7 @@ import { DocumentSettings } from './features/DocumentSettings';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
+import { FeedbackHost } from './shared/FeedbackHost';
 import { uiState, toggleFocusMode, toggleZenMode } from '@/store/ui-state';
 import type { JSX } from 'solid-js';
 
@@ -89,6 +90,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <DocumentSettings />
     <ConfirmHost />
     <ContextMenuHost />
+    <FeedbackHost />
     <ToastHost />
     {props.children}
   </div>

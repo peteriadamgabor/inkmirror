@@ -53,6 +53,7 @@ import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { IconDots, IconStar } from '@/ui/shared/icons';
+import { openFeedback } from '@/ui/shared/feedback';
 
 const EXPORTERS: Exporter[] = [
   markdownExporter,
@@ -552,6 +553,10 @@ export const Sidebar = () => {
           class="px-2 py-1 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left flex items-center justify-between">
           <span>More…</span>
           <span class="font-mono text-[10px] text-stone-400">⌘K</span>
+        </button>
+        <button type="button" onClick={openFeedback}
+          class="px-2 py-1 text-xs text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:bg-stone-100 dark:hover:bg-stone-700 rounded transition-colors text-left">
+          Send feedback
         </button>
       </div>
     </div>

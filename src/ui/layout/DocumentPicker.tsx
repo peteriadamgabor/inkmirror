@@ -17,6 +17,7 @@ import {
   parseBundle,
 } from '@/backup/import';
 import { downloadBlob } from '@/exporters';
+import { openFeedback } from '@/ui/shared/feedback';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -378,6 +379,14 @@ export const DocumentPicker = (props: Props) => {
 
         <div class="mt-3 text-center text-[11px] text-stone-400 dark:text-stone-500">
           Everything stays on this device. Use Backup to move your work between browsers.
+          <span class="mx-1.5">·</span>
+          <button
+            type="button"
+            onClick={openFeedback}
+            class="underline decoration-dotted underline-offset-2 hover:text-violet-500 transition-colors"
+          >
+            Send feedback
+          </button>
         </div>
       </div>
     </div>
