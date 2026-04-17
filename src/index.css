@@ -7,6 +7,102 @@ html, body, #root {
   margin: 0;
 }
 
+/* ===========================================================
+ * Design tokens — one place that every surface pulls from.
+ * Keeps shadows/borders/rings consistent as new components
+ * land instead of each author inventing their own.
+ * =========================================================== */
+:root {
+  /* Elevation: 3-tier soft-shadow scale. */
+  --elev-1: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.06);
+  --elev-2: 0 2px 6px rgba(28, 25, 23, 0.06), 0 4px 12px rgba(28, 25, 23, 0.08);
+  --elev-3: 0 12px 24px rgba(28, 25, 23, 0.12), 0 24px 48px rgba(28, 25, 23, 0.14);
+
+  /* Border weights: resting / active / modal. */
+  --border-rest: 1px solid rgba(120, 113, 108, 0.18);
+  --border-active: 1px solid rgba(127, 119, 221, 0.5);
+  --border-modal: 1px solid rgba(120, 113, 108, 0.22);
+}
+.dark {
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.45);
+  --elev-3: 0 12px 24px rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.55);
+  --border-rest: 1px solid rgba(120, 113, 108, 0.22);
+  --border-active: 1px solid rgba(127, 119, 221, 0.6);
+  --border-modal: 1px solid rgba(120, 113, 108, 0.28);
+}
+
+/* ===========================================================
+ * Typography — editorial refinements.
+ * =========================================================== */
+
+/* Old-style figures in body prose — numerals sit on varied
+   baselines like lowercase letters do (feels literary, not
+   spreadsheet). Tabular nums on counters (word count, reading
+   time) so the digits don't jitter when updating. */
+[data-editable] {
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+}
+.tabular-nums,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Real OpenType small-caps where the face supports it. Labels
+   marked .inkmirror-smallcaps render in proper small-caps on
+   modern fonts, and fall back to synthetic uppercase everywhere
+   else. Replaces the CSS `uppercase` we had scattered around. */
+.inkmirror-smallcaps {
+  font-variant-caps: all-small-caps;
+  font-feature-settings: "smcp" 1, "c2sc" 1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+/* Editor font override — when a document's settings.font_family
+   is set, everything inside the editor surface honors it. */
+[data-scroll-root="editor"][style*="--inkmirror-editor-font"] [data-editable] {
+  font-family: var(--inkmirror-editor-font), serif;
+}
+
+/* ===========================================================
+ * Focus rings — one ring throughout the app.
+ * Replaces browser defaults and the many ad-hoc focus: styles.
+ * =========================================================== */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: 2px solid rgba(127, 119, 221, 0.7);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(127, 119, 221, 0.6);
+  outline-offset: 1px;
+}
+
+/* ===========================================================
+ * Paper grain — subtle ~3% noise texture on the editor
+ * background. Helps the writing surface feel like a page
+ * rather than a blank rectangle. Uses an SVG feTurbulence
+ * filter inlined as a data URL so nothing extra has to load.
+ * =========================================================== */
+.inkmirror-paper {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.35  0 0 0 0 0.30  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+  background-repeat: repeat;
+  background-attachment: local;
+}
+.dark .inkmirror-paper {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.82  0 0 0 0 0.78  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
 /* Light theme: warm sepia tint on the main surfaces. The Tailwind
    color classes stay unchanged (stone-100, stone-200, …); we just
    nudge the root background and key panels toward a papery warmth

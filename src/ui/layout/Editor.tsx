@@ -364,8 +364,12 @@ export const Editor = () => {
         onScroll={onScroll}
         data-scroll-root="editor"
         data-chapter-kind={activeChapterKind()}
-        class="flex-1 overflow-auto"
-        style={{ 'padding-top': `${SCROLL_PADDING}px`, 'padding-bottom': `${SCROLL_PADDING}px` }}
+        class="flex-1 overflow-auto inkmirror-paper"
+        style={{
+          'padding-top': `${SCROLL_PADDING}px`,
+          'padding-bottom': `${SCROLL_PADDING}px`,
+          '--inkmirror-editor-font': store.document?.settings.font_family ?? '',
+        }}
       >
         <div
           style={{

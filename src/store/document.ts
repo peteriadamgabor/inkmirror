@@ -761,6 +761,25 @@ export function updateDocumentMeta(
   }
 }
 
+/**
+ * Patch one or more editor-visual settings (font family, theme, etc.).
+ * Kept separate from updateDocumentMeta so the two can be reasoned
+ * about independently — meta changes rarely, settings often.
+ */
+export function updateDocumentSettings(
+  patch: Partial<Document['settings']>,
+): void {
+  if (!store.document) return;
+  const now = new Date().toISOString();
+  setStore('document', (d) =>
+    d ? { ...d, settings: { ...d.settings, ...patch }, updated_at: now } : d,
+  );
+  if (persistEnabled) {
+    const doc = unwrap(store.document);
+    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+  }
+}
+
 export function setPovCharacter(characterId: UUID | null): void {
   if (!store.document) return;
   if (characterId !== null && !store.characters.some((c) => c.id === characterId)) {
