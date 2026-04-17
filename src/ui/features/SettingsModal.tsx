@@ -40,7 +40,29 @@ export const SettingsModal = () => {
   const [lastError, setLastError] = createSignal<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = createSignal(false);
   const [capturing, setCapturing] = createSignal<AppAction | null>(null);
+  // `closing` stays true for the duration of the exit animation so the
+  // backdrop/panel can play their fade-out before the Show unmounts.
+  const [closing, setClosing] = createSignal(false);
   let currentFinish: (() => void) | null = null;
+  const EXIT_MS = 170;
+
+  function requestClose() {
+    if (closing()) return;
+    setClosing(true);
+    setTimeout(() => {
+      setSettingsModalOpen(false);
+      setClosing(false);
+    }, EXIT_MS);
+  }
+
+  // If the modal gets reopened while an exit was pending (shouldn't
+  // normally happen, but opening during animation is cheap to guard),
+  // drop the closing flag so the panel stays visible.
+  createEffect(() => {
+    if (uiState.settingsModalOpen && closing()) {
+      setClosing(false);
+    }
+  });
 
   const client = createMemo(() => {
     clientVersion();
@@ -162,10 +184,12 @@ export const SettingsModal = () => {
     <Show when={uiState.settingsModalOpen}>
       <div
         class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm inkmirror-modal-backdrop"
-        onClick={() => setSettingsModalOpen(false)}
+        classList={{ 'inkmirror-modal-backdrop-exit': closing() }}
+        onClick={requestClose}
       >
         <div
           class="w-[760px] max-w-[92vw] h-[620px] max-h-[86vh] bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
+          classList={{ 'inkmirror-modal-panel-exit': closing() }}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -182,7 +206,7 @@ export const SettingsModal = () => {
             </div>
             <button
               type="button"
-              onClick={() => setSettingsModalOpen(false)}
+              onClick={requestClose}
               class="w-7 h-7 rounded text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
               aria-label={t('common.close')}
             >

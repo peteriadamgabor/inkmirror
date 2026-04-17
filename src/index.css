@@ -295,6 +295,24 @@ select:focus-visible {
   transform-origin: center;
 }
 
+/* Modal exit: mirror the entrance. The component keeps the element
+   mounted for the duration of the animation before unmounting. */
+@keyframes modal-backdrop-exit {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes modal-panel-exit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+.inkmirror-modal-backdrop-exit {
+  animation: modal-backdrop-exit 140ms ease-in forwards;
+}
+.inkmirror-modal-panel-exit {
+  animation: modal-panel-exit 160ms cubic-bezier(0.4, 0, 0.8, 0.4) forwards;
+  transform-origin: center;
+}
+
 /* Mirror breath: very slow scale + opacity oscillation on the
    landing/404 hero reflections. Subliminal — meant to suggest
    "alive" without catching the eye. */
@@ -325,6 +343,8 @@ select:focus-visible {
   [data-block-id][data-just-added="1"],
   .inkmirror-modal-backdrop,
   .inkmirror-modal-panel,
+  .inkmirror-modal-backdrop-exit,
+  .inkmirror-modal-panel-exit,
   .inkmirror-mirror-breath,
   .inkmirror-ecg-drawing svg {
     animation: none !important;
