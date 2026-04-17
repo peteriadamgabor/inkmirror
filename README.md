@@ -124,7 +124,7 @@ The picker in Document Settings updates automatically. System fonts only — no 
 
 The manuscript lives in IndexedDB, inside your browser profile. AI models are downloaded once from HuggingFace on first use (~60 MB, cached by the browser and the Cloudflare proxy) and then run locally — inference never hits a server. There is no account system, no telemetry, no analytics.
 
-The in-app feedback form sends only what you type, plus the Cloudflare-standard `cf-connecting-ip` + `user-agent` (metadata the server sees anyway). Your manuscript content never leaves your browser without an explicit export.
+The in-app feedback form sends **only what you type** (message + optional contact) plus two request headers (`User-Agent` and `Referer`) forwarded to a private Discord channel so we can tell browser and page apart. Your IP is used briefly for rate limiting at the edge and is **not** forwarded to Discord. Your manuscript content never leaves your browser without an explicit export.
 
 ## License
 

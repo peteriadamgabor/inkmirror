@@ -14,6 +14,7 @@ import {
   moveBlockToPosition,
   store,
 } from '@/store/document';
+import { externalSync } from '@/store/undo';
 import { unwrap } from 'solid-js/store';
 import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
 import type { MarkType } from '@/types/block';
@@ -167,16 +168,29 @@ export const BlockView = (props: { block: Block }) => {
     el.innerHTML = marksToHtml(props.block.content, props.block.marks);
   });
 
-  // Rule 1: skip DOM writes while the block is focused or composing.
-  // Uses innerHTML because blocks can carry inline formatting marks.
+  // Rule 1: skip DOM writes while the block is focused or composing —
+  // unless a non-user actor (undo/redo/remote sync) has explicitly
+  // poked the externalSync pulse for THIS block, in which case we
+  // force the write and restore the caret at end-of-text.
+  let lastExternalRev = 0;
   createEffect(() => {
     const incoming = props.block.content;
     const marks = props.block.marks;
-    if (isFocused || isComposing) return;
+    const pulse = externalSync();
+    const isExternal =
+      pulse?.blockId === props.block.id && pulse.rev !== lastExternalRev;
+    if (isExternal) lastExternalRev = pulse.rev;
+    if (!isExternal && (isFocused || isComposing)) return;
     if (!el) return;
     const html = marksToHtml(incoming, marks);
     if (el.innerHTML !== html) {
       el.innerHTML = html;
+      if (isExternal && isFocused) {
+        // Park the caret at the end of the newly-written content.
+        // Without this the browser leaves the selection on a node that
+        // was just replaced, which feels like nothing happened.
+        setCaretOffset(el, el.innerText?.length ?? 0);
+      }
     }
   });
 

@@ -1,6 +1,7 @@
 import type { Block, Chapter, Character, Document, UUID } from '@/types';
 import { getDb, type BlockRevisionRow, type InkMirrorDb } from '@/db/connection';
 import {
+  deleteDocumentAllRows,
   saveBlock,
   saveChapter,
   saveCharacter,
@@ -10,6 +11,8 @@ import {
 import {
   isDatabaseBackup,
   isDocumentBundle,
+  validateDatabaseBackup,
+  validateDocumentBundle,
   type DatabaseBackupV1,
   type DocumentBundleV1,
 } from './format';
@@ -64,21 +67,6 @@ export async function parseBundle(
   );
 }
 
-async function wipeDocument(db: InkMirrorDb, documentId: UUID): Promise<void> {
-  const chapters = await db.getAllFromIndex('chapters', 'by_document', documentId);
-  const blocks = await db.getAllFromIndex('blocks', 'by_document', documentId);
-  const sentiments = await db.getAllFromIndex('sentiments', 'by_document', documentId);
-  const characters = await db.getAllFromIndex('characters', 'by_document', documentId);
-  for (const c of chapters) await db.delete('chapters', c.id);
-  for (const b of blocks) {
-    await db.delete('blocks', b.id);
-    const revs = await db.getAllFromIndex('block_revisions', 'by_block', b.id);
-    for (const r of revs) await db.delete('block_revisions', r.id);
-  }
-  for (const s of sentiments) await db.delete('sentiments', s.block_id);
-  for (const c of characters) await db.delete('characters', c.id);
-  await db.delete('documents', documentId);
-}
 
 /**
  * Import a single-document bundle.
@@ -95,12 +83,16 @@ export async function importDocumentBundle(
   bundle: DocumentBundleV1,
   strategy: CollisionStrategy = 'copy',
 ): Promise<ImportResult> {
+  // Validate deeply BEFORE any destructive action. Shape-compatible
+  // but structurally broken bundles must not wipe the existing doc.
+  validateDocumentBundle(bundle);
+
   const db = await getDb();
   const existing = await db.get('documents', bundle.document.id);
   const collides = !!existing;
 
   if (collides && strategy === 'replace') {
-    await wipeDocument(db, bundle.document.id);
+    await deleteDocumentAllRows(bundle.document.id);
   }
 
   const remap = collides && strategy === 'copy';
@@ -217,6 +209,7 @@ export async function importDocumentBundle(
 export async function importDatabaseBackup(
   backup: DatabaseBackupV1,
 ): Promise<ImportResult> {
+  validateDatabaseBackup(backup);
   const db: InkMirrorDb = await getDb();
   const existingDocIds = new Set(
     (await db.getAll('documents')).map((d) => d.id),

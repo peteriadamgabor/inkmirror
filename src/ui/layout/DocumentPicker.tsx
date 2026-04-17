@@ -198,31 +198,7 @@ export const DocumentPicker = (props: Props) => {
     });
     if (!ok) return;
     try {
-      // Delete all associated data via IDB directly.
-      const db = await import('@/db/connection').then((m) => m.getDb());
-      const loaded = await repo.loadDocument(doc.id);
-      if (loaded) {
-        for (const b of loaded.blocks) {
-          await db.delete('blocks', b.id);
-        }
-        for (const ch of loaded.chapters) {
-          await db.delete('chapters', ch.id);
-        }
-        for (const c of loaded.characters) {
-          await db.delete('characters', c.id);
-        }
-      }
-      // Also delete any remaining soft-deleted blocks.
-      const allBlocks = await db.getAllFromIndex('blocks', 'by_document', doc.id);
-      for (const row of allBlocks) {
-        await db.delete('blocks', row.id);
-      }
-      // Sentiments and revisions.
-      const sentiments = await db.getAllFromIndex('sentiments', 'by_document', doc.id);
-      for (const s of sentiments) {
-        await db.delete('sentiments', s.block_id);
-      }
-      await db.delete('documents', doc.id);
+      await repo.deleteDocumentAllRows(doc.id);
       toast.success(t('picker.deleteSuccess', { title }));
       refetch();
     } catch (err) {

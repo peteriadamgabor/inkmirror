@@ -8,6 +8,7 @@ import {
   pushEntry,
   popUndo,
   popRedo,
+  markExternalBlockChange,
   type UndoEntry,
 } from './undo';
 import type { SyntheticDoc } from '@/engine/synthetic';
@@ -506,6 +507,10 @@ function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
         else delete out.marks;
         return out;
       });
+      // Force-sync the (possibly focused) contenteditable DOM. Without
+      // this pulse the BlockView effect would skip the write because
+      // focus is still on the block from before Ctrl+Z.
+      markExternalBlockChange(entry.blockId);
       if (persistEnabled && store.document) {
         track(
           repo
@@ -554,6 +559,7 @@ function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
         content: state.content,
         updated_at: now,
       }));
+      markExternalBlockChange(entry.blockId);
       if (persistEnabled && store.document) {
         track(
           repo

@@ -1,6 +1,28 @@
 import { createSignal } from 'solid-js';
 import type { Block, BlockMetadata, BlockType, Mark, UUID } from '@/types';
 
+// ---------- external-DOM-sync pulse ----------
+//
+// BlockView intentionally skips store→DOM writes while the block is
+// focused so we don't fight the user's caret. But that means
+// externally-triggered store mutations (undo, redo, future remote
+// sync) leave the focused contenteditable displaying stale text.
+//
+// This signal is a pulse: every time an external actor mutates a
+// block's content, they increment it with the affected blockId and a
+// monotonic rev. BlockView observes it and force-writes DOM for its
+// own id even through the focus guard.
+const [externalSync, setExternalSync] = createSignal<
+  { blockId: UUID; rev: number } | null
+>(null);
+export { externalSync };
+
+let externalSyncRev = 0;
+export function markExternalBlockChange(blockId: UUID): void {
+  externalSyncRev++;
+  setExternalSync({ blockId, rev: externalSyncRev });
+}
+
 // ---------- entry types ----------
 
 export interface ContentChangeEntry {

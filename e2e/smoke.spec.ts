@@ -17,7 +17,7 @@ test.describe('Boot + Documents', () => {
     await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
     await page.reload();
     await expect(page.getByText('Your documents')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('No documents yet')).toBeVisible();
+    await expect(page.getByText('A blank page.')).toBeVisible();
   });
 
   test('creating a document opens the editor', async ({ page }) => {
@@ -57,7 +57,10 @@ test.describe('Editor basics', () => {
     // Open the chapter dropdown.
     await page.locator('.text-lg.leading-none').filter({ hasText: '+' }).click();
     await page.getByText('New chapter').click();
-    await expect(page.getByText('Chapter 2')).toBeVisible();
+    // "Chapter 2" appears in both the sidebar item and the editor
+    // header — either instance being visible proves the chapter was
+    // created.
+    await expect(page.getByText('Chapter 2').first()).toBeVisible();
   });
 
   test('changing block type via context menu', async ({ page }) => {

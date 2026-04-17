@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { __resetDbForTests, getDb } from '@/db/connection';
-import { __setTestDb, loadDocument } from '@/db/repository';
+import { __setTestDb, deleteDocumentAllRows, loadDocument } from '@/db/repository';
 import { exportDatabaseBackup, exportDocumentBundle } from './export';
 import {
   importDatabaseBackup,
@@ -271,5 +271,82 @@ describe('backup roundtrip', () => {
   it('parseBundle rejects malformed JSON', async () => {
     const file = new File(['not json'], 'bad.json', { type: 'application/json' });
     await expect(parseBundle(file)).rejects.toThrow(/not valid JSON/);
+  });
+
+  it('replace-strategy import rejects a shape-compatible but broken bundle BEFORE wiping', async () => {
+    await seed('doc-1');
+
+    // Bundle has the right kind/version/envelope but its only block points at a
+    // chapter that does not exist in the bundle — validation must reject.
+    const malformed = {
+      kind: 'inkmirror.document',
+      version: 1 as const,
+      exported_at: '2026-04-17T00:00:00.000Z',
+      app_version: '0.0.0-test',
+      document: {
+        id: 'doc-1',
+        title: 'Replacement',
+        author: '',
+        synopsis: '',
+        settings: { font_family: '', font_size: 16, line_height: 1.8, editor_width: 680, theme: 'light' },
+        pov_character_id: null,
+        created_at: '2026-04-17T00:00:00.000Z',
+        updated_at: '2026-04-17T00:00:00.000Z',
+      },
+      chapters: [],
+      blocks: [
+        {
+          id: 'blk-bad',
+          chapter_id: 'chap-missing',
+          type: 'text',
+          content: 'x',
+          order: 0,
+          metadata: { type: 'text' },
+          deleted_at: null,
+          deleted_from: null,
+          created_at: '2026-04-17T00:00:00.000Z',
+          updated_at: '2026-04-17T00:00:00.000Z',
+        },
+      ],
+      characters: [],
+      sentiments: [],
+    };
+
+    await expect(
+      importDocumentBundle(malformed as never, 'replace'),
+    ).rejects.toThrow(/chapter_id/);
+
+    // Original doc must still be intact — wipe should not have happened.
+    const loaded = await loadDocument('doc-1');
+    expect(loaded).not.toBeNull();
+    expect(loaded?.document.title).toBe('Test Novel');
+    expect(loaded?.blocks.length).toBe(1);
+  });
+
+  it('deleteDocumentAllRows removes block revisions too', async () => {
+    await seed('doc-1');
+
+    // Seed a revision for the live block.
+    const db = await getDb();
+    await db.put('block_revisions', {
+      id: 'blk-1|2026-04-17T00:00:00.000Z',
+      block_id: 'blk-1',
+      document_id: 'doc-1',
+      content: 'Old draft.',
+      snapshot_at: '2026-04-17T00:00:00.000Z',
+    });
+    expect(
+      (await db.getAllFromIndex('block_revisions', 'by_block', 'blk-1')).length,
+    ).toBe(1);
+
+    await deleteDocumentAllRows('doc-1');
+
+    expect(await db.get('documents', 'doc-1')).toBeUndefined();
+    expect(
+      (await db.getAllFromIndex('blocks', 'by_document', 'doc-1')).length,
+    ).toBe(0);
+    expect(
+      (await db.getAllFromIndex('block_revisions', 'by_block', 'blk-1')).length,
+    ).toBe(0);
   });
 });

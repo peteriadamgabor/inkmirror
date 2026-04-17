@@ -479,6 +479,36 @@ export interface LoadedDocument {
   characters: Character[];
 }
 
+/**
+ * Delete every row belonging to a document across every object store,
+ * including block_revisions. Used by both the DocumentPicker delete
+ * flow and the replace-strategy import wipe so they stay consistent.
+ *
+ * NOTE: bypasses the DbLike test-injection layer because it spans
+ * stores; test setup must use the real fake-indexeddb.
+ */
+export async function deleteDocumentAllRows(documentId: UUID): Promise<void> {
+  try {
+    const idb = await getDb();
+    const chapters = await idb.getAllFromIndex('chapters', 'by_document', documentId);
+    const blocks = await idb.getAllFromIndex('blocks', 'by_document', documentId);
+    const sentiments = await idb.getAllFromIndex('sentiments', 'by_document', documentId);
+    const characters = await idb.getAllFromIndex('characters', 'by_document', documentId);
+    for (const c of chapters) await idb.delete('chapters', c.id);
+    for (const b of blocks) {
+      const revs = await idb.getAllFromIndex('block_revisions', 'by_block', b.id);
+      for (const r of revs) await idb.delete('block_revisions', r.id);
+      await idb.delete('blocks', b.id);
+    }
+    for (const s of sentiments) await idb.delete('sentiments', s.block_id);
+    for (const c of characters) await idb.delete('characters', c.id);
+    await idb.delete('documents', documentId);
+  } catch (err) {
+    logDbError('repository.deleteDocumentAllRows', err);
+    throw err;
+  }
+}
+
 export async function loadDocument(documentId: UUID): Promise<LoadedDocument | null> {
   try {
     const d = await db();
