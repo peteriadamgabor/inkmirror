@@ -9,6 +9,7 @@ import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-st
 import { getSonificationEngine, type MoodLabel } from '@/audio/engine';
 import { IconSun, IconMoon, IconSpellcheck, IconVolume } from '@/ui/shared/icons';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { DemoBanner } from '@/ui/shared/DemoBanner';
 import { t } from '@/i18n';
 import type { Block } from '@/types';
 
@@ -361,6 +362,7 @@ export const Editor = () => {
           <LanguagePicker tone="muted" />
         </div>
       </div>
+      <DemoBanner />
       <StoryPulseEcg />
       <div
         ref={scrollEl}

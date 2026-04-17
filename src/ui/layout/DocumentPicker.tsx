@@ -16,6 +16,8 @@ import {
   importDocumentBundle,
   parseBundle,
 } from '@/backup/import';
+import { openDemo } from '@/backup/demo';
+import { DEMO_DOC_ID } from '@/backup/demo-bundle';
 import { downloadBlob } from '@/exporters';
 import { openFeedback } from '@/ui/shared/feedback';
 import { t } from '@/i18n';
@@ -42,6 +44,37 @@ export const DocumentPicker = (props: Props) => {
   const [creating, setCreating] = createSignal(false);
   const [showNewForm, setShowNewForm] = createSignal(false);
   const [newTitle, setNewTitle] = createSignal('');
+  const [loadingDemo, setLoadingDemo] = createSignal(false);
+
+  const tryDemo = async () => {
+    if (loadingDemo()) return;
+    setLoadingDemo(true);
+    try {
+      const result = await openDemo();
+      if (result.kind === 'error') {
+        toast.error(t('demo.openFailed', { error: result.error }));
+        return;
+      }
+      if (result.kind === 'imported' || result.kind === 'replaced') {
+        toast.success(t('demo.openedToast'));
+      }
+      if (result.kind !== 'cancelled') {
+        // Let the resource see the new row.
+        await refetch();
+      }
+      // Whether imported/replaced/kept-both/cancelled, the demo exists
+      // now — open it.
+      props.onSelect(DEMO_DOC_ID);
+    } catch (err) {
+      toast.error(
+        t('demo.openFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
 
   const createNew = async () => {
     const title = newTitle().trim() || 'Untitled';
@@ -289,7 +322,7 @@ export const DocumentPicker = (props: Props) => {
               when={!docs.loading && (docs() ?? []).length > 0}
               fallback={
                 <Show when={!showNewForm()}>
-                  <div class="px-5 py-10 text-center flex flex-col items-center gap-2">
+                  <div class="px-5 py-10 text-center flex flex-col items-center gap-4">
                     <div class="font-serif text-base text-stone-500 dark:text-stone-400">
                       {docs.loading ? t('common.loading') : t('picker.emptyTitle')}
                     </div>
@@ -297,6 +330,21 @@ export const DocumentPicker = (props: Props) => {
                       <div class="text-[12px] text-stone-400 max-w-[320px] leading-relaxed">
                         {t('picker.emptyBody', { ext: '.inkmirror.json' })}
                       </div>
+                      {/* Demo card — only shown when the library is empty. */}
+                      <button
+                        type="button"
+                        onClick={() => void tryDemo()}
+                        disabled={loadingDemo()}
+                        class="mt-2 w-full max-w-[360px] text-left rounded-xl border border-violet-200/60 dark:border-violet-500/30 bg-violet-50/60 dark:bg-violet-900/10 px-4 py-3 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                      >
+                        <div class="flex items-center gap-2 font-serif text-sm text-violet-700 dark:text-violet-200">
+                          <span class="text-violet-500">✶</span>
+                          <span>{t('demo.ctaPickerHeader')}</span>
+                        </div>
+                        <div class="mt-1 text-[12px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                          {t('demo.ctaPickerBody')}
+                        </div>
+                      </button>
                     </Show>
                   </div>
                 </Show>

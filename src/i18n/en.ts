@@ -393,6 +393,24 @@ export const en = {
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
   },
+  demo: {
+    // Controls + prose for the "Try the demo" feature. Labels only —
+    // the story's actual content lives in src/backup/demo-prose-en.ts.
+    ctaLanding: 'Try the demo',
+    ctaLandingHelp: 'A short story by Chekhov — edit it, explore the features.',
+    ctaPickerHeader: 'Try the demo',
+    ctaPickerBody:
+      "A short story by Chekhov — edit it, explore the features, delete it when you're done.",
+    banner: "This is a sample document. Edit it, rearrange, delete — it's yours now.",
+    bannerDismiss: 'Dismiss',
+    collisionTitle: 'The demo is already in your library',
+    collisionBody:
+      "You've already imported the demo. Keep your current copy (it may have your edits), or replace it with the original version?",
+    collisionReplace: 'Replace',
+    collisionKeepBoth: 'Keep both',
+    openedToast: 'Demo opened — enjoy.',
+    openFailed: "Couldn't open the demo: {{error}}",
+  },
   roadmap: {
     pageTitle: 'Roadmap — InkMirror',
     // Section header + prose. Each paragraph is its own key so the

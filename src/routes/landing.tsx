@@ -1,7 +1,11 @@
-import { For } from 'solid-js';
+import { createSignal, For } from 'solid-js';
 import { SiteNav } from '@/ui/layout/SiteNav';
 import { markVisited } from '@/ui/shared/first-visit';
 import { FeedbackHost } from '@/ui/shared/FeedbackHost';
+import { ConfirmHost } from '@/ui/shared/ConfirmHost';
+import { ToastHost } from '@/ui/shared/ToastHost';
+import { openDemo } from '@/backup/demo';
+import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
 const FEATURE_ACCENTS = [
@@ -21,10 +25,50 @@ const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
 
 const MORE = Array.from({ length: 16 }, (_, i) => `landing.more.item${i + 1}`);
 
-export const LandingRoute = () => (
-  <div class="bg-stone-950 text-stone-100 font-sans scroll-smooth">
-    <SiteNav current="/landing" />
-    <FeedbackHost />
+export const LandingRoute = () => {
+  const [demoLoading, setDemoLoading] = createSignal(false);
+
+  /**
+   * "Try the demo" click handler. Imports the demo bundle (or triggers
+   * collision UI if already present), marks the visitor as having
+   * visited, then navigates to / so the editor auto-opens the demo
+   * (sole document → auto-open in the boot path).
+   */
+  const handleDemo = async (e: MouseEvent) => {
+    e.preventDefault();
+    if (demoLoading()) return;
+    setDemoLoading(true);
+    try {
+      const result = await openDemo();
+      if (result.kind === 'error') {
+        toast.error(t('demo.openFailed', { error: result.error }));
+        setDemoLoading(false);
+        return;
+      }
+      // Even when the user cancelled the collision prompt they already
+      // have the demo in their library — still navigate so the click
+      // isn't wasted.
+      markVisited();
+      if (result.kind === 'imported' || result.kind === 'replaced') {
+        toast.success(t('demo.openedToast'));
+      }
+      window.location.href = '/';
+    } catch (err) {
+      toast.error(
+        t('demo.openFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      setDemoLoading(false);
+    }
+  };
+
+  return (
+    <div class="bg-stone-950 text-stone-100 font-sans scroll-smooth">
+      <SiteNav current="/landing" />
+      <FeedbackHost />
+      <ConfirmHost />
+      <ToastHost />
     {/* --- Hero --- */}
     <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-violet-950/40 via-stone-950 to-stone-950 pointer-events-none" />
@@ -70,13 +114,23 @@ export const LandingRoute = () => (
         <p class="text-base text-stone-500 max-w-lg mx-auto mb-10">
           {t('landing.hero.subtitle')}
         </p>
-        <a
-          href="/"
-          onClick={() => markVisited()}
-          class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
-        >
-          {t('landing.hero.cta')}
-        </a>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          <a
+            href="/"
+            onClick={() => markVisited()}
+            class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+          >
+            {t('landing.hero.cta')}
+          </a>
+          <button
+            type="button"
+            onClick={handleDemo}
+            disabled={demoLoading()}
+            class="text-sm text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+          >
+            {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
+          </button>
+        </div>
         <p class="mt-4 text-xs text-stone-600">
           {t('landing.hero.smallPrint')}
         </p>
@@ -190,18 +244,29 @@ export const LandingRoute = () => (
       <p class="text-stone-500 mb-10 text-lg">
         {t('landing.cta.subheading')}
       </p>
-      <a
-        href="/"
-        onClick={() => markVisited()}
-        class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
-      >
-        {t('landing.cta.button')}
-      </a>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+        <a
+          href="/"
+          onClick={() => markVisited()}
+          class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+        >
+          {t('landing.cta.button')}
+        </a>
+        <button
+          type="button"
+          onClick={handleDemo}
+          disabled={demoLoading()}
+          class="text-base text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+        >
+          {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
+        </button>
+      </div>
     </section>
 
     {/* --- Footer --- */}
-    <footer class="py-8 px-6 border-t border-stone-800 text-center text-xs text-stone-600">
-      {t('landing.footer')}
-    </footer>
-  </div>
-);
+      <footer class="py-8 px-6 border-t border-stone-800 text-center text-xs text-stone-600">
+        {t('landing.footer')}
+      </footer>
+    </div>
+  );
+};

@@ -158,3 +158,52 @@ test.describe('Public site (first-time visitor)', () => {
     });
   });
 });
+
+test.describe('Demo manuscript', () => {
+  test.beforeEach(async ({ page }) => {
+    // Returning-visitor marker so / doesn't redirect to /landing.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('inkmirror.hasVisited', '1');
+      } catch {
+        /* private mode — ignore */
+      }
+    });
+  });
+
+  test('picker empty state shows the Try-the-demo card and opens the demo', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
+    await page.reload();
+    // Demo card appears on the empty state.
+    const demoButton = page.getByRole('button', { name: /Try the demo/ }).first();
+    await expect(demoButton).toBeVisible({ timeout: 10_000 });
+    await demoButton.click();
+    // Editor loads with the demo title in the sidebar or top bar.
+    await expect(page.getByText("Rothschild's Fiddle — a demo").first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('demo banner appears in the editor and dismisses persistently', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
+    await page.reload();
+    await page.getByRole('button', { name: /Try the demo/ }).first().click();
+    // The banner carries role="note" so it's addressable distinctly
+    // from the in-editor note block (which starts with similar text).
+    const banner = page.getByRole('note');
+    await expect(banner).toBeVisible({ timeout: 10_000 });
+    // Dismiss × lives inside the banner; scope the locator so it
+    // doesn't collide with the toast's own Dismiss button.
+    await banner.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(banner).not.toBeVisible();
+    await page.reload();
+    // After reload the banner stays dismissed (per-doc localStorage).
+    await expect(page.getByRole('note')).not.toBeVisible();
+  });
+});

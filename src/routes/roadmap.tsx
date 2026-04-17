@@ -42,16 +42,28 @@ const StatusChip = (props: { status: Status }) => {
 };
 
 /**
- * Scroll-in wrapper: adds the mirror-breath class when the section
- * enters the viewport. Reuses the existing keyframes in index.css, so
- * no new motion to ship and prefers-reduced-motion is already
- * respected.
+ * Scroll-in wrapper. Fades + gently lifts each section as it enters
+ * the viewport. NOTE: do NOT use `inkmirror-mirror-breath` here — that
+ * class applies scaleY(-1) (it drives the reflected word-mark on the
+ * landing hero) and would flip every section upside-down.
+ * `prefers-reduced-motion` is respected because we rely on a standard
+ * CSS transition; reduced-motion users see the end state immediately
+ * without the 900ms ramp (Tailwind's transition honors the media).
  */
 const SectionReveal = (props: { children: JSX.Element; class?: string }) => {
   let ref!: HTMLDivElement;
   const [visible, setVisible] = createSignal(false);
 
   onMount(() => {
+    // Reduced-motion users: skip the fade entirely, render visible
+    // from the start. Respects the preference without a janky pop.
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      setVisible(true);
+      return;
+    }
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -71,12 +83,11 @@ const SectionReveal = (props: { children: JSX.Element; class?: string }) => {
   return (
     <div
       ref={ref}
-      class={`transition-opacity duration-[900ms] ease-out ${props.class ?? ''}`}
-      classList={{
-        'opacity-100 inkmirror-mirror-breath': visible(),
-        'opacity-0 translate-y-2': !visible(),
+      class={`motion-safe:transition-all motion-safe:duration-[900ms] ease-out ${props.class ?? ''}`}
+      style={{
+        opacity: visible() ? 1 : 0,
+        transform: visible() ? 'translateY(0)' : 'translateY(8px)',
       }}
-      style={{ transform: visible() ? 'none' : 'translateY(8px)' }}
     >
       {props.children}
     </div>

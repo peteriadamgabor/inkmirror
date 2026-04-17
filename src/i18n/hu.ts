@@ -527,6 +527,22 @@ export const hu: Messages = {
     openMenu: 'Menü megnyitása',
     closeMenu: 'Menü bezárása',
   },
+  demo: {
+    ctaLanding: 'Próbáld ki a demót',
+    ctaLandingHelp: 'Egy rövid Csehov-novella — szerkeszd, fedezd fel a funkciókat.',
+    ctaPickerHeader: 'Próbáld ki a demót',
+    ctaPickerBody:
+      'Egy rövid Csehov-novella — szerkeszd, fedezd fel a funkciókat, és töröld, amikor végeztél.',
+    banner: 'Ez egy mintadokumentum. Szerkesztheted, átrendezheted, törölheted — már a tiéd.',
+    bannerDismiss: 'Elrejt',
+    collisionTitle: 'A demo már a könyvtáradban van',
+    collisionBody:
+      'Már importáltad a demót. Megtartod a meglévő példányt (amiben lehet, hogy a te módosításaid vannak), vagy lecseréled az eredeti változatra?',
+    collisionReplace: 'Csere',
+    collisionKeepBoth: 'Mindkettő marad',
+    openedToast: 'Demo megnyitva — jó olvasást.',
+    openFailed: 'Nem sikerült megnyitni a demót: {{error}}',
+  },
   roadmap: {
     pageTitle: 'Útiterv — InkMirror',
     status: {
