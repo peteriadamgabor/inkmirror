@@ -171,32 +171,34 @@ ${items}
 </html>`;
 }
 
-export const epubExporter: Exporter = {
-  format: 'epub',
-  label: 'EPUB',
-  extension: 'epub',
-  mimeType: 'application/epub+zip',
-  async run(input: ExportInput): Promise<Blob> {
-    const { default: JSZip } = await import('jszip');
-    const zip = new JSZip();
+type JSZipInstance = import('jszip');
 
-    // mimetype must be the first entry, uncompressed.
-    zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+/**
+ * Builds the JSZip instance for an EPUB. Exposed so tests can inspect
+ * structure (mimetype, container, manifest/spine integrity) without
+ * roundtripping through a Blob, which jsdom serializes unreliably.
+ */
+export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
 
-    zip.file(
-      'META-INF/container.xml',
-      `<?xml version="1.0" encoding="UTF-8"?>
+  // mimetype must be the first entry, uncompressed.
+  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+
+  zip.file(
+    'META-INF/container.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
 </container>`,
-    );
+  );
 
-    zip.file('OEBPS/styles.css', STYLES_CSS);
+  zip.file('OEBPS/styles.css', STYLES_CSS);
 
-    // Generate a text-based cover page from the document title + author.
-    const coverHtml = `<?xml version="1.0" encoding="UTF-8"?>
+  // Generate a text-based cover page from the document title + author.
+  const coverHtml = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
   <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
@@ -207,41 +209,51 @@ export const epubExporter: Exporter = {
     </div>
   </body>
 </html>`;
-    zip.file('OEBPS/cover.xhtml', coverHtml);
+  zip.file('OEBPS/cover.xhtml', coverHtml);
 
-    const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
-    const chapterFiles: Array<{ file: string; title: string }> = [
-      { file: 'cover.xhtml', title: 'Cover' },
-    ];
+  const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+  const chapterFiles: Array<{ file: string; title: string }> = [
+    { file: 'cover.xhtml', title: 'Cover' },
+  ];
 
-    sortedChapters.forEach((chapter, i) => {
-      const filename = `chapter-${i + 1}.xhtml`;
-      const bodyInner = exportableBlocks(chapter, input.blocks)
-        .map((b) => renderBlockXhtml(b, input.characters))
-        .filter((x) => x.trim().length > 0)
-        .join('\n      ');
-      zip.file(`OEBPS/${filename}`, chapterXhtml(chapter.title, bodyInner));
-      chapterFiles.push({ file: filename, title: chapter.title });
-    });
+  sortedChapters.forEach((chapter, i) => {
+    const filename = `chapter-${i + 1}.xhtml`;
+    const bodyInner = exportableBlocks(chapter, input.blocks)
+      .map((b) => renderBlockXhtml(b, input.characters))
+      .filter((x) => x.trim().length > 0)
+      .join('\n      ');
+    zip.file(`OEBPS/${filename}`, chapterXhtml(chapter.title, bodyInner));
+    chapterFiles.push({ file: filename, title: chapter.title });
+  });
 
-    zip.file(
-      'OEBPS/nav.xhtml',
-      navXhtml(input.document.title || 'Untitled', chapterFiles),
-    );
+  zip.file(
+    'OEBPS/nav.xhtml',
+    navXhtml(input.document.title || 'Untitled', chapterFiles),
+  );
 
-    const modified = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
-    zip.file(
-      'OEBPS/content.opf',
-      contentOpf(
-        input.document.title || 'Untitled',
-        input.document.author || '',
-        input.document.synopsis || '',
-        crypto.randomUUID(),
-        chapterFiles.map((c) => c.file),
-        modified,
-      ),
-    );
+  const modified = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  zip.file(
+    'OEBPS/content.opf',
+    contentOpf(
+      input.document.title || 'Untitled',
+      input.document.author || '',
+      input.document.synopsis || '',
+      crypto.randomUUID(),
+      chapterFiles.map((c) => c.file),
+      modified,
+    ),
+  );
 
+  return zip;
+}
+
+export const epubExporter: Exporter = {
+  format: 'epub',
+  label: 'EPUB',
+  extension: 'epub',
+  mimeType: 'application/epub+zip',
+  async run(input: ExportInput): Promise<Blob> {
+    const zip = await buildEpubZip(input);
     return zip.generateAsync({
       type: 'blob',
       mimeType: 'application/epub+zip',

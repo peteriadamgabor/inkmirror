@@ -184,4 +184,30 @@ describe('roundtrip: marks → html → marks', () => {
     expect(parsed.content).toBe(content);
     expect(parsed.marks).toEqual(normalizeMarks(marks, content.length));
   });
+
+  it('preserves newlines from Shift+Enter round-trips through marks→html→marks', () => {
+    // Shift+Enter in contenteditable inserts a <br>; parseMarksFromDom
+    // converts that to a \n. Re-rendering through marksToHtml must
+    // preserve the \n so CSS white-space: pre-wrap renders the visual
+    // line break on the next paint.
+    const content = 'Line one\nLine two';
+    const html = marksToHtml(content, []);
+    expect(html).toBe('Line one\nLine two');
+
+    // And after the browser parses that HTML string into a contenteditable,
+    // reading it back via parseMarksFromDom still gives us '\n'.
+    const root = document.createElement('div');
+    root.style.whiteSpace = 'pre-wrap';
+    root.innerHTML = html;
+    const parsed = parseMarksFromDom(root);
+    expect(parsed.content).toBe('Line one\nLine two');
+  });
+
+  it('preserves newlines alongside inline marks', () => {
+    const content = 'First\nBold tail';
+    const marks: Mark[] = [{ type: 'bold', start: 6, end: 15 }];
+    const html = marksToHtml(content, marks);
+    // The \n survives between the escaped text and the <b> wrapper.
+    expect(html).toBe('First\n<b>Bold tail</b>');
+  });
 });
