@@ -24,4 +24,5 @@ coverage
 # Per-developer Claude Code / agent tooling
 /.claude/
 /.agents/
+/.superpowers/
 /skills-lock.json
