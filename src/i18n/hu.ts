@@ -218,6 +218,14 @@ export const hu: Messages = {
     sceneLocationPlaceholder: 'pl. A konyha',
     sceneTimePlaceholder: 'pl. Hajnal',
     sceneMoodPlaceholder: 'pl. Feszült',
+    addedPrefix: 'hozzáadva',
+    editedPrefix: 'szerkesztve',
+  },
+  time: {
+    justNow: 'épp most',
+    minutesAgo: '{{n}} perce',
+    hoursAgo: '{{n}} órája',
+    daysAgo: '{{n}} napja',
   },
   wordCount: {
     words: 'szó',

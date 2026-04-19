@@ -207,7 +207,9 @@ select:focus-visible {
    a different radius or a narrower column. Keeps the app reading
    as one editor instead of a chat widget bolted onto prose. */
 [data-block-type="dialogue"] [data-editable] {
-  border-color: transparent !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
 }
 /* Unassigned fallback tint (no character color yet). */
 [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
@@ -215,14 +217,6 @@ select:focus-visible {
 }
 .dark [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
   background: rgba(20, 184, 166, 0.1);
-}
-/* Tighten vertical spacing between consecutive dialogue blocks so
-   back-and-forth conversations feel grouped rather than paragraphed. */
-[data-block-type="dialogue"] + [data-block-type="dialogue"] {
-  padding-top: 0;
-}
-[data-block-type="dialogue"] + [data-block-type="dialogue"] > div:first-child {
-  margin-top: -4px;
 }
 
 /* POV alignment: the old iMessage-style right-push relied on the
@@ -375,10 +369,7 @@ select:focus-visible {
   bottom: 0;
 }
 
-/* POV dialogue: keep the header row right-aligned so "me" still
-   reads differently from "them" at a glance. The bubble itself
-   is full-width like every other block — the alignment cue lives
-   in the metadata row rather than in the content column. */
-[data-block-type="dialogue"][data-pov-speaker="1"] > div:first-child {
-  justify-content: flex-end;
-}
+/* POV dialogue used to flip the header row to the right edge as
+   an "iMessage me" cue, but the alignment read unbalanced against
+   the left-aligned controls on every other block. The POV cue now
+   lives solely in the bubble (right-side colored border + tint). */

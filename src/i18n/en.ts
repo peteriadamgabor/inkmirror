@@ -516,6 +516,14 @@ export const en = {
     sceneLocationPlaceholder: 'e.g. The kitchen',
     sceneTimePlaceholder: 'e.g. Dawn',
     sceneMoodPlaceholder: 'e.g. Tense',
+    addedPrefix: 'added',
+    editedPrefix: 'edited',
+  },
+  time: {
+    justNow: 'just now',
+    minutesAgo: '{{n}}m ago',
+    hoursAgo: '{{n}}h ago',
+    daysAgo: '{{n}}d ago',
   },
   wordCount: {
     words: 'words',

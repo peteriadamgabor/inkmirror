@@ -28,6 +28,7 @@ import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
 import { BlockHistory } from './BlockHistory';
+import { BlockTimestamp } from './BlockTimestamp';
 import { recordKeystroke } from '@/workers/pulse-client';
 import { t } from '@/i18n';
 
@@ -681,7 +682,7 @@ export const BlockView = (props: { block: Block }) => {
           setTimeout(() => delete el.dataset.justAdded, 250);
         }
       }}
-      class="py-2 transition-opacity duration-150 relative group/block"
+      class="py-3 transition-opacity duration-150 relative group/block"
       classList={{
         'opacity-30 hover:opacity-100 focus-within:opacity-100': uiState.focusMode,
       }}
@@ -852,21 +853,23 @@ export const BlockView = (props: { block: Block }) => {
           }
         }}
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-4 py-2 rounded-xl border border-transparent hover:border-stone-200/60 dark:hover:border-stone-700/40 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
-        style={
-          dialogueSpeakerColor()
-            ? isPovSpeaker()
-              ? {
-                  'border-right': `3px solid ${dialogueSpeakerColor()}`,
-                  'border-left': 'none',
-                  background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
-                }
-              : {
-                  'border-left': `3px solid ${dialogueSpeakerColor()}`,
-                  background: `color-mix(in srgb, ${dialogueSpeakerColor()} 12%, transparent)`,
-                }
-            : undefined
-        }
+        style={(() => {
+          if (props.block.metadata.type !== 'dialogue') return undefined;
+          const color = dialogueSpeakerColor();
+          const pov = isPovSpeaker();
+          if (!color && !pov) return undefined;
+          // POV with an uncolored speaker falls back to the brand
+          // accent so the cue still reads.
+          const accent = color ?? '#7F77DD';
+          const bgPct = color ? 12 : 6;
+          const style: Record<string, string> = {
+            background: `color-mix(in srgb, ${accent} ${bgPct}%, transparent)`,
+          };
+          if (pov) style['border-left'] = `3px solid ${accent}`;
+          return style;
+        })()}
       />
+      <BlockTimestamp createdAt={props.block.created_at} updatedAt={props.block.updated_at} />
     </div>
   );
 };
