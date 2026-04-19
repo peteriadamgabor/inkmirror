@@ -167,5 +167,27 @@ describe('pdfExporter — CONT\'D on consecutive same-speaker dialogue', () => {
     expect(nextSpeakerId(b1)).toBeNull();
     expect(nextSpeakerId(b2)).toBe('x');
   });
+
+  it('preserves Hungarian ő/ű through flatten — no WinAnsi truncation upstream', () => {
+    // Regression for the built-in Times font bug where jsPDF truncated
+    // U+0151/U+0171 to their low bytes (Q/q) in the rendered PDF.
+    // The fix is downstream (custom TTF font), but flatten must pass
+    // the characters through verbatim.
+    const now = '2026-04-15T00:00:00.000Z';
+    const huBlock: Block = {
+      id: 'hu', chapter_id: 'c1', type: 'text',
+      content: 'Az ébresztő gyönyörű volt. Főiskolát végzett Ő és Ű.',
+      order: 99, metadata: { type: 'text' },
+      deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+    };
+    const parts = flatten(huBlock, [], null);
+    const text = parts.map((p) => p.text).join('');
+    expect(text).toContain('ébresztő');
+    expect(text).toContain('gyönyörű');
+    expect(text).toContain('Főiskolát');
+    expect(text).toContain('Ő');
+    expect(text).toContain('Ű');
+    expect(text).not.toMatch(/[QqPp](?![a-zü])/); // no stray Q/q/P/p that would indicate truncation
+  });
 });
 

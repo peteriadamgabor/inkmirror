@@ -1,4 +1,5 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
+import type { jsPDF } from 'jspdf';
 import {
   contentToRuns,
   exportableBlocks,
@@ -14,6 +15,69 @@ const MARGIN = 72; // 1 inch
 const LINE_H = 18;
 const BODY_FONT_SIZE = 12;
 const CONTENT_W = PAGE_W - MARGIN * 2;
+
+// Custom font name registered with jsPDF. The built-in 'times' uses
+// WinAnsi encoding and can't render Hungarian ő/ű/Ő/Ű — jsPDF
+// truncates the codepoint and writes the low byte as a fallback
+// glyph (ő → Q, ű → q), which also corrupts width measurement and
+// produces letter-spaced line wrapping. A bundled Unicode TTF fixes
+// both symptoms at once.
+const PDF_FONT = 'NotoSerif';
+const FONT_VARIANTS: ReadonlyArray<{
+  url: string;
+  file: string;
+  style: 'normal' | 'italic' | 'bold' | 'bolditalic';
+}> = [
+  { url: '/fonts/NotoSerif-Regular.ttf',    file: 'NotoSerif-Regular.ttf',    style: 'normal' },
+  { url: '/fonts/NotoSerif-Italic.ttf',     file: 'NotoSerif-Italic.ttf',     style: 'italic' },
+  { url: '/fonts/NotoSerif-Bold.ttf',       file: 'NotoSerif-Bold.ttf',       style: 'bold' },
+  { url: '/fonts/NotoSerif-BoldItalic.ttf', file: 'NotoSerif-BoldItalic.ttf', style: 'bolditalic' },
+];
+
+let cachedFonts: Promise<ReadonlyArray<{ file: string; base64: string; style: string }>> | null = null;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  // btoa takes a "binary string". Chunk to avoid "argument too long"
+  // on large TTFs (~800 KB) where spreading the Uint8Array into
+  // String.fromCharCode blows the call-stack in some runtimes.
+  const CHUNK = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function loadFonts(): Promise<ReadonlyArray<{ file: string; base64: string; style: string }>> {
+  if (cachedFonts) return cachedFonts;
+  cachedFonts = (async () => {
+    const results = await Promise.all(
+      FONT_VARIANTS.map(async (v) => {
+        const res = await fetch(v.url);
+        if (!res.ok) throw new Error(`Failed to fetch ${v.url}: ${res.status}`);
+        const buf = new Uint8Array(await res.arrayBuffer());
+        return { file: v.file, base64: bytesToBase64(buf), style: v.style };
+      }),
+    );
+    return results;
+  })();
+  try {
+    return await cachedFonts;
+  } catch (err) {
+    cachedFonts = null; // don't cache failures — next export retries
+    throw err;
+  }
+}
+
+function registerFonts(
+  pdf: jsPDF,
+  fonts: ReadonlyArray<{ file: string; base64: string; style: string }>,
+): void {
+  for (const f of fonts) {
+    pdf.addFileToVFS(f.file, f.base64);
+    pdf.addFont(f.file, PDF_FONT, f.style);
+  }
+}
 
 /**
  * Hard cap on a single block's content during PDF rendering. jsPDF's
@@ -108,9 +172,10 @@ export const pdfExporter: Exporter = {
   extension: 'pdf',
   mimeType: 'application/pdf',
   async run(input: ExportInput): Promise<Blob> {
-    const { jsPDF } = await import('jspdf');
+    const [{ jsPDF }, fonts] = await Promise.all([import('jspdf'), loadFonts()]);
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    pdf.setFont('times', 'normal');
+    registerFonts(pdf, fonts);
+    pdf.setFont(PDF_FONT, 'normal');
 
     let y = MARGIN;
     const newPage = () => {
@@ -125,7 +190,7 @@ export const pdfExporter: Exporter = {
       opts: { size: number; style?: 'normal' | 'italic' | 'bold'; align?: 'left' | 'center' },
     ) => {
       pdf.setFontSize(opts.size);
-      pdf.setFont('times', opts.style ?? 'normal');
+      pdf.setFont(PDF_FONT, opts.style ?? 'normal');
       const lines = pdf.splitTextToSize(text, CONTENT_W) as string[];
       for (const line of lines) {
         ensureSpace(opts.size * 1.4);
@@ -169,7 +234,7 @@ export const pdfExporter: Exporter = {
               ? 'bolditalic'
               : run.bold ? 'bold' : run.italic ? 'italic' : 'normal';
             pdf.setFontSize(size);
-            pdf.setFont('times', fontStyle);
+            pdf.setFont(PDF_FONT, fontStyle);
             // Word-wrap within the remaining line width.
             const availW = CONTENT_W - (currentX - MARGIN);
             const wrapped = pdf.splitTextToSize(text, availW) as string[];
