@@ -93,6 +93,87 @@ describe('resolveKeyIntent', () => {
     });
   });
 
+  describe('Slash menu trigger', () => {
+    it('opens on "/" in an empty block', () => {
+      expect(resolveKeyIntent(ctx({ key: '/', contentLength: 0 }))).toEqual({
+        type: 'open-slash-menu',
+      });
+    });
+
+    it('does not open on "/" in a non-empty block', () => {
+      expect(resolveKeyIntent(ctx({ key: '/', contentLength: 7 }))).toBeNull();
+    });
+
+    it('does not open when combined with a modifier', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: '/', contentLength: 0, ctrlKey: true })),
+      ).toBeNull();
+      expect(
+        resolveKeyIntent(ctx({ key: '/', contentLength: 0, shiftKey: true })),
+      ).toBeNull();
+    });
+
+    it('does not open during IME composition', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: '/', contentLength: 0, isComposing: true })),
+      ).toBeNull();
+    });
+  });
+
+  describe('Ctrl+D duplicate', () => {
+    it('Ctrl+D → duplicate-block', () => {
+      expect(resolveKeyIntent(ctx({ key: 'd', ctrlKey: true }))).toEqual({
+        type: 'duplicate-block',
+      });
+    });
+
+    it('Cmd+D (metaKey) also duplicates', () => {
+      expect(resolveKeyIntent(ctx({ key: 'D', metaKey: true }))).toEqual({
+        type: 'duplicate-block',
+      });
+    });
+
+    it('returns null when combined with Shift (reserved)', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'd', ctrlKey: true, shiftKey: true })),
+      ).toBeNull();
+    });
+
+    it('returns null during IME composition', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'd', ctrlKey: true, isComposing: true })),
+      ).toBeNull();
+    });
+  });
+
+  describe('Ctrl+Shift+Enter insert above', () => {
+    it('Ctrl+Shift+Enter → create-block-before', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'Enter', ctrlKey: true, shiftKey: true })),
+      ).toEqual({ type: 'create-block-before' });
+    });
+
+    it('plain Shift+Enter still falls through to soft line break', () => {
+      expect(resolveKeyIntent(ctx({ key: 'Enter', shiftKey: true }))).toBeNull();
+    });
+  });
+
+  describe('Ctrl+Shift+K delete block', () => {
+    it('Ctrl+Shift+K → delete-block', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: 'k', ctrlKey: true, shiftKey: true })),
+      ).toEqual({ type: 'delete-block' });
+    });
+
+    it('returns null during IME composition', () => {
+      expect(
+        resolveKeyIntent(
+          ctx({ key: 'k', ctrlKey: true, shiftKey: true, isComposing: true }),
+        ),
+      ).toBeNull();
+    });
+  });
+
   describe('Alt+digit block type switch', () => {
     it('Alt+1 → change-block-type text', () => {
       expect(resolveKeyIntent(ctx({ key: '1', altKey: true }))).toEqual({

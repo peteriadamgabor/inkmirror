@@ -531,6 +531,39 @@ export function createBlockAfter(blockId: UUID, type: BlockType = 'text'): UUID 
   return newId;
 }
 
+export function createBlockBefore(blockId: UUID, type: BlockType = 'text'): UUID {
+  const existing = store.blocks[blockId];
+  if (!existing) throw new Error(`createBlockBefore: unknown block ${blockId}`);
+
+  const newId = uuid();
+  const now = new Date().toISOString();
+  const newBlock: Block = {
+    id: newId,
+    chapter_id: existing.chapter_id,
+    type,
+    content: '',
+    order: existing.order,
+    metadata: defaultMetadataFor(type),
+    deleted_at: null,
+    deleted_from: null,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const idx = store.blockOrder.indexOf(blockId);
+  const newOrder = [...store.blockOrder];
+  newOrder.splice(Math.max(idx, 0), 0, newId);
+
+  setStore('blocks', newId, newBlock);
+  setStore('blockOrder', newOrder);
+
+  if (persistEnabled && store.document) {
+    track(repo.saveBlock(unwrap(newBlock), store.document.id).catch(() => undefined));
+  }
+
+  return newId;
+}
+
 /**
  * Insert a chunk of text that contains paragraph breaks (\n\n+) into the
  * current block, splitting into multiple blocks so each pasted paragraph

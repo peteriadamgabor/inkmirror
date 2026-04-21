@@ -14,6 +14,7 @@ import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
 import { FeedbackHost } from './shared/FeedbackHost';
+import { SlashMenuHost } from './shared/SlashMenuHost';
 import {
   uiState,
   toggleFocusMode,
@@ -118,6 +119,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <DocumentSettings />
     <ConfirmHost />
     <ContextMenuHost />
+    <SlashMenuHost />
     <FeedbackHost />
     <ToastHost />
     {props.children}

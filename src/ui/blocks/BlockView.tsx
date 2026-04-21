@@ -7,6 +7,7 @@ import {
   updateDialogueParenthetical,
   matchLeadingSpeaker,
   createBlockAfter,
+  createBlockBefore,
   duplicateBlock,
   insertPastedParagraphs,
   deleteBlock,
@@ -24,6 +25,7 @@ import { IconDots, IconDrag, IconChevron, IconTrash, IconPlus } from '@/ui/share
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
+import { openSlashMenu } from '@/ui/shared/slashMenu';
 import { debounce } from '@/utils/debounce';
 import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
@@ -438,6 +440,51 @@ export const BlockView = (props: { block: Block }) => {
           updateBlockType(props.block.id, intent.blockType);
           focusBlock(props.block.id, caret);
         }
+        break;
+      }
+      case 'create-block-before': {
+        const newId = createBlockBefore(props.block.id, props.block.type);
+        focusBlock(newId, 'start');
+        break;
+      }
+      case 'duplicate-block': {
+        const newId = duplicateBlock(props.block.id);
+        if (newId) {
+          focusBlock(newId, 'end');
+          toast.success('Block duplicated');
+        }
+        break;
+      }
+      case 'delete-block': {
+        void (async () => {
+          const ok = await askConfirm({
+            title: 'Delete block?',
+            message: 'The block will be moved to the graveyard and can be restored later.',
+            confirmLabel: 'Delete',
+            danger: true,
+          });
+          if (ok) {
+            const idx = store.blockOrder.indexOf(props.block.id);
+            const previousId = idx > 0 ? store.blockOrder[idx - 1] : null;
+            const nextId = idx >= 0 && idx < store.blockOrder.length - 1
+              ? store.blockOrder[idx + 1]
+              : null;
+            deleteBlock(props.block.id);
+            if (previousId) focusBlock(previousId, 'end');
+            else if (nextId) focusBlock(nextId, 'start');
+          }
+        })();
+        break;
+      }
+      case 'open-slash-menu': {
+        const rect = el.getBoundingClientRect();
+        void (async () => {
+          const picked = await openSlashMenu({ x: rect.left, y: rect.bottom + 4 });
+          if (picked && picked !== props.block.type) {
+            updateBlockType(props.block.id, picked);
+          }
+          focusBlock(props.block.id, 'start');
+        })();
         break;
       }
     }

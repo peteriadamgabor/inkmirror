@@ -15,12 +15,16 @@ export interface KeyContext {
 
 export type KeyIntent =
   | { type: 'create-block-after' }
+  | { type: 'create-block-before' }
   | { type: 'delete-empty-block' }
+  | { type: 'delete-block' }
+  | { type: 'duplicate-block' }
   | { type: 'focus-previous' }
   | { type: 'focus-next' }
   | { type: 'move-block-up' }
   | { type: 'move-block-down' }
-  | { type: 'change-block-type'; blockType: BlockType };
+  | { type: 'change-block-type'; blockType: BlockType }
+  | { type: 'open-slash-menu' };
 
 const TYPE_BY_DIGIT: Record<string, BlockType> = {
   '1': 'text',
@@ -38,6 +42,37 @@ const TYPE_BY_DIGIT: Record<string, BlockType> = {
  */
 export function resolveKeyIntent(ctx: KeyContext): KeyIntent | null {
   if (ctx.isComposing) return null;
+
+  const mod = ctx.ctrlKey || ctx.metaKey;
+
+  // Ctrl/Cmd+D duplicates the current block. preventDefault stops
+  // Firefox's "bookmark this page" default.
+  if (mod && !ctx.shiftKey && !ctx.altKey && (ctx.key === 'd' || ctx.key === 'D')) {
+    return { type: 'duplicate-block' };
+  }
+
+  // Ctrl/Cmd+Shift+Enter inserts a new block BEFORE the current one.
+  // Enter alone inserts after, so this is the symmetric keyboard path.
+  if (mod && ctx.shiftKey && !ctx.altKey && ctx.key === 'Enter') {
+    return { type: 'create-block-before' };
+  }
+
+  // Ctrl/Cmd+Shift+K deletes the current block (with confirm in the UI).
+  // "K" for kill; Ctrl+Shift+Backspace would collide with Firefox's
+  // Clear History dialog and isn't reliably preventable.
+  if (mod && ctx.shiftKey && !ctx.altKey && (ctx.key === 'k' || ctx.key === 'K')) {
+    return { type: 'delete-block' };
+  }
+
+  // "/" on an empty block opens the slash menu. Non-empty blocks pass
+  // through so "/" remains a normal typing key inside prose.
+  if (
+    ctx.key === '/' &&
+    !mod && !ctx.altKey && !ctx.shiftKey &&
+    ctx.contentLength === 0
+  ) {
+    return { type: 'open-slash-menu' };
+  }
 
   if (ctx.altKey && ctx.key === 'ArrowUp') {
     return { type: 'move-block-up' };
