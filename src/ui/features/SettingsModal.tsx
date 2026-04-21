@@ -28,6 +28,11 @@ import {
   isModifierOnly,
   type AppAction,
 } from '@/store/hotkeys';
+import {
+  BLOCK_KEY_META,
+  BLOCK_KEY_SECTION_ORDER,
+  type BlockKeySection,
+} from './block-keys-meta';
 
 interface SidebarTab {
   id: SettingsModalTab;
@@ -469,6 +474,41 @@ export const SettingsModal = () => {
                           >
                             {isCapturing() ? t('hotkeys.pressKey') : hotkeys[meta.action]}
                           </button>
+                        </div>
+                      );
+                    }}
+                  </For>
+                </div>
+
+                <div class="mt-8">
+                  <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+                    {t('hotkeys.blockTitle')}
+                  </h2>
+                  <p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+                    {t('hotkeys.blockSubtitle')}
+                  </p>
+                  <For each={BLOCK_KEY_SECTION_ORDER}>
+                    {(section: BlockKeySection) => {
+                      const rows = BLOCK_KEY_META.filter((k) => k.section === section);
+                      return (
+                        <div class="mb-4">
+                          <div class="text-[11px] uppercase tracking-wider text-stone-400 mb-1">
+                            {t(`hotkeys.sections.${section}`)}
+                          </div>
+                          <div class="flex flex-col gap-0.5">
+                            <For each={rows}>
+                              {(row) => (
+                                <div class="flex items-center justify-between gap-4 py-2 border-b border-stone-200 dark:border-stone-700 last:border-b-0">
+                                  <div class="flex-1 min-w-0 text-sm text-stone-700 dark:text-stone-200">
+                                    {t(row.labelKey)}
+                                  </div>
+                                  <div class="font-mono text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-300 shrink-0 min-w-[130px] text-center bg-stone-50 dark:bg-stone-900/50">
+                                    {row.combo}
+                                  </div>
+                                </div>
+                              )}
+                            </For>
+                          </div>
                         </div>
                       );
                     }}
