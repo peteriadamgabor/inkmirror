@@ -1,3 +1,5 @@
+import type { BlockType } from '@/types';
+
 export interface KeyContext {
   key: string;
   shiftKey: boolean;
@@ -17,7 +19,15 @@ export type KeyIntent =
   | { type: 'focus-previous' }
   | { type: 'focus-next' }
   | { type: 'move-block-up' }
-  | { type: 'move-block-down' };
+  | { type: 'move-block-down' }
+  | { type: 'change-block-type'; blockType: BlockType };
+
+const TYPE_BY_DIGIT: Record<string, BlockType> = {
+  '1': 'text',
+  '2': 'dialogue',
+  '3': 'scene',
+  '4': 'note',
+};
 
 /**
  * Resolves a keyboard event context into a block-level intent, or null if
@@ -34,6 +44,14 @@ export function resolveKeyIntent(ctx: KeyContext): KeyIntent | null {
   }
   if (ctx.altKey && ctx.key === 'ArrowDown') {
     return { type: 'move-block-down' };
+  }
+
+  // Alt+1..4 switches the current block's type. Alt was picked over Ctrl
+  // because Ctrl+1..8 switches browser tabs in Firefox/Chrome — not
+  // preventable from a contenteditable keydown handler. Alt stays clear.
+  if (ctx.altKey && !ctx.ctrlKey && !ctx.metaKey && !ctx.shiftKey) {
+    const target = TYPE_BY_DIGIT[ctx.key];
+    if (target) return { type: 'change-block-type', blockType: target };
   }
 
   // Enter only creates a new block when the caret is at the very end of

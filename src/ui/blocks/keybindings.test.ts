@@ -93,6 +93,56 @@ describe('resolveKeyIntent', () => {
     });
   });
 
+  describe('Alt+digit block type switch', () => {
+    it('Alt+1 → change-block-type text', () => {
+      expect(resolveKeyIntent(ctx({ key: '1', altKey: true }))).toEqual({
+        type: 'change-block-type',
+        blockType: 'text',
+      });
+    });
+
+    it('Alt+2 → change-block-type dialogue', () => {
+      expect(resolveKeyIntent(ctx({ key: '2', altKey: true }))).toEqual({
+        type: 'change-block-type',
+        blockType: 'dialogue',
+      });
+    });
+
+    it('Alt+3 → change-block-type scene', () => {
+      expect(resolveKeyIntent(ctx({ key: '3', altKey: true }))).toEqual({
+        type: 'change-block-type',
+        blockType: 'scene',
+      });
+    });
+
+    it('Alt+4 → change-block-type note', () => {
+      expect(resolveKeyIntent(ctx({ key: '4', altKey: true }))).toEqual({
+        type: 'change-block-type',
+        blockType: 'note',
+      });
+    });
+
+    it('returns null for unmapped digits (Alt+5+)', () => {
+      expect(resolveKeyIntent(ctx({ key: '5', altKey: true }))).toBeNull();
+      expect(resolveKeyIntent(ctx({ key: '0', altKey: true }))).toBeNull();
+    });
+
+    it('returns null when modifiers are combined with Alt', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: '1', altKey: true, ctrlKey: true })),
+      ).toBeNull();
+      expect(
+        resolveKeyIntent(ctx({ key: '1', altKey: true, shiftKey: true })),
+      ).toBeNull();
+    });
+
+    it('returns null during IME composition', () => {
+      expect(
+        resolveKeyIntent(ctx({ key: '1', altKey: true, isComposing: true })),
+      ).toBeNull();
+    });
+  });
+
   describe('Arrow navigation', () => {
     it('returns focus-previous on ArrowUp at the first line', () => {
       expect(resolveKeyIntent(ctx({ key: 'ArrowUp', atFirstLine: true }))).toEqual({

@@ -433,6 +433,13 @@ export const BlockView = (props: { block: Block }) => {
         }
         break;
       }
+      case 'change-block-type': {
+        if (intent.blockType !== props.block.type) {
+          updateBlockType(props.block.id, intent.blockType);
+          focusBlock(props.block.id, caret);
+        }
+        break;
+      }
     }
   };
 
