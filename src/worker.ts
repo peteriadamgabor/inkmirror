@@ -341,10 +341,13 @@ async function handleHfProxy(request: Request): Promise<Response> {
       headers: {
         'User-Agent': 'InkMirror/1.0 (https://github.com/peteriadamgabor/inkmirror)',
       },
-      // `manual` keeps us from following a redirect to a non-HF host. If
-      // HF returns 30x, we pass it through so the client can re-request
-      // via the proxy (which will validate the new path again).
-      redirect: 'manual',
+      // HF redirects `/<org>/<model>/resolve/main/<file>` → same-origin
+      // `/api/resolve-cache/...` before serving the bytes. Follow the
+      // chain here so the browser receives the final 200. The incoming
+      // path is regex-gated to HF's model namespace, so this fetch cannot
+      // be pointed at anything off-origin; the content-type allowlist
+      // below remains the safety net if an upstream response ever drifts.
+      redirect: 'follow',
     });
   } catch {
     return new Response('Bad gateway', { status: 502 });
@@ -355,20 +358,6 @@ async function handleHfProxy(request: Request): Promise<Response> {
     headers.set(k, v);
   }
   headers.set('X-Robots-Tag', 'noindex, nofollow');
-
-  if (upstream.status >= 300 && upstream.status < 400) {
-    // Don't leak upstream redirect target — force the client back
-    // through the proxy with the resolved model path if needed.
-    const loc = upstream.headers.get('location');
-    if (loc && loc.startsWith(`${HF_BASE}/`)) {
-      const hfPath = loc.slice(HF_BASE.length + 1);
-      if (HF_PATH_RE.test(hfPath)) {
-        headers.set('Location', `/hf-proxy/${hfPath}`);
-        return new Response(null, { status: upstream.status, headers });
-      }
-    }
-    return new Response('Not found', { status: 404 });
-  }
 
   // Enforce a strict content-type allowlist so a compromised upstream
   // cannot deliver HTML/JS under our origin's same-origin protections.
