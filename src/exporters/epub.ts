@@ -135,6 +135,13 @@ p.dialogue { text-indent: 1.5em; }
 p.dialogue + p.dialogue { text-indent: 1.5em; }
 `;
 
+interface CoverAsset {
+  /** Path inside the zip, relative to OEBPS, e.g. `cover.jpg`. */
+  href: string;
+  /** e.g. `image/jpeg` or `image/png`. */
+  mimeType: string;
+}
+
 function contentOpf(
   title: string,
   author: string,
@@ -142,6 +149,7 @@ function contentOpf(
   bookId: string,
   chapterFiles: string[],
   modified: string,
+  coverAsset: CoverAsset | null,
 ): string {
   const manifestItems = chapterFiles
     .map(
@@ -149,6 +157,12 @@ function contentOpf(
         `    <item id="chap${i + 1}" href="${f}" media-type="application/xhtml+xml"/>`,
     )
     .join('\n');
+  const coverManifest = coverAsset
+    ? `\n    <item id="cover-image" href="${esc(coverAsset.href)}" media-type="${esc(coverAsset.mimeType)}" properties="cover-image"/>`
+    : '';
+  const coverMeta = coverAsset
+    ? '\n    <meta name="cover" content="cover-image"/>'
+    : '';
   const spineItems = chapterFiles
     .map((_, i) => `    <itemref idref="chap${i + 1}"/>`)
     .join('\n');
@@ -162,11 +176,11 @@ function contentOpf(
     <dc:date>${modified.slice(0, 10)}</dc:date>${synopsis ? `\n    <dc:description>${esc(synopsis)}</dc:description>` : ''}
     <dc:rights>All rights reserved</dc:rights>
     <meta property="dcterms:modified">${modified}</meta>
-    <meta property="rendition:layout">reflowable</meta>
+    <meta property="rendition:layout">reflowable</meta>${coverMeta}
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
-    <item id="css" href="styles.css" media-type="text/css"/>
+    <item id="css" href="styles.css" media-type="text/css"/>${coverManifest}
 ${manifestItems}
   </manifest>
   <spine>
@@ -174,6 +188,26 @@ ${manifestItems}
 ${spineItems}
   </spine>
 </package>`;
+}
+
+function extensionForImageMime(mime: string): string {
+  if (mime === 'image/png') return 'png';
+  return 'jpg'; // default to jpg for image/jpeg and anything unexpected
+}
+
+/**
+ * Decode a `data:` URL's base64 payload into a Uint8Array suitable for
+ * JSZip. Strips the MIME prefix; relies on the caller passing us a
+ * well-formed data URL (the picker validates this on ingest).
+ */
+function decodeDataUrl(dataUrl: string): Uint8Array {
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx < 0) return new Uint8Array();
+  const base64 = dataUrl.slice(commaIdx + 1);
+  const bin = atob(base64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 function navXhtml(title: string, chapters: Array<{ file: string; title: string }>): string {
@@ -223,8 +257,30 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
 
   zip.file('OEBPS/styles.css', STYLES_CSS);
 
-  // Generate a text-based cover page from the document title + author.
-  const coverHtml = `<?xml version="1.0" encoding="UTF-8"?>
+  // Cover: if the writer picked a cover image, embed the binary and
+  // render a cover.xhtml that just shows it. Otherwise fall back to the
+  // text-only title card we've always shipped.
+  const rawCover = input.document.settings.cover_image ?? null;
+  let coverAsset: CoverAsset | null = null;
+  if (rawCover) {
+    const href = `cover.${extensionForImageMime(rawCover.mimeType)}`;
+    const bytes = decodeDataUrl(rawCover.dataUrl);
+    if (bytes.byteLength > 0) {
+      zip.file(`OEBPS/${href}`, bytes);
+      coverAsset = { href, mimeType: rawCover.mimeType };
+    }
+  }
+
+  const coverHtml = coverAsset
+    ? `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+  <body style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+    <img src="${esc(coverAsset.href)}" alt="" style="max-width:100%;max-height:100vh;display:block;"/>
+  </body>
+</html>`
+    : `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
   <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
@@ -268,6 +324,7 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
       crypto.randomUUID(),
       chapterFiles.map((c) => c.file),
       modified,
+      coverAsset,
     ),
   );
 

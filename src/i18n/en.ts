@@ -150,6 +150,17 @@ export const en = {
       curly: 'Curly quotes',
       hu_dash: 'Hungarian dash',
     },
+    coverImage: 'Cover image',
+    coverImageHelp:
+      'Used as the EPUB cover. JPEG or PNG, under 2 MB. Skip this and the EPUB falls back to a text-only title page.',
+    coverImagePick: 'Choose image…',
+    coverImageDrop: 'Drop an image here',
+    coverImageReplace: 'Replace',
+    coverImageRemove: 'Remove',
+    coverImageTooLarge: 'Image is too large ({{size}} MB, max 2 MB).',
+    coverImageBadType: 'Only JPEG and PNG images are supported.',
+    coverImageLoadFailed: 'Could not read that image.',
+    coverImageSize: '{{w}}×{{h}} · {{kb}} KB',
     autosaveNote: 'Changes save automatically',
   },
   bootSplash: {

@@ -1,7 +1,7 @@
-import type { Block, Character, SceneMetadata, DialogueMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import {
   contentToRuns,
-  speakerNameFor,
+  resolveDialogueStyle,
   textBlob,
   visibleChapterBlocks,
   type Exporter,
@@ -22,34 +22,38 @@ function renderInline(block: Block): string {
     .join('');
 }
 
-function renderBlock(block: Block, characters: readonly Character[]): string | null {
+function wrapDialogueInline(inline: string, style: DialogueStyle): string {
+  const collapsed = inline.replace(/\n+/g, ' ').trim();
+  if (!collapsed) return '';
+  if (style === 'hu_dash') return `– ${collapsed}`;
+  if (style === 'curly') return `“${collapsed}”`;
+  return `"${collapsed}"`;
+}
+
+function renderBlock(
+  block: Block,
+  _characters: readonly Character[],
+  dialogueStyle: DialogueStyle,
+): string | null {
   switch (block.type) {
     case 'note':
       return null;
-    case 'scene': {
-      const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
-      const header: string[] = [];
-      if (md?.location) header.push(md.location);
-      if (md?.time) header.push(md.time);
-      if (md?.mood) header.push(`(${md.mood})`);
-      const headline = header.length > 0 ? `*${header.join(' — ')}*` : '*Scene*';
-      return `${headline}\n\n${renderInline(block)}`.trimEnd();
-    }
+    case 'scene':
+      // Novel-first: render as a centered `* * *` break. Scene
+      // metadata is hidden from the visible output (still used by
+      // Plot Timeline / speaker scoping in the editor).
+      return '* * *';
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      if (!data) return renderInline(block);
-      const speaker = speakerNameFor(data, characters);
-      const parenthetical = data.parenthetical?.trim();
-      const body = renderInline(block)
-        .split('\n')
-        .map((line) => `> ${line}`)
-        .join('\n');
-      const lines: string[] = [];
-      if (speaker) lines.push(`> **${speaker}**`);
-      if (parenthetical) lines.push(`> *(${parenthetical})*`);
-      lines.push(body);
-      return lines.join('\n');
+      const parenthetical = data?.parenthetical?.trim();
+      const inline = renderInline(block);
+      const dialogue = wrapDialogueInline(inline, dialogueStyle);
+      if (!dialogue && !parenthetical) return null;
+      const parts: string[] = [];
+      if (parenthetical) parts.push(`*(${parenthetical})*`);
+      if (dialogue) parts.push(dialogue);
+      return parts.join(' ');
     }
     case 'text':
     default:
@@ -65,11 +69,12 @@ export function renderMarkdown(input: ExportInput): string {
     if (doc.synopsis) parts.push(`\n> ${doc.synopsis}`);
 
     const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+    const dialogueStyle = resolveDialogueStyle(doc);
     for (const chapter of sortedChapters) {
       parts.push(`\n## ${chapter.title}`);
       const blocks = visibleChapterBlocks(chapter, input.blocks);
       for (const block of blocks) {
-        const rendered = renderBlock(block, input.characters);
+        const rendered = renderBlock(block, input.characters, dialogueStyle);
         if (rendered !== null && rendered.trim().length > 0) {
           parts.push(rendered);
         }

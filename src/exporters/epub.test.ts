@@ -280,3 +280,92 @@ describe('epubExporter — structural validator', () => {
     expect(blob.type).toBe('application/epub+zip');
   });
 });
+
+describe('epubExporter — cover image', () => {
+  // A 1x1 pixel JPEG — enough to exercise the binary-decode path.
+  const ONE_PIXEL_JPEG_BASE64 =
+    '/9j/4AAQSkZJRgABAQEASABIAAD//gAQTGF2YzYwLjMxLjEwMgD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9S6KKKAP/2Q==';
+
+  function makeInputWithCover(): ExportInput {
+    const base = makeInput();
+    return {
+      ...base,
+      document: {
+        ...base.document,
+        settings: {
+          ...base.document.settings,
+          cover_image: {
+            dataUrl: `data:image/jpeg;base64,${ONE_PIXEL_JPEG_BASE64}`,
+            mimeType: 'image/jpeg',
+            width: 1,
+            height: 1,
+          },
+        },
+      },
+    };
+  }
+
+  it('writes the image as a binary zip entry when cover_image is set', async () => {
+    const zip = await buildEpubZip(makeInputWithCover());
+    const coverFile = zip.file('OEBPS/cover.jpg');
+    expect(coverFile).toBeTruthy();
+    const bytes = await coverFile!.async('uint8array');
+    // JPEG magic header — the only structural check we can do without a decoder.
+    expect(bytes[0]).toBe(0xff);
+    expect(bytes[1]).toBe(0xd8);
+    expect(bytes[2]).toBe(0xff);
+  });
+
+  it('registers the cover in the OPF manifest with properties="cover-image"', async () => {
+    const zip = await buildEpubZip(makeInputWithCover());
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf).toMatch(/id="cover-image"/);
+    expect(opf).toMatch(/properties="cover-image"/);
+    expect(opf).toMatch(/media-type="image\/jpeg"/);
+    // EPUB 2 fallback meta so older readers pick it up too.
+    expect(opf).toMatch(/<meta name="cover" content="cover-image"\/>/);
+  });
+
+  it('cover.xhtml renders an <img> pointing at the binary asset', async () => {
+    const zip = await buildEpubZip(makeInputWithCover());
+    const cover = await zip.file('OEBPS/cover.xhtml')!.async('string');
+    expect(cover).toContain('<img src="cover.jpg"');
+  });
+
+  it('falls back to the text cover and omits manifest entry when cover_image is null', async () => {
+    const zip = await buildEpubZip(makeInput());
+    expect(zip.file('OEBPS/cover.jpg')).toBeNull();
+    expect(zip.file('OEBPS/cover.png')).toBeNull();
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf).not.toMatch(/properties="cover-image"/);
+    const cover = await zip.file('OEBPS/cover.xhtml')!.async('string');
+    expect(cover).toContain('Novel Of Testing');
+  });
+
+  it('supports PNG covers with the right extension and mime type', async () => {
+    // 1x1 transparent PNG.
+    const ONE_PIXEL_PNG_BASE64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const base = makeInput();
+    const input: ExportInput = {
+      ...base,
+      document: {
+        ...base.document,
+        settings: {
+          ...base.document.settings,
+          cover_image: {
+            dataUrl: `data:image/png;base64,${ONE_PIXEL_PNG_BASE64}`,
+            mimeType: 'image/png',
+            width: 1,
+            height: 1,
+          },
+        },
+      },
+    };
+    const zip = await buildEpubZip(input);
+    expect(zip.file('OEBPS/cover.png')).toBeTruthy();
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf).toMatch(/media-type="image\/png"/);
+    expect(opf).toMatch(/href="cover\.png"/);
+  });
+});

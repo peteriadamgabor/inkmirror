@@ -151,6 +151,17 @@ export const hu: Messages = {
       curly: 'Gömbölyű idézőjel',
       hu_dash: 'Magyar gondolatjel',
     },
+    coverImage: 'Borítókép',
+    coverImageHelp:
+      'Az EPUB borítójaként használjuk. JPEG vagy PNG, legfeljebb 2 MB. Ha nincs megadva, a szöveges címlap marad.',
+    coverImagePick: 'Kép kiválasztása…',
+    coverImageDrop: 'Ejts ide egy képet',
+    coverImageReplace: 'Csere',
+    coverImageRemove: 'Eltávolítás',
+    coverImageTooLarge: 'A kép túl nagy ({{size}} MB, max. 2 MB).',
+    coverImageBadType: 'Csak JPEG és PNG képek támogatottak.',
+    coverImageLoadFailed: 'A képet nem sikerült beolvasni.',
+    coverImageSize: '{{w}}×{{h}} · {{kb}} KB',
     autosaveNote: 'A változások automatikusan mentődnek',
   },
   bootSplash: {

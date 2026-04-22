@@ -95,15 +95,20 @@ describe('markdownExporter', () => {
     expect(out).toContain('## Chapter 1');
     expect(out).toContain('## Chapter 2');
   });
-  it('renders dialogue with speaker derived from character lookup', () => {
-    expect(out).toContain('> **Alice**');
-    expect(out).toContain('> Hello there.');
+  it('renders dialogue as novel-style wrapped prose (no speaker cue)', () => {
+    // Default dialogue_style is 'straight' — ASCII double quotes.
+    expect(out).toContain('"Hello there."');
+    // No screenplay-style speaker cue.
+    expect(out).not.toContain('> **Alice**');
+    expect(out).not.toContain('**Alice**\n');
   });
-  it('renders parenthetical as italic blockquote line', () => {
-    expect(out).toContain('> *(whispering)*');
+  it('renders parenthetical as an italic prefix inside the dialogue line', () => {
+    expect(out).toContain('*(whispering)* "Hello there."');
   });
-  it('renders scene heading from metadata', () => {
-    expect(out).toContain('*desert highway — noon — (tense)*');
+  it('renders scene blocks as a centered `* * *` break with metadata hidden', () => {
+    expect(out).toContain('* * *');
+    expect(out).not.toContain('desert highway');
+    expect(out).not.toContain('(tense)');
   });
   it('excludes notes and deleted blocks', () => {
     expect(out).not.toContain('Remember to fix this later');

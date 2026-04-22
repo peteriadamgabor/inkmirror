@@ -67,7 +67,10 @@ test.describe('App flow (returning visitor)', () => {
       const block = page.locator('[data-block-id]').first();
       await block.hover();
       await block.locator('button[aria-label="Open block menu"]').click();
-      await page.getByText('Dialogue').click();
+      // Use menuitem role — `getByText('Dialogue')` is ambiguous with the
+      // CharacterArcs empty-state tip ("Add at least two characters with
+      // dialogue to see …") that renders elsewhere on the screen.
+      await page.getByRole('menuitem', { name: 'DIALOGUE' }).click();
       await expect(block.locator('button').filter({ hasText: 'DIALOGUE' })).toBeVisible();
     });
 
