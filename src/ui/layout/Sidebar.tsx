@@ -55,7 +55,7 @@ import {
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
-import { IconDots, IconStar } from '@/ui/shared/icons';
+import { IconDots, IconStar, IconTrash } from '@/ui/shared/icons';
 import { openFeedback } from '@/ui/shared/feedback';
 import { t } from '@/i18n';
 
@@ -408,6 +408,7 @@ export const Sidebar = () => {
           >
             {(c) => {
               const isEditing = () => editingCharacterId() === c.id;
+              const isPov = () => store.document?.pov_character_id === c.id;
               const doDeleteCharacter = async () => {
                 const ok = await askConfirm({
                   title: t('sidebar.characterDelete') + ` — ${c.name}`,
@@ -420,29 +421,7 @@ export const Sidebar = () => {
                 deleteCharacter(c.id);
                 toast.info(t('sidebar.characterDeletedToast', { name: c.name }));
               };
-              const isPov = () => store.document?.pov_character_id === c.id;
-              const openCharacterMenu = (e: MouseEvent) => {
-                e.stopPropagation();
-                const trigger = e.currentTarget as HTMLElement;
-                const items: ContextMenuItem[] = [
-                  {
-                    label: t('common.rename'),
-                    onSelect: () => startRenameCharacter(c.id, c.name),
-                  },
-                  {
-                    label: isPov() ? t('sidebar.characterUnpov') : t('sidebar.characterPov'),
-                    description: t('sidebar.characterPovDescription'),
-                    onSelect: () => setPovCharacter(isPov() ? null : c.id),
-                  },
-                  { kind: 'divider' },
-                  {
-                    label: t('sidebar.characterDelete'),
-                    danger: true,
-                    onSelect: () => void doDeleteCharacter(),
-                  },
-                ];
-                openContextMenuAt(trigger, items, { align: 'right' });
-              };
+              const togglePov = () => setPovCharacter(isPov() ? null : c.id);
               return (
                 <div
                   onDblClick={() => startRenameCharacter(c.id, c.name)}
@@ -453,22 +432,14 @@ export const Sidebar = () => {
                     style={{ 'background-color': c.color }}
                   />
                   <Show when={isEditing()} fallback={
-                    <span class="flex-1 flex items-center gap-1.5">
+                    <span class="flex-1 min-w-0">
                       <button
                         type="button"
                         onClick={() => openCharacterPage(c.id)}
-                        class="text-left hover:text-violet-500 transition-colors"
+                        class="text-left hover:text-violet-500 transition-colors truncate"
                       >
                         {c.name}
                       </button>
-                      <Show when={isPov()}>
-                        <span
-                          class="text-violet-500 inline-flex"
-                          title="POV character — dialogue aligns right"
-                        >
-                          <IconStar size={11} />
-                        </span>
-                      </Show>
                     </span>
                   }>
                     <input
@@ -495,14 +466,38 @@ export const Sidebar = () => {
                     />
                   </Show>
                   <Show when={!isEditing()}>
-                    <button
-                      type="button"
-                      onClick={openCharacterMenu}
-                      title={t('misc.characterActions')}
-                      class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 w-5 h-5 flex items-center justify-center rounded transition-opacity"
-                    >
-                      <IconDots size={14} />
-                    </button>
+                    <div class="flex items-center gap-0.5 shrink-0">
+                      {/* Star: visible + violet when POV, hidden until hover when not POV. One click toggles. */}
+                      <button
+                        type="button"
+                        onClick={togglePov}
+                        title={
+                          isPov()
+                            ? t('sidebar.characterUnpov')
+                            : t('sidebar.characterPov')
+                        }
+                        data-testid="character-pov-toggle"
+                        data-pov-active={isPov() ? '1' : undefined}
+                        class="w-5 h-5 flex items-center justify-center rounded transition-[opacity,color]"
+                        classList={{
+                          'text-violet-500 opacity-100 hover:text-violet-600': isPov(),
+                          'text-stone-400 opacity-0 group-hover:opacity-100 hover:text-violet-500':
+                            !isPov(),
+                        }}
+                      >
+                        <IconStar size={12} />
+                      </button>
+                      {/* Trash: always hidden, appears on hover, keeps the existing confirm dialog. */}
+                      <button
+                        type="button"
+                        onClick={() => void doDeleteCharacter()}
+                        title={t('sidebar.characterDelete')}
+                        data-testid="character-delete"
+                        class="w-5 h-5 flex items-center justify-center rounded text-stone-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-[opacity,color]"
+                      >
+                        <IconTrash size={12} />
+                      </button>
+                    </div>
                   </Show>
                 </div>
               );
