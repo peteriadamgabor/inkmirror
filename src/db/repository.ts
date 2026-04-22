@@ -97,6 +97,7 @@ function characterToRow(c: Character): CharacterRow {
     aliases: c.aliases,
     notes: c.notes,
     color: c.color,
+    description: c.description,
     created_at: c.created_at,
     updated_at: c.updated_at,
   };
@@ -110,6 +111,7 @@ function rowToCharacter(r: CharacterRow): Character {
     aliases: r.aliases,
     notes: r.notes,
     color: r.color,
+    description: r.description,
     created_at: r.created_at,
     updated_at: r.updated_at,
   };

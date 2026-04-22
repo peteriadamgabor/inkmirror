@@ -19,7 +19,7 @@ import { externalSync } from '@/store/undo';
 import { unwrap } from 'solid-js/store';
 import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
 import type { MarkType } from '@/types/block';
-import { uiState } from '@/store/ui-state';
+import { uiState, openCharacterPage } from '@/store/ui-state';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
 import { IconDots, IconDrag, IconChevron, IconTrash, IconPlus } from '@/ui/shared/icons';
 import { askConfirm } from '@/ui/shared/confirm';
@@ -820,10 +820,19 @@ export const BlockView = (props: { block: Block }) => {
         {mentionedChars().length > 0 && (
           <span class="flex items-center gap-0.5">
             {mentionedChars().map((c) => (
-              <span
-                class="w-1.5 h-1.5 rounded-full"
-                style={{ 'background-color': c.color }}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCharacterPage(c.id);
+                }}
+                class="w-2 h-2 rounded-full hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-stone-800 transition-[box-shadow]"
+                style={{
+                  'background-color': c.color,
+                  '--tw-ring-color': c.color,
+                }}
                 title={c.name}
+                data-mention-character-id={c.id}
               />
             ))}
           </span>

@@ -9,6 +9,12 @@ export interface CharacterRow {
   aliases: string[];
   notes: string;
   color: string;
+  /**
+   * Writer-authored description (one or two sentences). Optional because
+   * rows persisted before this field existed are still valid; readers
+   * treat `undefined` as an empty description.
+   */
+  description?: string;
   created_at: string;
   updated_at: string;
 }

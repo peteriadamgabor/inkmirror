@@ -19,6 +19,7 @@ import {
   toggleCommandPalette,
   toggleSettingsModal,
   returnToPicker,
+  openCharacterPage,
 } from '@/store/ui-state';
 import type { ChapterKind, UUID } from '@/types';
 
@@ -453,7 +454,13 @@ export const Sidebar = () => {
                   />
                   <Show when={isEditing()} fallback={
                     <span class="flex-1 flex items-center gap-1.5">
-                      <span>{c.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => openCharacterPage(c.id)}
+                        class="text-left hover:text-violet-500 transition-colors"
+                      >
+                        {c.name}
+                      </button>
                       <Show when={isPov()}>
                         <span
                           class="text-violet-500 inline-flex"

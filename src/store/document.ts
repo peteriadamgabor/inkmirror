@@ -857,7 +857,7 @@ export function createCharacter(name: string): Character | null {
 
 export function updateCharacter(
   id: UUID,
-  patch: Partial<Pick<Character, 'name' | 'notes' | 'color' | 'aliases'>>,
+  patch: Partial<Pick<Character, 'name' | 'notes' | 'color' | 'aliases' | 'description'>>,
 ): void {
   const idx = store.characters.findIndex((c) => c.id === id);
   if (idx < 0) return;

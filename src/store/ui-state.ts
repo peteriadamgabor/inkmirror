@@ -1,4 +1,5 @@
 import { createStore } from 'solid-js/store';
+import type { UUID } from '@/types';
 
 export interface UiState {
   focusMode: boolean;
@@ -14,6 +15,12 @@ export interface UiState {
   chapterTypesHelpOpen: boolean;
   settingsModalOpen: boolean;
   settingsModalTab: SettingsModalTab;
+  /**
+   * Id of the character whose profile page is open, or null when no
+   * profile is showing. The CharacterPage host mounts an overlay when
+   * this is non-null.
+   */
+  characterPageId: UUID | null;
 }
 
 export type SettingsModalTab = 'ai' | 'hotkeys' | 'language';
@@ -47,6 +54,7 @@ const [uiState, setUiState] = createStore<UiState>({
   chapterTypesHelpOpen: false,
   settingsModalOpen: false,
   settingsModalTab: 'ai',
+  characterPageId: null,
 });
 
 export { uiState };
@@ -163,6 +171,14 @@ export function toggleRightPanel(): void {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(RIGHT_PANEL_KEY, next ? '1' : '0');
   }
+}
+
+export function openCharacterPage(id: UUID): void {
+  setUiState('characterPageId', id);
+}
+
+export function closeCharacterPage(): void {
+  setUiState('characterPageId', null);
 }
 
 // Callback set by index.tsx to navigate back to the document picker.

@@ -10,6 +10,7 @@ import { ChapterTypesHelp } from './features/ChapterTypesHelp';
 import { SettingsModal } from './features/SettingsModal';
 import { CommandPalette } from './features/CommandPalette';
 import { DocumentSettings } from './features/DocumentSettings';
+import { CharacterPage } from './features/CharacterPage';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
@@ -117,6 +118,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <SettingsModal />
     <CommandPalette />
     <DocumentSettings />
+    <CharacterPage />
     <ConfirmHost />
     <ContextMenuHost />
     <SlashMenuHost />
