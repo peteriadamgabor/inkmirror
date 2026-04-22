@@ -425,6 +425,12 @@ export function updateBlockContent(
   const existing = store.blocks[blockId];
   if (!existing) return;
 
+  // Snapshot the pre-mutation content as a primitive string. `existing`
+  // is a Solid store proxy — after the setStore below, reading
+  // `existing.content` returns the *new* value, which breaks any
+  // post-mutation equality check (see inconsistency-flag invalidation).
+  const prevContent: string = existing.content;
+
   // Track for undo before mutating.
   trackContentChange(blockId, existing.content, existing.marks ? [...existing.marks] : undefined);
 
@@ -477,7 +483,7 @@ export function updateBlockContent(
   // changing the exact text the flag was scored against. Re-running
   // "Check now" (or the deep-opt-in auto-sweep) will re-emerge the flag
   // if the contradiction actually survived the edit.
-  if (existing.content !== nextContent) {
+  if (prevContent !== nextContent) {
     invalidateFlagsForBlock(blockId, nextContent);
   }
 

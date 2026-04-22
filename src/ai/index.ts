@@ -3,6 +3,7 @@ import { setDocumentReplacedHook, setSentimentHook, store } from '@/store/docume
 import { allVisibleBlocks } from '@/store/selectors';
 import { detectBackend, getStoredProfile } from './profile';
 import { resetAnalyzer, scheduleSentiment } from './analyze';
+import { registerIdleScheduler } from './idle-scheduler';
 import { contentHash } from '@/utils/hash';
 
 let singleton: AiClientHandle | null = null;
@@ -52,6 +53,11 @@ export function scheduleAiPreload(): void {
       await client.configure(profile, backend, 'q4');
       await client.preload();
       backfillSentiments();
+      // Start the idle-driven consistency scheduler. It gates itself on
+      // profile === 'deep' at each idle fire, so it's safe to register
+      // regardless of the active profile — a lightweight-user's idle
+      // tick just returns early.
+      registerIdleScheduler();
     } catch {
       // Errors already surface through client.loadError(); swallow here
       // so the boot path never crashes on AI failure.

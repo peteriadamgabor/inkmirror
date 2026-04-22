@@ -14,9 +14,11 @@ import {
   createCharacter,
   updateCharacter,
   deleteCharacter,
+  setInconsistencyFlag,
 } from './document';
 import type { SyntheticDoc } from '@/engine/synthetic';
-import type { Block, Chapter, Document } from '@/types';
+import type { Block, Chapter, Document, InconsistencyFlag } from '@/types';
+import { contentHash } from '@/utils/hash';
 
 function makeBlock(id: string, chapterId: string, order: number, content: string): Block {
   return {
@@ -328,6 +330,74 @@ describe('document store mutations', () => {
     it('is a no-op for unknown ids', () => {
       deleteBlock('nope');
       expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+  });
+
+  describe('inconsistency flag edit invalidation', () => {
+    function makeFlag(
+      id: string,
+      blockAId: string,
+      contentA: string,
+      blockBId: string,
+      contentB: string,
+    ): InconsistencyFlag {
+      return {
+        id,
+        document_id: 'd1',
+        character_id: 'c1',
+        block_a_id: blockAId,
+        block_a_hash: contentHash(contentA),
+        block_a_sentence_idx: 0,
+        block_a_sentence: contentA,
+        block_b_id: blockBId,
+        block_b_hash: contentHash(contentB),
+        block_b_sentence_idx: 0,
+        block_b_sentence: contentB,
+        trigger_categories: ['body'],
+        contradiction_score: 0.9,
+        status: 'active',
+        created_at: 1,
+        dismissed_at: null,
+      };
+    }
+
+    it('removes a flag when the block_a content changes', () => {
+      setInconsistencyFlag(makeFlag('f1', 'b1', 'first', 'b2', 'second'));
+      expect(store.inconsistencyFlags['f1']).toBeDefined();
+
+      updateBlockContent('b1', 'first edited');
+      expect(store.inconsistencyFlags['f1']).toBeUndefined();
+    });
+
+    it('removes a flag when the block_b content changes', () => {
+      setInconsistencyFlag(makeFlag('f2', 'b1', 'first', 'b2', 'second'));
+      updateBlockContent('b2', 'second edited');
+      expect(store.inconsistencyFlags['f2']).toBeUndefined();
+    });
+
+    it('does not remove a flag when an unrelated block is edited', () => {
+      setInconsistencyFlag(makeFlag('f3', 'b1', 'first', 'b2', 'second'));
+      updateBlockContent('b3', 'third edited');
+      expect(store.inconsistencyFlags['f3']).toBeDefined();
+    });
+
+    it('leaves the flag intact when the content is rewritten to the same value', () => {
+      setInconsistencyFlag(makeFlag('f4', 'b1', 'first', 'b2', 'second'));
+      updateBlockContent('b1', 'first');
+      expect(store.inconsistencyFlags['f4']).toBeDefined();
+    });
+
+    it('removes every flag that references the edited block', () => {
+      setInconsistencyFlag(makeFlag('f5', 'b1', 'first', 'b2', 'second'));
+      setInconsistencyFlag(makeFlag('f6', 'b1', 'first', 'b3', 'third'));
+      setInconsistencyFlag(makeFlag('f7', 'b2', 'second', 'b3', 'third'));
+
+      updateBlockContent('b1', 'rewritten');
+
+      expect(store.inconsistencyFlags['f5']).toBeUndefined();
+      expect(store.inconsistencyFlags['f6']).toBeUndefined();
+      // f7 doesn't reference b1, so it stays.
+      expect(store.inconsistencyFlags['f7']).toBeDefined();
     });
   });
 });
