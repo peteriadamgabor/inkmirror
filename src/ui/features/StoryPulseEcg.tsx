@@ -109,7 +109,7 @@ export const StoryPulseEcg = () => {
           viewBox={`0 0 ${totalWidth()} ${STRIP_HEIGHT - 8}`}
           class="shrink-0"
           role="img"
-          aria-label="Story pulse — sentiment across blocks"
+          aria-label={t('aria.storyPulse')}
         >
           {/* baseline */}
           <line

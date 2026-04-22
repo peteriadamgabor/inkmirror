@@ -127,7 +127,11 @@ export const DocumentPicker = (props: Props) => {
       );
       props.onSelect(docId);
     } catch (err) {
-      toast.error(`Failed to create document: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(
+        t('toast.createDocumentFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
     } finally {
       setCreating(false);
       setShowNewForm(false);
@@ -145,7 +149,9 @@ export const DocumentPicker = (props: Props) => {
       );
     } catch (err) {
       toast.error(
-        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
+        t('toast.exportFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
       );
     }
   };
@@ -155,14 +161,18 @@ export const DocumentPicker = (props: Props) => {
       const backup = await exportDatabaseBackup();
       const blob = bundleToBlob(backup);
       downloadBlob(blob, databaseBackupFilename(backup.exported_at));
+      const n = backup.stores.documents.length;
       toast.success(
-        `Backup exported (${backup.stores.documents.length} document${
-          backup.stores.documents.length === 1 ? '' : 's'
-        })`,
+        t('toast.backupSuccess', {
+          n: String(n),
+          unit: t(n === 1 ? 'toast.exportUnitSingular' : 'toast.exportUnitPlural'),
+        }),
       );
     } catch (err) {
       toast.error(
-        `Backup failed: ${err instanceof Error ? err.message : String(err)}`,
+        t('toast.backupFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
       );
     }
   };
@@ -204,7 +214,9 @@ export const DocumentPicker = (props: Props) => {
       refetch();
     } catch (err) {
       toast.error(
-        `Import failed: ${err instanceof Error ? err.message : String(err)}`,
+        t('toast.importFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
       );
     }
   };
@@ -235,7 +247,11 @@ export const DocumentPicker = (props: Props) => {
       toast.success(t('picker.deleteSuccess', { title }));
       refetch();
     } catch (err) {
-      toast.error(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(
+        t('toast.deleteFailed', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
     }
   };
 
@@ -254,7 +270,7 @@ export const DocumentPicker = (props: Props) => {
               type="button"
               onClick={toggleTheme}
               class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
-              aria-label="Toggle theme"
+              aria-label={t('aria.toggleTheme')}
             >
               {theme() === 'dark' ? t('picker.lightMode') : t('picker.darkMode')}
             </button>

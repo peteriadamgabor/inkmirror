@@ -87,7 +87,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
         onClick={onToggle}
         title={t('misc.revisionHistory')}
         class="text-stone-400 hover:text-violet-500 px-1 leading-none"
-        aria-label="Block history"
+        aria-label={t('aria.blockHistory')}
       >
         <IconHistory size={13} />
       </button>

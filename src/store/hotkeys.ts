@@ -22,25 +22,27 @@ export type AppAction =
 
 export interface BindingMeta {
   action: AppAction;
-  label: string;
-  description: string;
+  /** i18n key under `hotkeys.appLabels.*` — resolved via `t()` at render. */
+  labelKey: string;
+  /** i18n key under `hotkeys.appDescriptions.*` — resolved via `t()` at render. */
+  descriptionKey: string;
   defaultCombo: string;
 }
 
 export const BINDING_META: BindingMeta[] = [
-  { action: 'palette.show',      label: 'Command palette',     description: 'Search every action by name',           defaultCombo: 'Ctrl+K' },
-  { action: 'hotkeys.show',      label: 'Hotkey settings',     description: 'Open the hotkey settings modal',        defaultCombo: 'F1' },
-  { action: 'help.show',         label: 'Block types help',    description: 'What text / dialogue / scene / note do',defaultCombo: 'Alt+Shift+?' },
-  { action: 'focus.toggle',      label: 'Focus mode',          description: 'Hide side panels, dim other blocks',    defaultCombo: 'Alt+Shift+F' },
-  { action: 'zen.toggle',        label: 'Zen mode',            description: 'Strip block chrome — just prose',       defaultCombo: 'Alt+Shift+Z' },
-  { action: 'graveyard.toggle',  label: 'Dead text graveyard', description: 'Review and restore deleted blocks',     defaultCombo: 'Alt+Shift+G' },
-  { action: 'timeline.toggle',   label: 'Plot timeline',       description: 'Scene timeline grouped by chapter',     defaultCombo: 'Alt+Shift+L' },
-  { action: 'chapter.new',       label: 'New chapter',         description: 'Create a standard chapter',             defaultCombo: 'Alt+Shift+N' },
-  { action: 'spellcheck.toggle', label: 'Spellcheck',          description: 'Toggle browser red-squiggle spellcheck',defaultCombo: 'Alt+Shift+K' },
-  { action: 'document.settings',label: 'Document settings',   description: 'Edit title, author, synopsis',          defaultCombo: 'Alt+Shift+D' },
-  { action: 'undo',              label: 'Undo',               description: 'Undo the last action',                  defaultCombo: 'Ctrl+Z' },
-  { action: 'redo',              label: 'Redo',               description: 'Redo the last undone action',            defaultCombo: 'Ctrl+Shift+Z' },
-  { action: 'debug.toggle',     label: 'Debug panel',        description: 'Toggle developer telemetry overlay',     defaultCombo: 'Alt+Shift+`' },
+  { action: 'palette.show',       labelKey: 'hotkeys.appLabels.palette',          descriptionKey: 'hotkeys.appDescriptions.palette',          defaultCombo: 'Ctrl+K' },
+  { action: 'hotkeys.show',       labelKey: 'hotkeys.appLabels.hotkeys',          descriptionKey: 'hotkeys.appDescriptions.hotkeys',          defaultCombo: 'F1' },
+  { action: 'help.show',          labelKey: 'hotkeys.appLabels.blockTypesHelp',   descriptionKey: 'hotkeys.appDescriptions.blockTypesHelp',   defaultCombo: 'Alt+Shift+?' },
+  { action: 'focus.toggle',       labelKey: 'hotkeys.appLabels.focusMode',        descriptionKey: 'hotkeys.appDescriptions.focusMode',        defaultCombo: 'Alt+Shift+F' },
+  { action: 'zen.toggle',         labelKey: 'hotkeys.appLabels.zenMode',          descriptionKey: 'hotkeys.appDescriptions.zenMode',          defaultCombo: 'Alt+Shift+Z' },
+  { action: 'graveyard.toggle',   labelKey: 'hotkeys.appLabels.graveyard',        descriptionKey: 'hotkeys.appDescriptions.graveyard',        defaultCombo: 'Alt+Shift+G' },
+  { action: 'timeline.toggle',    labelKey: 'hotkeys.appLabels.plotTimeline',     descriptionKey: 'hotkeys.appDescriptions.plotTimeline',     defaultCombo: 'Alt+Shift+L' },
+  { action: 'chapter.new',        labelKey: 'hotkeys.appLabels.newChapter',       descriptionKey: 'hotkeys.appDescriptions.newChapter',       defaultCombo: 'Alt+Shift+N' },
+  { action: 'spellcheck.toggle',  labelKey: 'hotkeys.appLabels.spellcheck',       descriptionKey: 'hotkeys.appDescriptions.spellcheck',       defaultCombo: 'Alt+Shift+K' },
+  { action: 'document.settings', labelKey: 'hotkeys.appLabels.documentSettings', descriptionKey: 'hotkeys.appDescriptions.documentSettings', defaultCombo: 'Alt+Shift+D' },
+  { action: 'undo',               labelKey: 'hotkeys.appLabels.undo',             descriptionKey: 'hotkeys.appDescriptions.undo',             defaultCombo: 'Ctrl+Z' },
+  { action: 'redo',               labelKey: 'hotkeys.appLabels.redo',             descriptionKey: 'hotkeys.appDescriptions.redo',             defaultCombo: 'Ctrl+Shift+Z' },
+  { action: 'debug.toggle',       labelKey: 'hotkeys.appLabels.debugPanel',       descriptionKey: 'hotkeys.appDescriptions.debugPanel',       defaultCombo: 'Alt+Shift+`' },
 ];
 
 const STORAGE_KEY = 'inkmirror.hotkeys';

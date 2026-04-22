@@ -451,16 +451,16 @@ export const BlockView = (props: { block: Block }) => {
         const newId = duplicateBlock(props.block.id);
         if (newId) {
           focusBlock(newId, 'end');
-          toast.success('Block duplicated');
+          toast.success(t('block.duplicated'));
         }
         break;
       }
       case 'delete-block': {
         void (async () => {
           const ok = await askConfirm({
-            title: 'Delete block?',
-            message: 'The block will be moved to the graveyard and can be restored later.',
-            confirmLabel: 'Delete',
+            title: t('block.deleteConfirmTitle'),
+            message: t('block.deleteConfirmBody'),
+            confirmLabel: t('common.delete'),
             danger: true,
           });
           if (ok) {
@@ -545,9 +545,12 @@ export const BlockView = (props: { block: Block }) => {
     const currentId = dialogueSpeakerId();
     const castIds = sceneCastIds();
     const items: ContextMenuItem[] = [
-      { kind: 'header', label: castIds ? 'Speaker (scene cast)' : 'Speaker' },
       {
-        label: 'Unassigned',
+        kind: 'header',
+        label: castIds ? t('block.speakerMenuSceneCast') : t('block.speakerMenuTitle'),
+      },
+      {
+        label: t('block.speakerUnassigned'),
         active: !currentId,
         onSelect: () => updateDialogueSpeaker(props.block.id, null),
       },
@@ -576,7 +579,7 @@ export const BlockView = (props: { block: Block }) => {
     if (restChars.length > 0) {
       items.push({ kind: 'divider' });
       if (castChars.length > 0) {
-        items.push({ kind: 'header', label: 'All characters' });
+        items.push({ kind: 'header', label: t('block.menuAllCharacters') });
       }
       for (const c of restChars) {
         items.push({
@@ -601,7 +604,7 @@ export const BlockView = (props: { block: Block }) => {
     openContextMenuAt(
       trigger,
       [
-        { kind: 'header', label: 'Block type' },
+        { kind: 'header', label: t('block.menuBlockType') },
         { label: t('block.types.text'),     hint: currentType === 'text' ? '·' : '',     active: currentType === 'text',     onSelect: () => setType('text') },
         { label: t('block.types.dialogue'), active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
         { label: t('block.types.scene'),    active: currentType === 'scene',    onSelect: () => setType('scene') },
@@ -685,17 +688,17 @@ export const BlockView = (props: { block: Block }) => {
     const copyContent = async () => {
       try {
         await navigator.clipboard.writeText(props.block.content);
-        toast.success('Block content copied');
+        toast.success(t('block.contentCopied'));
       } catch {
-        toast.error('Copy failed');
+        toast.error(t('block.copyFailed'));
       }
     };
 
     const onDelete = async () => {
       const ok = await askConfirm({
-        title: 'Delete block?',
-        message: 'The block will be moved to the graveyard and can be restored later.',
-        confirmLabel: 'Delete',
+        title: t('block.deleteConfirmTitle'),
+        message: t('block.deleteConfirmBody'),
+        confirmLabel: t('common.delete'),
         danger: true,
       });
       if (ok) deleteBlock(props.block.id);
@@ -709,11 +712,11 @@ export const BlockView = (props: { block: Block }) => {
       { label: t('block.types.note'),     active: currentType === 'note',     onSelect: () => setType('note') },
       { kind: 'divider' },
       { label: t('block.insertBelow'), onSelect: () => { const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); } },
-      { label: t('block.duplicate'), onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success('Block duplicated'); } },
+      { label: t('block.duplicate'), onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success(t('block.duplicated')); } },
       { label: t('block.copyContent'), onSelect: () => void copyContent() },
       { kind: 'divider' },
-      { label: 'Move up', disabled: isFirst, onSelect: () => moveBlock(props.block.id, 'up') },
-      { label: 'Move down', disabled: isLast, onSelect: () => moveBlock(props.block.id, 'down') },
+      { label: t('block.moveUp'), disabled: isFirst, onSelect: () => moveBlock(props.block.id, 'up') },
+      { label: t('block.moveDown'), disabled: isLast, onSelect: () => moveBlock(props.block.id, 'down') },
       { kind: 'divider' },
       { label: t('block.deleteBlock'), danger: true, onSelect: () => void onDelete() },
     ], { align: 'right' });
@@ -754,7 +757,7 @@ export const BlockView = (props: { block: Block }) => {
           onDragEnd={onDragEnd}
           class="flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-40 hover:opacity-100 transition-opacity select-none shrink-0"
           title={t('block.dragToReorder')}
-          aria-label="Drag handle"
+          aria-label={t('aria.dragHandle')}
         >
           <IconDrag size={14} />
         </div>
@@ -840,9 +843,9 @@ export const BlockView = (props: { block: Block }) => {
               e.stopPropagation();
               void (async () => {
                 const ok = await askConfirm({
-                  title: 'Delete block?',
-                  message: 'The block will be moved to the graveyard.',
-                  confirmLabel: 'Delete',
+                  title: t('block.deleteConfirmTitle'),
+                  message: t('block.deleteConfirmBodyShort'),
+                  confirmLabel: t('common.delete'),
                   danger: true,
                 });
                 if (ok) deleteBlock(props.block.id);

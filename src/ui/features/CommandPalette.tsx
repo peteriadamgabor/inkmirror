@@ -64,7 +64,7 @@ function buildCommands(): Command[] {
   for (const meta of BINDING_META) {
     cmds.push({
       id: `action:${meta.action}`,
-      label: meta.label,
+      label: t(meta.labelKey as Parameters<typeof t>[0]),
       hint: hotkeys[meta.action],
       run: () => runAction(meta.action as AppAction),
     });
@@ -72,7 +72,7 @@ function buildCommands(): Command[] {
   for (const exp of EXPORTERS) {
     cmds.push({
       id: `export:${exp.format}`,
-      label: `Export as ${exp.label}`,
+      label: t('misc.exportAs', { format: exp.label }),
       hint: exp.extension,
       run: () => void runExport(exp),
     });
@@ -176,7 +176,7 @@ export const CommandPalette = () => {
             onKeyDown={onKeyDown}
             placeholder={t('commandPalette.placeholder')}
             class="w-full px-4 py-3 bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400"
-            aria-label="Command palette input"
+            aria-label={t('aria.commandPaletteInput')}
           />
           <div class="max-h-[50vh] overflow-auto p-1">
             <Show

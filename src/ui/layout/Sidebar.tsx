@@ -148,7 +148,7 @@ export const Sidebar = () => {
     const id = editingChapterId();
     if (id) {
       if (!draft().trim()) {
-        toast.error('Chapter title cannot be empty');
+        toast.error(t('toast.chapterTitleEmpty'));
       } else {
         renameChapter(id, draft());
       }
@@ -165,7 +165,7 @@ export const Sidebar = () => {
     const id = editingCharacterId();
     if (id) {
       if (!draft().trim()) {
-        toast.error('Character name cannot be empty');
+        toast.error(t('toast.characterNameEmpty'));
       } else {
         updateCharacter(id, { name: draft() });
       }
@@ -252,26 +252,39 @@ export const Sidebar = () => {
               const canDelete = () => store.chapters.length > 1;
               const doDelete = async () => {
                 if (!canDelete()) {
-                  toast.error('Cannot delete the last remaining chapter');
+                  toast.error(t('toast.cannotDeleteLastChapter'));
                   return;
                 }
                 const blockCount = store.blockOrder.filter(
                   (id) => store.blocks[id]?.chapter_id === c.id,
                 ).length;
+                const bodyUnit = t(
+                  blockCount === 1
+                    ? 'toast.chapterDeleteBodyUnitSingular'
+                    : 'toast.chapterDeleteBodyUnitPlural',
+                );
                 const ok = await askConfirm({
-                  title: `Delete "${c.title}"?`,
-                  message: `${blockCount} block${
-                    blockCount === 1 ? '' : 's'
-                  } will be moved to the graveyard and can be restored individually.`,
-                  confirmLabel: 'Delete chapter',
+                  title: t('sidebar.chapterMenu.deleteTitle', { title: c.title }),
+                  message: t('toast.chapterDeleteBody', {
+                    n: String(blockCount),
+                    unit: bodyUnit,
+                  }),
+                  confirmLabel: t('sidebar.chapterMenu.deleteConfirm'),
                   danger: true,
                 });
                 if (!ok) return;
                 if (deleteChapter(c.id)) {
+                  const toastUnit = t(
+                    blockCount === 1
+                      ? 'toast.chapterDeletedUnitSingular'
+                      : 'toast.chapterDeletedUnitPlural',
+                  );
                   toast.success(
-                    `"${c.title}" deleted · ${blockCount} block${
-                      blockCount === 1 ? '' : 's'
-                    } in graveyard`,
+                    t('toast.chapterDeleted', {
+                      title: c.title,
+                      n: String(blockCount),
+                      unit: toastUnit,
+                    }),
                   );
                 }
               };
@@ -282,21 +295,24 @@ export const Sidebar = () => {
                 e.stopPropagation();
                 const trigger = e.currentTarget as HTMLElement;
                 const items: ContextMenuItem[] = [
-                  { label: 'Rename', onSelect: () => startRenameChapter(c.id, c.title) },
+                  {
+                    label: t('sidebar.chapterMenu.rename'),
+                    onSelect: () => startRenameChapter(c.id, c.title),
+                  },
                   { kind: 'divider' },
                   {
-                    label: 'Move up',
+                    label: t('sidebar.chapterMenu.moveUp'),
                     disabled: isFirst(),
                     onSelect: () => moveChapter(c.id, 'up'),
                   },
                   {
-                    label: 'Move down',
+                    label: t('sidebar.chapterMenu.moveDown'),
                     disabled: isLast(),
                     onSelect: () => moveChapter(c.id, 'down'),
                   },
                   { kind: 'divider' },
                   {
-                    label: 'Delete chapter',
+                    label: t('sidebar.chapterMenu.delete'),
                     danger: true,
                     disabled: !canDelete(),
                     onSelect: () => void doDelete(),
@@ -394,29 +410,32 @@ export const Sidebar = () => {
               const doDeleteCharacter = async () => {
                 const ok = await askConfirm({
                   title: t('sidebar.characterDelete') + ` — ${c.name}`,
-                  message: t('sidebar.characterNotesPlaceholder'),
+                  message: t('sidebar.characterDeleteBody'),
                   confirmLabel: t('common.delete'),
                   cancelLabel: t('common.cancel'),
                   danger: true,
                 });
                 if (!ok) return;
                 deleteCharacter(c.id);
-                toast.info(`${c.name} — ${t('common.delete').toLowerCase()}`);
+                toast.info(t('sidebar.characterDeletedToast', { name: c.name }));
               };
               const isPov = () => store.document?.pov_character_id === c.id;
               const openCharacterMenu = (e: MouseEvent) => {
                 e.stopPropagation();
                 const trigger = e.currentTarget as HTMLElement;
                 const items: ContextMenuItem[] = [
-                  { label: 'Rename', onSelect: () => startRenameCharacter(c.id, c.name) },
                   {
-                    label: isPov() ? 'Remove POV mark' : 'Make POV character',
-                    description: 'Right-align this character\'s dialogue bubbles',
+                    label: t('common.rename'),
+                    onSelect: () => startRenameCharacter(c.id, c.name),
+                  },
+                  {
+                    label: isPov() ? t('sidebar.characterUnpov') : t('sidebar.characterPov'),
+                    description: t('sidebar.characterPovDescription'),
                     onSelect: () => setPovCharacter(isPov() ? null : c.id),
                   },
                   { kind: 'divider' },
                   {
-                    label: 'Delete character',
+                    label: t('sidebar.characterDelete'),
                     danger: true,
                     onSelect: () => void doDeleteCharacter(),
                   },
@@ -487,7 +506,7 @@ export const Sidebar = () => {
         <div class="flex items-center gap-1 pt-1">
           <input
             type="text"
-            aria-label="New character name"
+            aria-label={t('aria.newCharacterName')}
             value={newCharDraft()}
             onInput={(e) => setNewCharDraft(e.currentTarget.value)}
             onKeyDown={(e: KeyboardEvent) => {
@@ -525,7 +544,7 @@ export const Sidebar = () => {
                   disabled={anyBusy()}
                   onClick={() => void runExport(exp)}
                   class="px-2 py-1 text-[11px] rounded border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-violet-500 hover:text-violet-500 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                  title={`Download as ${exp.label}`}
+                  title={t('misc.downloadAs', { format: exp.label })}
                 >
                   {busy() ? '…' : exp.label}
                 </button>

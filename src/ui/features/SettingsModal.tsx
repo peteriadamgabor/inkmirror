@@ -87,8 +87,10 @@ export const SettingsModal = () => {
     }
   });
 
-  const labelFor = (action: AppAction) =>
-    BINDING_META.find((m) => m.action === action)?.label ?? action;
+  const labelFor = (action: AppAction) => {
+    const meta = BINDING_META.find((m) => m.action === action);
+    return meta ? t(meta.labelKey as Parameters<typeof t>[0]) : action;
+  };
 
   function startCapture(action: AppAction) {
     currentFinish?.();
@@ -110,7 +112,7 @@ export const SettingsModal = () => {
       if (clash) {
         const previousCombo = hotkeys[action];
         setHotkey(clash[0], previousCombo);
-        toast.info(`Swapped with "${labelFor(clash[0])}"`);
+        toast.info(t('toast.hotkeySwapped', { label: labelFor(clash[0]) }));
       }
       setHotkey(action, combo);
       finish();
@@ -455,10 +457,10 @@ export const SettingsModal = () => {
                         <div class="flex items-center justify-between gap-4 py-2.5 border-b border-stone-200 dark:border-stone-700 last:border-b-0">
                           <div class="flex-1 min-w-0">
                             <div class="text-sm font-medium text-stone-900 dark:text-stone-50">
-                              {meta.label}
+                              {t(meta.labelKey as Parameters<typeof t>[0])}
                             </div>
                             <div class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                              {meta.description}
+                              {t(meta.descriptionKey as Parameters<typeof t>[0])}
                             </div>
                           </div>
                           <button

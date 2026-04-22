@@ -36,7 +36,7 @@ export const DocumentSettings = () => {
               type="button"
               onClick={() => setDocumentSettingsOpen(false)}
               class="w-7 h-7 rounded text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-              aria-label="Close"
+              aria-label={t('aria.closeDialog')}
             >
               ×
             </button>
