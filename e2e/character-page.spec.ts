@@ -105,6 +105,53 @@ test.describe('Character profile page', () => {
     await expect(page.locator('[data-testid="character-page"]')).toBeHidden();
   });
 
+  test('mentions and dialogue sections are collapsible', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));
+    await page.reload();
+
+    await page.getByRole('button', { name: /Try the demo/ }).first().click();
+    await expect(page.getByText("Rothschild's Fiddle — a demo").first()).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Grab any character with a non-zero appearance count.
+    const firstCharacter = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open('inkmirror');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      const chars = await new Promise<Array<{ name: string }>>((resolve, reject) => {
+        const tx = db.transaction('characters', 'readonly');
+        const req = tx.objectStore('characters').getAll();
+        req.onsuccess = () => resolve(req.result as Array<{ name: string }>);
+        req.onerror = () => reject(req.error);
+      });
+      db.close();
+      return chars[0];
+    });
+
+    await page.getByRole('button', { name: firstCharacter.name, exact: true }).first().click();
+
+    const mentions = page.locator('[data-testid="character-mentions-section"]');
+    const dialogue = page.locator('[data-testid="character-dialogue-section"]');
+
+    // Both sections open by default.
+    await expect(mentions).toHaveAttribute('open', '');
+    await expect(dialogue).toHaveAttribute('open', '');
+
+    // Clicking the summary collapses the section.
+    await mentions.locator('summary').click();
+    await expect(mentions).not.toHaveAttribute('open', '');
+    // Dialogue stays open — sections collapse independently.
+    await expect(dialogue).toHaveAttribute('open', '');
+
+    // Click again to expand.
+    await mentions.locator('summary').click();
+    await expect(mentions).toHaveAttribute('open', '');
+  });
+
   test('mention dot in a block header opens that character’s page', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => indexedDB.deleteDatabase('inkmirror'));

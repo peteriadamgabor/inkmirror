@@ -214,19 +214,23 @@ export const CharacterPage = () => {
                 </div>
               </div>
 
-              <div class="flex flex-col gap-2">
-                <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                  {t('characterPage.mentionsHeader')}
-                </div>
+              <details open class="flex flex-col gap-2 group/section" data-testid="character-mentions-section">
+                <summary class="cursor-pointer select-none list-none text-[10px] tracking-wider text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 inkmirror-smallcaps flex items-center gap-1.5 transition-colors">
+                  <span class="inline-block transition-transform group-open/section:rotate-90 text-[8px]">▸</span>
+                  <span>{t('characterPage.mentionsHeader')}</span>
+                  <span class="font-mono tabular-nums normal-case tracking-normal opacity-60">
+                    ({mentionBlocks().length})
+                  </span>
+                </summary>
                 <Show
                   when={mentionBlocks().length > 0}
                   fallback={
-                    <div class="text-xs italic text-stone-400">
+                    <div class="text-xs italic text-stone-400 mt-1">
                       {t('characterPage.mentionsEmpty')}
                     </div>
                   }
                 >
-                  <ul class="flex flex-col gap-1">
+                  <ul class="flex flex-col gap-1 mt-1">
                     <For each={mentionBlocks()}>
                       {(block) => (
                         <li>
@@ -248,21 +252,25 @@ export const CharacterPage = () => {
                     </For>
                   </ul>
                 </Show>
-              </div>
+              </details>
 
-              <div class="flex flex-col gap-2">
-                <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
-                  {t('characterPage.dialogueHeader')}
-                </div>
+              <details open class="flex flex-col gap-2 group/section" data-testid="character-dialogue-section">
+                <summary class="cursor-pointer select-none list-none text-[10px] tracking-wider text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 inkmirror-smallcaps flex items-center gap-1.5 transition-colors">
+                  <span class="inline-block transition-transform group-open/section:rotate-90 text-[8px]">▸</span>
+                  <span>{t('characterPage.dialogueHeader')}</span>
+                  <span class="font-mono tabular-nums normal-case tracking-normal opacity-60">
+                    ({dialogueBlocks().length})
+                  </span>
+                </summary>
                 <Show
                   when={dialogueBlocks().length > 0}
                   fallback={
-                    <div class="text-xs italic text-stone-400">
+                    <div class="text-xs italic text-stone-400 mt-1">
                       {t('characterPage.dialogueEmpty')}
                     </div>
                   }
                 >
-                  <ul class="flex flex-col gap-1">
+                  <ul class="flex flex-col gap-1 mt-1">
                     <For each={dialogueBlocks()}>
                       {(block) => (
                         <li>
@@ -284,7 +292,7 @@ export const CharacterPage = () => {
                     </For>
                   </ul>
                 </Show>
-              </div>
+              </details>
             </div>
           </div>
         </div>
