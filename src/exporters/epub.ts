@@ -1,8 +1,9 @@
-import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import {
   contentToRuns,
   exportableBlocks,
-  speakerNameFor,
+  formatDialogueProse,
+  resolveDialogueStyle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -46,37 +47,66 @@ function paragraphsWithMarks(block: Block): string {
     .join('\n      ');
 }
 
-function renderBlockXhtml(block: Block, characters: readonly Character[]): string {
+function renderBlockXhtml(
+  block: Block,
+  _characters: readonly Character[],
+  dialogueStyle: DialogueStyle,
+): string {
   switch (block.type) {
     case 'scene': {
-      const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
-      const header = [md?.location, md?.time, md?.mood ? `(${md.mood})` : '']
-        .filter(Boolean)
-        .join(' — ');
-      const headerHtml = header
-        ? `<p class="scene-heading">${esc(header)}</p>`
-        : '<hr class="scene-break"/>';
-      return `${headerHtml}\n      ${paragraphsWithMarks(block)}`;
+      // Novel-first: hide metadata from the visible output. Location /
+      // time / mood / cast still live in the editor and feed Plot
+      // Timeline, but the reader only sees a centered scene break.
+      return '<hr class="scene-break"/>';
     }
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      if (!data) return paragraphsWithMarks(block);
-      const speaker = speakerNameFor(data, characters);
-      const parenthetical = data.parenthetical?.trim();
-      const body = paragraphsWithMarks(block);
-      const speakerLine = speaker
-        ? `<p class="speaker">${esc(speaker)}</p>`
+      const parenthetical = data?.parenthetical?.trim();
+      // Wrap the full content as a single styled paragraph so the quote
+      // marks live inside the paragraph, not around each soft line.
+      const wrapped = formatDialogueProse(block.content, dialogueStyle);
+      if (!wrapped) return '';
+      // Preserve inline bold/italic marks inside the wrapped text by
+      // splicing the mark-aware HTML between the wrapper's prefix and
+      // suffix. For dash-style there's no suffix; for quote styles we
+      // peel one char off each end.
+      const inline = inlineWithMarks(block);
+      const dialogueInner =
+        dialogueStyle === 'hu_dash'
+          ? `– ${inline}`
+          : dialogueStyle === 'curly'
+            ? `“${inline}”`
+            : `"${inline}"`;
+      const parentheticalPrefix = parenthetical
+        ? `<em>(${esc(parenthetical)})</em> `
         : '';
-      const parentheticalLine = parenthetical
-        ? `<p class="parenthetical"><em>(${esc(parenthetical)})</em></p>`
-        : '';
-      return `<blockquote class="dialogue">${speakerLine}${parentheticalLine}${body}</blockquote>`;
+      void wrapped;
+      return `<p class="dialogue">${parentheticalPrefix}${dialogueInner}</p>`;
     }
     case 'text':
     default:
       return paragraphsWithMarks(block);
   }
+}
+
+/**
+ * Inline HTML for a block's content — single paragraph, no wrapping
+ * `<p>` tags. Used when the block content has to be embedded inside a
+ * surrounding wrapper (dialogue's quote marks or dash). Mark-aware;
+ * soft line breaks become `<br/>`, double newlines become ` / ` so
+ * the visible flow stays inside one paragraph.
+ */
+function inlineWithMarks(block: Block): string {
+  const runs = contentToRuns(block.content, block.marks);
+  let out = '';
+  for (const run of runs) {
+    let t = esc(run.text).replace(/\n{2,}/g, ' / ').replace(/\n/g, '<br/>');
+    if (run.italic) t = `<i>${t}</i>`;
+    if (run.bold) t = `<b>${t}</b>`;
+    out += t;
+  }
+  return out;
 }
 
 function chapterXhtml(title: string, bodyInner: string): string {
@@ -98,13 +128,11 @@ const STYLES_CSS = `@namespace epub "http://www.idpf.org/2007/ops";
 body { font-family: Georgia, serif; line-height: 1.6; padding: 0 1em; }
 h1 { font-size: 1.6em; margin: 2em 0 1em; text-align: center; }
 p { text-indent: 1.5em; margin: 0 0 0.5em; }
-p:first-of-type, h1 + p, .scene-heading + p { text-indent: 0; }
-.scene-heading { font-style: italic; text-align: center; margin: 1.5em 0; text-indent: 0; }
-.scene-break { border: none; text-align: center; margin: 1.5em 0; }
-.scene-break::before { content: "* * *"; letter-spacing: 0.5em; }
-blockquote.dialogue { margin: 1em 1.5em; border-left: 2px solid #999; padding-left: 1em; }
-.speaker { font-weight: bold; text-indent: 0; margin-bottom: 0.2em; font-variant: small-caps; }
-.parenthetical { text-indent: 0; margin: 0 0 0.3em 0.5em; color: #777; }
+p:first-of-type, h1 + p, hr.scene-break + p { text-indent: 0; }
+hr.scene-break { border: none; text-align: center; margin: 1.5em 0; }
+hr.scene-break::before { content: "* * *"; letter-spacing: 0.5em; }
+p.dialogue { text-indent: 1.5em; }
+p.dialogue + p.dialogue { text-indent: 1.5em; }
 `;
 
 function contentOpf(
@@ -214,10 +242,11 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
     { file: 'cover.xhtml', title: 'Cover' },
   ];
 
+  const dialogueStyle = resolveDialogueStyle(input.document);
   sortedChapters.forEach((chapter, i) => {
     const filename = `chapter-${i + 1}.xhtml`;
     const bodyInner = exportableBlocks(chapter, input.blocks)
-      .map((b) => renderBlockXhtml(b, input.characters))
+      .map((b) => renderBlockXhtml(b, input.characters, dialogueStyle))
       .filter((x) => x.trim().length > 0)
       .join('\n      ');
     zip.file(`OEBPS/${filename}`, chapterXhtml(chapter.title, bodyInner));

@@ -1,4 +1,13 @@
-import type { Block, Chapter, Character, DialogueMetadata, Document, Mark } from '@/types';
+import type {
+  Block,
+  Chapter,
+  Character,
+  DialogueMetadata,
+  DialogueStyle,
+  Document,
+  Mark,
+} from '@/types';
+import { DEFAULT_DIALOGUE_STYLE } from '@/types';
 import { normalizeMarks } from '@/engine/marks';
 
 /**
@@ -112,6 +121,43 @@ export function daysSinceLastExport(): number | null {
   if (!raw) return null;
   const ms = Date.now() - new Date(raw).getTime();
   return Math.floor(ms / 86_400_000);
+}
+
+/**
+ * Resolve a document's dialogue style, falling back to the default for
+ * older documents stored before the setting existed.
+ */
+export function resolveDialogueStyle(document: Document): DialogueStyle {
+  return document.settings.dialogue_style ?? DEFAULT_DIALOGUE_STYLE;
+}
+
+/**
+ * Wrap a single dialogue paragraph for prose export according to the
+ * document's dialogue style. Newlines inside the content are preserved
+ * (soft line breaks); the wrapper is applied once around the whole run.
+ *
+ * Used by PDF / DOCX / EPUB — Fountain has its own speaker-cue layout
+ * and does not call this.
+ */
+export function formatDialogueProse(
+  content: string,
+  style: DialogueStyle,
+): string {
+  const trimmed = content.trim();
+  if (!trimmed) return '';
+  switch (style) {
+    case 'curly':
+      return `“${trimmed}”`;
+    case 'hu_dash':
+      // En-dash + NBSP so the dash stays visually attached to the
+      // opening word. No closing punctuation — Hungarian convention
+      // lets the sentence end naturally with the narrator's prose that
+      // follows (which, per the novel-first plan, the writer authors).
+      return `– ${trimmed}`;
+    case 'straight':
+    default:
+      return `"${trimmed}"`;
+  }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

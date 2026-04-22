@@ -137,35 +137,54 @@ describe('fountainExporter', () => {
   });
 });
 
-describe('pdfExporter — CONT\'D on consecutive same-speaker dialogue', () => {
+describe('pdfExporter — novel-first flatten', () => {
   const input = makeInput();
-  const { flatten, nextSpeakerId } = pdfInternals;
+  const { flatten, wrapDialogue } = pdfInternals;
   const b2 = input.blocks.find((b) => b.id === 'b2')!;
-  const b2b = input.blocks.find((b) => b.id === 'b2b')!;
+  const b4 = input.blocks.find((b) => b.id === 'b4')!;
   const b1 = input.blocks.find((b) => b.id === 'b1')!;
 
-  it('first dialogue in a chapter renders as the bare name', () => {
-    const parts = flatten(b2, input.characters, null);
-    const speaker = parts.find((p) => p.kind === 'speaker');
-    expect(speaker?.text).toBe('Alice');
+  it('dialogue is emitted as a single wrapped prose paragraph — no speaker cue', () => {
+    const parts = flatten(b2, input.characters, 'straight');
+    // No 'speaker' kind exists in novel-first output.
+    expect(parts.every((p) => p.kind !== ('speaker' as string))).toBe(true);
+    const dialogue = parts.find((p) => p.kind === 'dialogue');
+    expect(dialogue?.text).toBe('"Hello there."');
+    expect(dialogue?.parenthetical).toBe('whispering');
   });
 
-  it('second consecutive dialogue by same speaker gets (CONT\'D)', () => {
-    const parts = flatten(b2b, input.characters, nextSpeakerId(b2));
-    const speaker = parts.find((p) => p.kind === 'speaker');
-    expect(speaker?.text).toBe("Alice (CONT'D)");
+  it('dialogue honors the curly-quotes style', () => {
+    const parts = flatten(b2, input.characters, 'curly');
+    const dialogue = parts.find((p) => p.kind === 'dialogue');
+    expect(dialogue?.text).toBe('“Hello there.”');
   });
 
-  it('a non-dialogue block between two dialogues resets CONT\'D', () => {
-    // b2 → b1 (text) → b2b. nextSpeakerId(b1) returns null, so b2b is bare.
-    const parts = flatten(b2b, input.characters, nextSpeakerId(b1));
-    const speaker = parts.find((p) => p.kind === 'speaker');
-    expect(speaker?.text).toBe('Alice');
+  it('dialogue honors the Hungarian en-dash style', () => {
+    const parts = flatten(b2, input.characters, 'hu_dash');
+    const dialogue = parts.find((p) => p.kind === 'dialogue');
+    expect(dialogue?.text).toBe('– Hello there.');
   });
 
-  it('nextSpeakerId returns null for non-dialogue blocks', () => {
-    expect(nextSpeakerId(b1)).toBeNull();
-    expect(nextSpeakerId(b2)).toBe('x');
+  it('scene block emits a scene-break with metadata hidden', () => {
+    const parts = flatten(b4, input.characters, 'straight');
+    expect(parts[0].kind).toBe('scene-break');
+    expect(parts[0].text).toBe('* * *');
+    // No part should leak the scene metadata text.
+    expect(
+      parts.some((p) => typeof p.text === 'string' && p.text.includes('desert highway')),
+    ).toBe(false);
+  });
+
+  it('text blocks remain one part per paragraph', () => {
+    const parts = flatten(b1, input.characters, 'straight');
+    expect(parts).toHaveLength(1);
+    expect(parts[0].kind).toBe('p');
+    expect(parts[0].text).toBe('Opening paragraph.');
+  });
+
+  it('wrapDialogue covers empty content defensively', () => {
+    expect(wrapDialogue('', 'straight')).toBe('');
+    expect(wrapDialogue('   ', 'curly')).toBe('');
   });
 
   it('preserves Hungarian ő/ű through flatten — no WinAnsi truncation upstream', () => {
@@ -180,7 +199,7 @@ describe('pdfExporter — CONT\'D on consecutive same-speaker dialogue', () => {
       order: 99, metadata: { type: 'text' },
       deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
     };
-    const parts = flatten(huBlock, [], null);
+    const parts = flatten(huBlock, [], 'straight');
     const text = parts.map((p) => p.text).join('');
     expect(text).toContain('ébresztő');
     expect(text).toContain('gyönyörű');

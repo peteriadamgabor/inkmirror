@@ -141,6 +141,15 @@ export const en = {
     typeface: 'Typeface',
     typefaceHelp: "System fonts only — no downloads. Falls back to Georgia if your platform doesn't have the primary face.",
     typefaceSample: 'She read the line twice, weighing it.',
+    dialogueStyle: 'Dialogue style',
+    dialogueStyleHelp:
+      'How exported dialogue blocks are wrapped in PDF, DOCX, and EPUB. Fountain is unchanged.',
+    dialogueStyleExample: "I can't stay.",
+    dialogueStyles: {
+      straight: 'Straight quotes',
+      curly: 'Curly quotes',
+      hu_dash: 'Hungarian dash',
+    },
     autosaveNote: 'Changes save automatically',
   },
   bootSplash: {

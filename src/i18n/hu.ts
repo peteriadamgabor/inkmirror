@@ -142,6 +142,15 @@ export const hu: Messages = {
     typeface: 'Betűtípus',
     typefaceHelp: 'Csak rendszer betűtípusok — nincs letöltés. Georgia-ra esik vissza, ha az elsődleges betű nincs a gépeden.',
     typefaceSample: 'Kétszer olvasta át a mondatot, megfontolva.',
+    dialogueStyle: 'Párbeszéd stílus',
+    dialogueStyleHelp:
+      'Hogyan jelenjenek meg a párbeszéd-blokkok PDF, DOCX és EPUB exportban. A Fountain formátum változatlan marad.',
+    dialogueStyleExample: 'Nem maradhatok.',
+    dialogueStyles: {
+      straight: 'Egyenes idézőjel',
+      curly: 'Gömbölyű idézőjel',
+      hu_dash: 'Magyar gondolatjel',
+    },
     autosaveNote: 'A változások automatikusan mentődnek',
   },
   bootSplash: {

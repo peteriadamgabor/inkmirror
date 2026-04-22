@@ -1,8 +1,8 @@
-import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import {
   contentToRuns,
   exportableBlocks,
-  speakerNameFor,
+  resolveDialogueStyle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -22,15 +22,6 @@ function sanitizeXmlText(text: string): string {
   // Strip everything else (including \x00–\x08, \x0B, \x0C, \x0E–\x1F).
   // eslint-disable-next-line no-control-regex
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-}
-
-function sceneHeaderText(md: SceneMetadata | null): string {
-  if (!md) return '';
-  const parts: string[] = [];
-  if (md.location) parts.push(md.location);
-  if (md.time) parts.push(md.time);
-  if (md.mood) parts.push(`(${md.mood})`);
-  return sanitizeXmlText(parts.join(' — '));
 }
 
 /**
@@ -64,55 +55,57 @@ function contentLinesAsRuns(
 function blockParagraphs(
   docx: DocxMods,
   block: Block,
-  characters: readonly Character[],
+  _characters: readonly Character[],
+  dialogueStyle: DialogueStyle,
 ): InstanceType<DocxMods['Paragraph']>[] {
   const { Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
   const out: InstanceType<DocxMods['Paragraph']>[] = [];
 
   switch (block.type) {
     case 'scene': {
-      const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
-      const header = sceneHeaderText(md);
-      if (header) {
-        out.push(
-          new Paragraph({
-            style: 'SceneHeading',
-            children: [new TextRun(header)],
-          }),
-        );
-      }
-      for (const runs of contentLinesAsRuns(docx, block)) {
-        out.push(new Paragraph({ spacing: { after: 120 }, children: runs }));
-      }
+      // Novel-first: render a centered `* * *` break. Metadata hidden.
+      out.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 240, after: 240 },
+          children: [new TextRun('* * *')],
+        }),
+      );
       break;
     }
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const speaker = data ? speakerNameFor(data, characters) : null;
-      if (speaker) {
-        out.push(
-          new Paragraph({
-            style: 'DialogueSpeaker',
-            children: [new TextRun(sanitizeXmlText(speaker))],
+      const parenthetical = data?.parenthetical?.trim();
+      // Single paragraph: optional italic parenthetical prefix, then
+      // the block's marked content wrapped in the chosen dialogue
+      // delimiters. Soft line breaks inside the block are preserved
+      // inside the same paragraph (the docx library converts \n in a
+      // TextRun into a proper break).
+      const wrapperPrefix =
+        dialogueStyle === 'hu_dash' ? '– ' : dialogueStyle === 'curly' ? '“' : '"';
+      const wrapperSuffix =
+        dialogueStyle === 'hu_dash' ? '' : dialogueStyle === 'curly' ? '”' : '"';
+      const children: InstanceType<DocxMods['TextRun']>[] = [];
+      if (parenthetical) {
+        children.push(
+          new TextRun({
+            text: `(${sanitizeXmlText(parenthetical)}) `,
+            italics: true,
           }),
         );
       }
-      if (data?.parenthetical?.trim()) {
-        out.push(
-          new Paragraph({
-            style: 'Parenthetical',
-            children: [
-              new TextRun(`(${sanitizeXmlText(data.parenthetical.trim())})`),
-            ],
-          }),
+      children.push(new TextRun({ text: wrapperPrefix }));
+      const runs = contentToRuns(block.content, block.marks);
+      for (const r of runs) {
+        const sanitized = sanitizeXmlText(r.text);
+        if (!sanitized) continue;
+        children.push(
+          new TextRun({ text: sanitized, bold: r.bold, italics: r.italic }),
         );
       }
-      for (const runs of contentLinesAsRuns(docx, block)) {
-        out.push(
-          new Paragraph({ style: 'DialogueBody', children: runs }),
-        );
-      }
+      children.push(new TextRun({ text: wrapperSuffix }));
+      out.push(new Paragraph({ spacing: { after: 120 }, children }));
       break;
     }
     case 'text':
@@ -125,7 +118,6 @@ function blockParagraphs(
   }
 
   void HeadingLevel;
-  void AlignmentType;
   return out;
 }
 
@@ -164,6 +156,7 @@ export const docxExporter: Exporter = {
     }
 
     const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+    const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
       children.push(
         new Paragraph({
@@ -176,7 +169,9 @@ export const docxExporter: Exporter = {
       );
       for (const block of exportableBlocks(chapter, input.blocks)) {
         if (block.content.trim().length === 0 && block.type !== 'scene') continue;
-        children.push(...blockParagraphs(docx, block, input.characters));
+        children.push(
+          ...blockParagraphs(docx, block, input.characters, dialogueStyle),
+        );
       }
     }
 

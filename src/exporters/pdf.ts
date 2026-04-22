@@ -1,9 +1,9 @@
-import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
+import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import type { jsPDF } from 'jspdf';
 import {
   contentToRuns,
   exportableBlocks,
-  speakerNameFor,
+  resolveDialogueStyle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -95,26 +95,42 @@ function clampBlockContent(text: string): string {
   return text.slice(0, MAX_BLOCK_CHARS) + TRUNCATION_NOTE;
 }
 
+/**
+ * Flattened, layout-ready piece for the PDF renderer. Novel-first shape:
+ *
+ * - `scene-break`    — centered `* * *` separator (scene metadata hidden)
+ * - `dialogue`       — a single paragraph wrapped in the document's
+ *                      chosen dialogue delimiters, with an optional
+ *                      italic parenthetical prefix
+ * - `p`              — plain prose paragraph (text blocks)
+ */
 interface FlatPart {
-  kind: 'h' | 'scene' | 'speaker' | 'parenthetical' | 'p';
+  kind: 'scene-break' | 'dialogue' | 'p';
   text: string;
+  /** Parenthetical aside rendered in italics before the dialogue text. */
+  parenthetical?: string;
+}
+
+function wrapDialogue(content: string, style: DialogueStyle): string {
+  const trimmed = content.trim();
+  if (!trimmed) return '';
+  if (style === 'hu_dash') return `– ${trimmed}`;
+  if (style === 'curly') return `“${trimmed}”`;
+  return `"${trimmed}"`;
 }
 
 function flatten(
   block: Block,
-  characters: readonly Character[],
-  previousSpeakerId: string | null,
+  _characters: readonly Character[],
+  dialogueStyle: DialogueStyle,
 ): FlatPart[] {
   switch (block.type) {
     case 'scene': {
-      const md = block.metadata.type === 'scene' ? (block.metadata.data as SceneMetadata) : null;
-      const parts: FlatPart[] = [];
-      if (md) {
-        const header = [md.location, md.time, md.mood ? `(${md.mood})` : '']
-          .filter(Boolean)
-          .join(' — ');
-        if (header) parts.push({ kind: 'scene', text: header });
-      }
+      // Novel-first: ignore scene metadata in the visible output. The
+      // scene block becomes a single scene-break mark; any prose the
+      // writer typed into the scene block itself still renders as
+      // paragraphs below the break.
+      const parts: FlatPart[] = [{ kind: 'scene-break', text: '* * *' }];
       for (const p of clampBlockContent(block.content).split(/\n{2,}/)) {
         const t = p.trim();
         if (t) parts.push({ kind: 'p', text: t });
@@ -124,27 +140,21 @@ function flatten(
     case 'dialogue': {
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
-      const parts: FlatPart[] = [];
-      if (data) {
-        const speaker = speakerNameFor(data, characters);
-        if (speaker) {
-          // Fountain-style CONT'D: when two consecutive dialogue blocks
-          // share a speaker, the second cue gets "(CONT'D)" appended.
-          // Resets on scene/text blocks or a new chapter via the caller.
-          const isContinuation =
-            !!data.speaker_id && data.speaker_id === previousSpeakerId;
-          const cue = isContinuation ? `${speaker} (CONT'D)` : speaker;
-          parts.push({ kind: 'speaker', text: cue });
-        }
-        if (data.parenthetical?.trim()) {
-          parts.push({ kind: 'parenthetical', text: `(${data.parenthetical.trim()})` });
-        }
-      }
-      for (const p of clampBlockContent(block.content).split(/\n{2,}/)) {
-        const t = p.trim();
-        if (t) parts.push({ kind: 'p', text: t });
-      }
-      return parts;
+      const parenthetical = data?.parenthetical?.trim() || undefined;
+      // Collapse soft newlines into spaces so the quote stays a single
+      // paragraph in prose. Writers who want multi-paragraph dialogue
+      // can just use two dialogue blocks.
+      const collapsed = clampBlockContent(block.content)
+        .replace(/\n+/g, ' ')
+        .trim();
+      if (!collapsed && !parenthetical) return [];
+      return [
+        {
+          kind: 'dialogue',
+          text: wrapDialogue(collapsed, dialogueStyle),
+          parenthetical,
+        },
+      ];
     }
     case 'text':
     default: {
@@ -157,14 +167,8 @@ function flatten(
   }
 }
 
-function nextSpeakerId(block: Block): string | null {
-  if (block.type !== 'dialogue') return null;
-  if (block.metadata.type !== 'dialogue') return null;
-  return block.metadata.data.speaker_id || null;
-}
-
 /** Test-only export. Runtime callers go through `pdfExporter.run`. */
-export const __test = { flatten, nextSpeakerId };
+export const __test = { flatten, wrapDialogue };
 
 export const pdfExporter: Exporter = {
   format: 'pdf',
@@ -266,33 +270,47 @@ export const pdfExporter: Exporter = {
     newPage();
 
     const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+    const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
       newPage();
       y = PAGE_H / 4;
       writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
       y += LINE_H * 2;
-      // CONT'D tracking is scoped to a chapter — a new chapter always
-      // starts with a fresh speaker cue, even if the prior chapter
-      // ended on the same character's dialogue.
-      let previousSpeakerId: string | null = null;
       for (const block of exportableBlocks(chapter, input.blocks)) {
-        for (const part of flatten(block, input.characters, previousSpeakerId)) {
-          if (part.kind === 'scene') {
-            y += LINE_H * 0.5;
-            writeLines(part.text, { size: BODY_FONT_SIZE, style: 'italic', align: 'center' });
-            y += LINE_H * 0.5;
-          } else if (part.kind === 'speaker') {
-            y += LINE_H * 0.5;
-            writeLines(part.text.toUpperCase(), { size: BODY_FONT_SIZE, style: 'bold' });
-          } else if (part.kind === 'parenthetical') {
-            writeLines(part.text, { size: BODY_FONT_SIZE - 1, style: 'italic' });
+        const parts = flatten(block, input.characters, dialogueStyle);
+        if (parts.length === 0) continue;
+        for (const part of parts) {
+          if (part.kind === 'scene-break') {
+            y += LINE_H * 0.75;
+            writeLines(part.text, {
+              size: BODY_FONT_SIZE,
+              align: 'center',
+            });
+            y += LINE_H * 0.75;
+          } else if (part.kind === 'dialogue') {
+            if (part.parenthetical) {
+              writeLines(`(${part.parenthetical})`, {
+                size: BODY_FONT_SIZE - 1,
+                style: 'italic',
+              });
+            }
+            // Dialogue rendered as a plain prose paragraph with quote
+            // marks / dash prefix already included in part.text. No
+            // bold/italic marks inside — those are handled by
+            // writeRichBlock on text blocks; dialogue wrap dominates.
+            writeLines(part.text, { size: BODY_FONT_SIZE });
+            y += LINE_H * 0.3;
           } else {
+            // Plain text paragraph — use the rich renderer so bold /
+            // italic marks survive. writeRichBlock walks the whole
+            // block's marks + content and ignores `part.text`, so we
+            // only call it once per block, even if the block has
+            // multiple paragraphs.
             writeRichBlock(block, BODY_FONT_SIZE);
             y += LINE_H * 0.3;
-            break; // writeRichBlock handles the full block content; skip remaining flat parts.
+            break;
           }
         }
-        previousSpeakerId = nextSpeakerId(block);
       }
     }
 
