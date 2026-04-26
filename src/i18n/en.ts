@@ -791,6 +791,11 @@ export const en = {
     next: 'Next match (Enter)',
     prev: 'Previous match (Shift+Enter)',
     close: 'Close (Esc)',
+    replacePlaceholder: 'Replace with…',
+    replace: 'Replace',
+    replaceAll: 'All',
+    replaceTitle: 'Replace this match (Enter)',
+    replaceAllTitle: 'Replace every match (Shift+Enter)',
   },
   toast: {
     exportFailed: 'Export failed: {{error}}',

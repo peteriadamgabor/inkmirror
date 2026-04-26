@@ -89,4 +89,34 @@ test.describe('Small premium tweaks', () => {
     await page.keyboard.press('Escape');
     await expect(input).not.toBeVisible();
   });
+
+  test('Find & Replace updates the text in place', async ({ page }) => {
+    const editable = page.locator('[data-editable]').first();
+    await editable.click();
+    await page.keyboard.type('The fox is quick.');
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Enter');
+    await page.locator('[data-editable]').nth(1).click();
+    await page.keyboard.type('Another fox appears.');
+    await page.waitForTimeout(500);
+
+    await page.keyboard.press('Control+f');
+    const search = page.getByPlaceholder(/Search the manuscript/);
+    await search.fill('fox');
+    await expect(page.locator('[data-testid="search-counter"]'))
+      .toHaveText('1 / 2', { timeout: 2_000 });
+
+    // Type into the replace field and click "All".
+    await page.locator('[data-testid="search-replace-input"]').fill('owl');
+    await page.locator('[data-testid="search-replace-all"]').click();
+
+    // Both occurrences should be gone; counter falls to empty/0.
+    await expect(page.locator('[data-testid="search-counter"]'))
+      .toHaveText('No matches', { timeout: 2_000 });
+    // The blocks themselves now contain "owl".
+    await expect(page.locator('[data-editable]').first())
+      .toContainText('The owl is quick.', { timeout: 2_000 });
+    await expect(page.locator('[data-editable]').nth(1))
+      .toContainText('Another owl appears.');
+  });
 });

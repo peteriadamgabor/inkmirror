@@ -493,6 +493,11 @@ export const hu: Messages = {
     next: 'Következő találat (Enter)',
     prev: 'Előző találat (Shift+Enter)',
     close: 'Bezárás (Esc)',
+    replacePlaceholder: 'Csere erre…',
+    replace: 'Csere',
+    replaceAll: 'Mind',
+    replaceTitle: 'Csere a jelenlegi találatban (Enter)',
+    replaceAllTitle: 'Minden találat cseréje (Shift+Enter)',
   },
   toast: {
     exportFailed: 'Export hiba: {{error}}',

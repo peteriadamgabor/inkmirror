@@ -267,6 +267,14 @@ select:focus-visible {
   animation: search-match-flash 1100ms ease-out;
 }
 
+/* In-app search match: paint the matched substring with the violet
+   accent via the CSS Custom Highlight API. Non-destructive — the DOM
+   text content is untouched, so contenteditable's caret can't fight it. */
+::highlight(inkmirror-search-match) {
+  background-color: rgba(127, 119, 221, 0.32);
+  color: inherit;
+}
+
 /* ===========================================================
  * Motion pack.
  * All animations respect prefers-reduced-motion — users who
