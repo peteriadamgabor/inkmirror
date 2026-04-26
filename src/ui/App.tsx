@@ -11,6 +11,7 @@ import { SettingsModal } from './features/SettingsModal';
 import { CommandPalette } from './features/CommandPalette';
 import { DocumentSettings } from './features/DocumentSettings';
 import { CharacterPage } from './features/CharacterPage';
+import { EditorSearch } from './features/EditorSearch';
 import { ToastHost } from './shared/ToastHost';
 import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
@@ -119,6 +120,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <CommandPalette />
     <DocumentSettings />
     <CharacterPage />
+    <EditorSearch />
     <ConfirmHost />
     <ContextMenuHost />
     <SlashMenuHost />

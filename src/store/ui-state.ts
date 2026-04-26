@@ -21,6 +21,11 @@ export interface UiState {
    * this is non-null.
    */
   characterPageId: UUID | null;
+  /**
+   * In-app search bar — intercepts the browser's native Ctrl+F so the
+   * virtualizer-hidden blocks can still be found.
+   */
+  searchOpen: boolean;
 }
 
 export type SettingsModalTab = 'ai' | 'hotkeys' | 'language';
@@ -66,6 +71,7 @@ const [uiState, setUiState] = createStore<UiState>({
   settingsModalOpen: false,
   settingsModalTab: 'ai',
   characterPageId: null,
+  searchOpen: false,
 });
 
 export { uiState };
@@ -195,6 +201,14 @@ export function openCharacterPage(id: UUID): void {
 
 export function closeCharacterPage(): void {
   setUiState('characterPageId', null);
+}
+
+export function toggleSearch(): void {
+  setUiState('searchOpen', (v) => !v);
+}
+
+export function setSearchOpen(open: boolean): void {
+  setUiState('searchOpen', open);
 }
 
 // Callback set by index.tsx to navigate back to the document picker.

@@ -20,4 +20,6 @@ export {
   TbOutlineVolume as IconVolume,
   TbOutlineArrowLeft as IconArrowLeft,
   TbOutlineSettings as IconSettings,
+  TbOutlineSearch as IconSearch,
+  TbOutlineX as IconClose,
 } from 'solid-icons/tb';

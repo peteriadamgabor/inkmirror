@@ -1,0 +1,221 @@
+import { createEffect, createMemo, createSignal, Show } from 'solid-js';
+import { uiState, setSearchOpen } from '@/store/ui-state';
+import { store, setActiveChapter } from '@/store/document';
+import { allVisibleBlocks } from '@/store/selectors';
+import { t } from '@/i18n';
+import { IconChevron, IconClose, IconSearch } from '@/ui/shared/icons';
+import type { UUID } from '@/types';
+
+interface SearchHit {
+  blockId: UUID;
+  chapterId: UUID;
+  start: number;
+  end: number;
+}
+
+const MIN_QUERY_LEN = 2;
+const FALLBACK_BLOCK_HEIGHT = 400;
+
+function findHits(query: string): SearchHit[] {
+  if (query.length < MIN_QUERY_LEN) return [];
+  const q = query.toLowerCase();
+  const out: SearchHit[] = [];
+  for (const b of allVisibleBlocks()) {
+    if (b.type === 'note') continue; // notes don't ship; don't search them.
+    const lc = b.content.toLowerCase();
+    let from = 0;
+    while (true) {
+      const idx = lc.indexOf(q, from);
+      if (idx < 0) break;
+      out.push({
+        blockId: b.id,
+        chapterId: b.chapter_id,
+        start: idx,
+        end: idx + q.length,
+      });
+      from = idx + q.length;
+    }
+  }
+  return out;
+}
+
+function flashBlock(blockId: UUID): void {
+  const target = document.querySelector<HTMLElement>(`[data-block-id="${blockId}"]`);
+  if (!target) return;
+  target.dataset.searchFlash = '1';
+  setTimeout(() => {
+    delete target.dataset.searchFlash;
+  }, 1200);
+}
+
+/**
+ * Center the matched block in the editor viewport. Two-pass scroll is
+ * needed because the editor is virtualized — if the match is far below
+ * the current scroll position, the block isn't in the DOM yet, so we
+ * pre-scroll using stored measurements to coax the virtualizer into
+ * rendering it, then fine-tune with scrollIntoView on the next frame.
+ */
+function jumpTo(hit: SearchHit): void {
+  setActiveChapter(hit.chapterId);
+  requestAnimationFrame(() => {
+    const target = document.querySelector<HTMLElement>(
+      `[data-block-id="${hit.blockId}"]`,
+    );
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      flashBlock(hit.blockId);
+      return;
+    }
+    const scroller = document.querySelector<HTMLElement>(
+      '[data-scroll-root="editor"]',
+    );
+    if (!scroller) return;
+    const order = store.blockOrder.filter(
+      (id) => store.blocks[id]?.chapter_id === hit.chapterId,
+    );
+    const idx = order.indexOf(hit.blockId);
+    if (idx < 0) return;
+    let offset = 0;
+    for (let i = 0; i < idx; i++) {
+      offset += store.measurements[order[i]]?.height ?? FALLBACK_BLOCK_HEIGHT;
+    }
+    scroller.scrollTop = Math.max(0, offset - scroller.clientHeight / 2);
+    requestAnimationFrame(() => {
+      const t2 = document.querySelector<HTMLElement>(
+        `[data-block-id="${hit.blockId}"]`,
+      );
+      if (t2) {
+        t2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        flashBlock(hit.blockId);
+      }
+    });
+  });
+}
+
+export const EditorSearch = () => {
+  const [query, setQuery] = createSignal('');
+  const [cursor, setCursor] = createSignal(0);
+  let inputEl: HTMLInputElement | undefined;
+
+  const hits = createMemo(() => findHits(query()));
+
+  // Reset state and focus input each time the bar opens.
+  createEffect(() => {
+    if (uiState.searchOpen) {
+      setQuery('');
+      setCursor(0);
+      queueMicrotask(() => inputEl?.focus());
+    }
+  });
+
+  // Whenever the active match changes, jump to it.
+  createEffect(() => {
+    if (!uiState.searchOpen) return;
+    const list = hits();
+    if (list.length === 0) return;
+    const i = Math.min(cursor(), list.length - 1);
+    jumpTo(list[i]);
+  });
+
+  const next = () => {
+    const list = hits();
+    if (list.length === 0) return;
+    setCursor((i) => (i + 1) % list.length);
+  };
+
+  const prev = () => {
+    const list = hits();
+    if (list.length === 0) return;
+    setCursor((i) => (i - 1 + list.length) % list.length);
+  };
+
+  const close = () => setSearchOpen(false);
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) prev();
+      else next();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      next();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      prev();
+    }
+  };
+
+  const counterText = () => {
+    const list = hits();
+    if (list.length > 0) {
+      return t('search.counter', {
+        current: Math.min(cursor() + 1, list.length),
+        total: list.length,
+      });
+    }
+    if (query().length < MIN_QUERY_LEN) return '';
+    return t('search.empty');
+  };
+
+  return (
+    <Show when={uiState.searchOpen}>
+      <div
+        class="fixed top-4 left-1/2 -translate-x-1/2 z-40 w-[520px] max-w-[92vw] flex items-center gap-2 px-3 py-2 bg-white dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 shadow-2xl"
+        data-search-bar
+      >
+        <IconSearch size={14} class="text-stone-400 shrink-0" />
+        <input
+          ref={inputEl}
+          type="text"
+          value={query()}
+          onInput={(e) => {
+            setQuery(e.currentTarget.value);
+            setCursor(0);
+          }}
+          onKeyDown={onKeyDown}
+          placeholder={t('search.placeholder')}
+          class="flex-1 min-w-0 bg-transparent outline-none text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400"
+          aria-label={t('search.placeholder')}
+        />
+        <span
+          class="text-[10px] tabular-nums text-stone-500 shrink-0 min-w-[3.5rem] text-right"
+          data-testid="search-counter"
+        >
+          {counterText()}
+        </span>
+        <button
+          type="button"
+          onClick={prev}
+          disabled={hits().length === 0}
+          class="w-6 h-6 flex items-center justify-center rounded text-stone-400 hover:text-violet-500 disabled:opacity-30 transition-colors"
+          title={t('search.prev')}
+          aria-label={t('search.prev')}
+        >
+          <IconChevron size={12} class="rotate-180" />
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          disabled={hits().length === 0}
+          class="w-6 h-6 flex items-center justify-center rounded text-stone-400 hover:text-violet-500 disabled:opacity-30 transition-colors"
+          title={t('search.next')}
+          aria-label={t('search.next')}
+        >
+          <IconChevron size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={close}
+          class="w-6 h-6 flex items-center justify-center rounded text-stone-400 hover:text-violet-500 transition-colors"
+          title={t('search.close')}
+          aria-label={t('search.close')}
+        >
+          <IconClose size={12} />
+        </button>
+      </div>
+    </Show>
+  );
+};

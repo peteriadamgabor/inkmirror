@@ -585,6 +585,7 @@ export const en = {
     chapterMinRead: 'chapter ~{{n}} min',
     dialoguePct: '{{n}}% dial',
     dialogueTotal: 'dialogue {{d}} · narration {{n}}',
+    sessionTitle: 'Words added this session',
   },
   rightPanel: {
     storyPulse: 'Story pulse',
@@ -754,6 +755,7 @@ export const en = {
       documentSettings: 'Document settings',
       undo: 'Undo',
       redo: 'Redo',
+      search: 'Search',
       debugPanel: 'Debug panel',
     },
     appDescriptions: {
@@ -769,6 +771,7 @@ export const en = {
       documentSettings: 'Edit title, author, synopsis',
       undo: 'Undo the last action',
       redo: 'Redo the last undone action',
+      search: 'Find text across the manuscript',
       debugPanel: 'Toggle developer telemetry overlay',
     },
   },
@@ -780,6 +783,14 @@ export const en = {
       export: 'Export',
       navigation: 'Navigation',
     },
+  },
+  search: {
+    placeholder: 'Search the manuscript…',
+    counter: '{{current}} / {{total}}',
+    empty: 'No matches',
+    next: 'Next match (Enter)',
+    prev: 'Previous match (Shift+Enter)',
+    close: 'Close (Esc)',
   },
   toast: {
     exportFailed: 'Export failed: {{error}}',

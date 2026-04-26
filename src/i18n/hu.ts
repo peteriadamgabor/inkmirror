@@ -287,6 +287,7 @@ export const hu: Messages = {
     chapterMinRead: 'fejezet ~{{n}} perc',
     dialoguePct: '{{n}}% párbeszéd',
     dialogueTotal: 'párbeszéd {{d}} · narráció {{n}}',
+    sessionTitle: 'Ebben a munkamenetben írt szavak',
   },
   rightPanel: {
     storyPulse: 'Történet pulzus',
@@ -456,6 +457,7 @@ export const hu: Messages = {
       documentSettings: 'Dokumentum beállítások',
       undo: 'Visszavonás',
       redo: 'Újra',
+      search: 'Keresés',
       debugPanel: 'Fejlesztői panel',
     },
     appDescriptions: {
@@ -471,6 +473,7 @@ export const hu: Messages = {
       documentSettings: 'Cím, szerző, tartalmi összefoglaló szerkesztése',
       undo: 'Az utolsó művelet visszavonása',
       redo: 'A legutóbb visszavont művelet megismétlése',
+      search: 'Szöveg keresése a kéziratban',
       debugPanel: 'Fejlesztői telemetria panel ki/be kapcsolása',
     },
   },
@@ -482,6 +485,14 @@ export const hu: Messages = {
       export: 'Export',
       navigation: 'Navigáció',
     },
+  },
+  search: {
+    placeholder: 'Keresés a kéziratban…',
+    counter: '{{current}} / {{total}}',
+    empty: 'Nincs találat',
+    next: 'Következő találat (Enter)',
+    prev: 'Előző találat (Shift+Enter)',
+    close: 'Bezárás (Esc)',
   },
   toast: {
     exportFailed: 'Export hiba: {{error}}',

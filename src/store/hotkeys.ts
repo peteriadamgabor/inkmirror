@@ -15,6 +15,7 @@ export type AppAction =
   | 'help.show'
   | 'hotkeys.show'
   | 'palette.show'
+  | 'search.toggle'
   | 'document.settings'
   | 'undo'
   | 'redo'
@@ -31,6 +32,7 @@ export interface BindingMeta {
 
 export const BINDING_META: BindingMeta[] = [
   { action: 'palette.show',       labelKey: 'hotkeys.appLabels.palette',          descriptionKey: 'hotkeys.appDescriptions.palette',          defaultCombo: 'Ctrl+K' },
+  { action: 'search.toggle',      labelKey: 'hotkeys.appLabels.search',           descriptionKey: 'hotkeys.appDescriptions.search',           defaultCombo: 'Ctrl+F' },
   { action: 'hotkeys.show',       labelKey: 'hotkeys.appLabels.hotkeys',          descriptionKey: 'hotkeys.appDescriptions.hotkeys',          defaultCombo: 'F1' },
   { action: 'help.show',          labelKey: 'hotkeys.appLabels.blockTypesHelp',   descriptionKey: 'hotkeys.appDescriptions.blockTypesHelp',   defaultCombo: 'Alt+Shift+?' },
   { action: 'focus.toggle',       labelKey: 'hotkeys.appLabels.focusMode',        descriptionKey: 'hotkeys.appDescriptions.focusMode',        defaultCombo: 'Alt+Shift+F' },

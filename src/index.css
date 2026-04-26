@@ -254,6 +254,19 @@ select:focus-visible {
   animation: block-move-flash 350ms ease-out;
 }
 
+/* In-app search match flash: when Ctrl+F lands on a hit, the matched
+   block briefly pulses a violet ring so the eye can find the exact row
+   even after a smooth-scroll re-centers it. Same colour as block-move
+   so the visual vocabulary stays consistent. */
+@keyframes search-match-flash {
+  0%   { box-shadow: 0 0 0 3px rgba(127, 119, 221, 0.55); }
+  60%  { box-shadow: 0 0 0 3px rgba(127, 119, 221, 0.55); }
+  100% { box-shadow: 0 0 0 0   rgba(127, 119, 221, 0); }
+}
+[data-block-id][data-search-flash="1"] [data-editable] {
+  animation: search-match-flash 1100ms ease-out;
+}
+
 /* ===========================================================
  * Motion pack.
  * All animations respect prefers-reduced-motion — users who
@@ -335,6 +348,8 @@ select:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   [data-block-id][data-just-added="1"],
+  [data-block-id][data-search-flash="1"] [data-editable],
+  [data-block-id][data-just-moved="1"] [data-editable],
   .inkmirror-modal-backdrop,
   .inkmirror-modal-panel,
   .inkmirror-modal-backdrop-exit,

@@ -32,6 +32,7 @@ import { SceneMetadataEditor } from './SceneMetadataEditor';
 import { BlockHistory } from './BlockHistory';
 import { BlockTimestamp } from './BlockTimestamp';
 import { recordKeystroke } from '@/workers/pulse-client';
+import { applyTypographyReplacement } from '@/utils/typography';
 import { t } from '@/i18n';
 
 const TYPE_META: Record<Block['type'], { labelKey: string; className: string; hintKey: string }> = {
@@ -234,6 +235,34 @@ export const BlockView = (props: { block: Block }) => {
   const onInput = () => {
     if (isComposing) return;
     recordKeystroke();
+
+    // Auto-typography: --, ..., and (when the doc opts in) smart quotes.
+    // Operates on the single Text node at the caret so existing inline
+    // marks (<strong>, <em>) on sibling nodes stay untouched.
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+      const range = sel.getRangeAt(0);
+      const container = range.startContainer;
+      if (
+        container.nodeType === Node.TEXT_NODE &&
+        el.contains(container)
+      ) {
+        const style = store.document?.settings.dialogue_style ?? 'straight';
+        const smartQuotes = style !== 'straight';
+        const result = applyTypographyReplacement(
+          container as Text,
+          range.startOffset,
+          smartQuotes,
+        );
+        if (result.replaced) {
+          const newRange = document.createRange();
+          newRange.setStart(container, result.offset);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        }
+      }
+    }
 
     // Live dialogue leading-"Name: " detect. When the user types
     // "Alice: " inside a dialogue block with no speaker yet, strip the

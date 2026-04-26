@@ -9,6 +9,13 @@ function countWords(text: string): number {
   return trimmed.split(/\s+/).length;
 }
 
+// Per-document session baseline: the document's total word count the
+// first time we observe it during this page load. Reset on reload —
+// the writer wants "what did I write today, in this sitting" rather
+// than "lifetime total." Keyed by document id so switching documents
+// captures a fresh baseline for the new doc.
+const sessionBaselines = new Map<string, number>();
+
 export const WordCount = () => {
   const stats = createMemo(() => {
     let total = 0;
@@ -41,6 +48,19 @@ export const WordCount = () => {
     return s.total > 0 ? Math.round((s.dialogue / s.total) * 100) : 0;
   };
 
+  // Words added during this session — non-negative delta from the
+  // first observation of this doc's total. Hides when zero or no doc.
+  const sessionDelta = createMemo(() => {
+    const docId = store.document?.id;
+    if (!docId) return 0;
+    const total = stats().total;
+    if (!sessionBaselines.has(docId)) {
+      sessionBaselines.set(docId, total);
+      return 0;
+    }
+    return Math.max(0, total - (sessionBaselines.get(docId) ?? total));
+  });
+
   return (
     <div class="flex flex-col gap-2">
       <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
@@ -50,7 +70,17 @@ export const WordCount = () => {
         <div class="grid grid-cols-2 gap-x-3 gap-y-2">
           <div>
             <div class="text-[10px] text-stone-400 inkmirror-smallcaps">{t('docSettings.document').toLowerCase()}</div>
-            <div class="font-mono text-lg leading-tight">{stats().total.toLocaleString()}</div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="font-mono text-lg leading-tight">{stats().total.toLocaleString()}</span>
+              <Show when={sessionDelta() > 0}>
+                <span
+                  class="font-mono text-[10px] text-violet-500 tabular-nums"
+                  title={t('wordCount.sessionTitle')}
+                >
+                  +{sessionDelta().toLocaleString()}
+                </span>
+              </Show>
+            </div>
           </div>
           <Show when={store.activeChapterId}>
             <div>
