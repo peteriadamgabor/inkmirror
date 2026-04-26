@@ -149,7 +149,8 @@ export const RoadmapRoute = () => {
           <p class="mb-5">{t('roadmap.shipped.p1')}</p>
           <p class="mb-5">{t('roadmap.shipped.p2')}</p>
           <p class="mb-5">{t('roadmap.shipped.p3')}</p>
-          <p>{t('roadmap.shipped.p4')}</p>
+          <p class="mb-5">{t('roadmap.shipped.p4')}</p>
+          <p>{t('roadmap.shipped.p5')}</p>
         </SectionReveal>
 
         <MirrorDivider />

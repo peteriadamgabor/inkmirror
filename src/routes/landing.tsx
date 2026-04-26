@@ -23,7 +23,7 @@ const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
   accent: FEATURE_ACCENTS[n - 1],
 }));
 
-const MORE = Array.from({ length: 16 }, (_, i) => `landing.more.item${i + 1}`);
+const MORE = Array.from({ length: 20 }, (_, i) => `landing.more.item${i + 1}`);
 
 export const LandingRoute = () => {
   const [demoLoading, setDemoLoading] = createSignal(false);

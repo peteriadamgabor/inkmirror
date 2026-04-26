@@ -681,7 +681,7 @@ export const hu: Messages = {
         'A regényed soha nem hagyja el a böngésződet. Nincs szerver, nincs fiók, nincs telemetria. PWA-ként telepíthető. Az AI helyben fut Transformers.js-en keresztül — még a sentiment modell sem kommunikál a szerverrel.',
       f6Title: 'Fókuszra építve',
       f6Desc:
-        'A Fókusz mód mindent elrejt az íráson kívül. A Zen mód még a blokk-keretet is leveti. A háttérhang a fejezeted hangulatát generatív akkorddá fordítja.',
+        'A Fókusz mód mindent elrejt az íráson kívül, és az aktív blokkot a képernyő közepére rögzíti — írógép-érzet. A Zen mód még a blokk-keretet is leveti. A háttérhang a fejezeted hangulatát generatív akkorddá fordítja.',
     },
     philosophy: {
       heading: '"Az AI nem ír helyetted"',
@@ -724,6 +724,10 @@ export const hu: Messages = {
       item14: 'Több dokumentumos támogatás kezdőoldali választóval',
       item15: 'Meleg szépia világos téma és teljes sötét mód',
       item16: 'Hibakereső telemetria réteg fejlesztéshez',
+      item17: 'Beépített keresés + csere (Ctrl+F) ibolyaszín találat-festéssel a CSS Custom Highlight API-n keresztül',
+      item18: 'Automatikus tipográfia gépelés közben: -- → —, ... → …, opcionálisan göndör idézőjelek',
+      item19: 'Munkamenet-szószám — kis +N chip a dokumentum összesen mellett, újratöltéskor nullázódik',
+      item20: 'Karakter profil oldalak — kattints egy említés-pontra vagy oldalsávi névre a leírás, említések, párbeszédek és POV megnyitásához',
     },
     cta: {
       heading: 'Készen állsz az írásra?',
@@ -779,6 +783,8 @@ export const hu: Messages = {
         'Hat export-formátum érhető el már most: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Minden dokumentum .inkmirror.json csomagként távozhat, a fejezeteivel, karaktereivel, temetőjével és érzelmi adataival együtt. Teljes adatbázis-mentés ütközéskezeléssel szintén megvan.',
       p4:
         'A felület ma angolul és magyarul beszél, és egy harmadik vagy ötödik nyelv alig egy megabájt többletbe kerül. A premium mozgáskészlet megadja a blokkoknak a belépést, az EKG-nek a rajzolódást, a tükörnek a lélegzetét — miközben kérés nélkül tiszteletben tartja a prefers-reduced-motion beállítást.',
+      p5:
+        'Egy csendesebb csiszolási hullám folyamatosan érkezik. A Fókusz mód most a képernyő közepére rögzíti az aktív blokkot — írógép-érzet —, és újratöltések között is megjegyzi magát. A Ctrl+F elfogja a böngésző saját keresését, hogy a virtualizáció által rejtett blokkok is elérhetők legyenek; a sáv találat-számlálót, navigációt, egy- vagy összes-cserét hordoz, és ibolyaszínre festi az aktív találatot anélkül, hogy a DOM-hoz nyúlna. Gépelés közben a kettős kötőjelből gondolatjel, a hármas pontból három pont lesz; az egyenes idézőjelek pedig göndörré válnak, ha a dokumentum erre van állítva. A szószám mellett egy kis +N chip mutatja, mit írtál ebben a munkamenetben. A próza említés-pontjai és az oldalsáv nevei egyaránt megnyitják a karakter profil oldalt — leírással, említésekkel, párbeszédekkel és POV-kapcsolóval.',
     },
     inProgress: {
       header: 'Ami most készül.',

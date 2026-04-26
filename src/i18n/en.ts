@@ -374,7 +374,7 @@ export const en = {
         'Your novel never leaves your browser. No server, no account, no telemetry. Installable as a PWA. AI runs locally via Transformers.js — not even the sentiment model phones home.',
       f6Title: 'Built for focus',
       f6Desc:
-        "Focus mode hides everything but the writing. Zen mode strips even the block chrome. Ambient sonification maps your chapter's mood to a generative chord.",
+        "Focus mode hides everything but the writing and anchors the active block to the centre of the screen — typewriter style. Zen mode strips even the block chrome. Ambient sonification maps your chapter's mood to a generative chord.",
     },
     philosophy: {
       heading: "\"AI doesn't write for you\"",
@@ -417,6 +417,10 @@ export const en = {
       item14: 'Multi-document support with a landing picker',
       item15: 'Warm sepia light theme and full dark mode',
       item16: 'Debug telemetry overlay for development',
+      item17: 'In-app search + replace (Ctrl+F) with violet match-paint via the CSS Custom Highlight API',
+      item18: 'Auto-typography while you type: -- → —, ... → …, optional smart curly quotes',
+      item19: 'Session word counter — a small +N chip beside the document total, resets on reload',
+      item20: 'Character profile pages — click a mention dot or a sidebar name to see the description, mentions, dialogue, and POV',
     },
     cta: {
       heading: 'Ready to write?',
@@ -478,6 +482,8 @@ export const en = {
         "Six export formats ship today: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Every document can leave as an .inkmirror.json bundle that carries its chapters, characters, graveyard, and sentiments along with it. Full-database backup with collision handling is there too.",
       p4:
         'The UI speaks English and Magyar today, and a third or fifth language will cost less than a megabyte each to add. A premium motion pack gives blocks their enter, the ECG its draw, and the mirror its breath — while respecting prefers-reduced-motion without asking.',
+      p5:
+        "A quieter wave of polish keeps arriving. Focus mode now centers the active block in the viewport — typewriter style — and remembers itself across reloads. Ctrl+F intercepts the browser's Find so the virtualizer-hidden blocks are reachable; the bar carries a counter, navigation, replace one or replace all, and paints the active match in violet without touching the DOM. While you type, double-dashes become em-dashes and triple-dots become ellipses; straight quotes curl when the document opts in. A small +N chip beside the word count tracks what you've added this session. Mention dots in the prose and names in the sidebar both open a character profile page with description, mention list, dialogue list, and a POV toggle.",
     },
     inProgress: {
       header: "What's being made now.",

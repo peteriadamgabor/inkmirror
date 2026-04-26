@@ -24,19 +24,24 @@ The philosophy: **AI doesn't write for you — it holds a mirror up to you.** In
 - **60 FPS at 100k+ words.** No Layout Reflow. Canvas-based text measurement via [`pretext`](https://www.npmjs.com/package/@chenglou/pretext) + virtualization keeps long novels smooth.
 - **Dead Text Graveyard** — every deleted block rests here. Restore any time.
 - **Typography system** — six named system-font stacks (Literary, Classical, Crisp, Modern, Sans, Mono), real small-caps + old-style figures where the face supports them, tabular numerals on counters.
-- **Focus + zen modes** — hide the chrome when you want to disappear into the prose.
+- **Auto-typography** — `--` becomes `—`, `...` becomes `…`, straight quotes curl when the document opts into smart quotes. All replacements happen as you type and stay reversible with Ctrl+Z.
+- **Focus + zen modes** — hide the chrome when you want to disappear into the prose. Focus mode also anchors the active block to the vertical center of the viewport (typewriter scroll) and remembers itself across reloads.
+- **In-app search + replace** — `Ctrl+F` intercepts the browser's Find so the virtualizer-hidden blocks are reachable. Match counter, ↑/↓ navigation, Esc to close, replace one or replace all — and the active match paints in violet via the CSS Custom Highlight API.
+- **Session word counter** — a small `+N` chip beside the document total tracks words added since the page loaded. Per-document baseline so switching docs starts a fresh count.
 
 ### AI (runs locally)
 
+- **Two AI profiles** — *Basic* (lightweight, ~60 MB, three-tone sentiment) is the default; *Rich* (~80 MB, downloadable on demand) unlocks a literary mood palette (tender / dread / longing / awe / grief / wonder / rage…) and cross-chapter inconsistency detection.
 - **Two-pulse ECG** — writer's pulse (typing rhythm, flow, session time) and story's pulse (sentiment across blocks) side by side.
 - **Mood heatmap** — per-chapter sentiment visualized as color, so you can see the emotional shape of a novel at a glance.
 - **Character sentiment** — every named character's arc tracked across the manuscript.
-- **Auto-detected characters** — names mentioned in prose become clickable cards.
+- **Auto-detected characters** — names mentioned in prose become clickable cards. Click a character's mention dot or sidebar entry to open a profile page with description, mention list, dialogue list, and POV toggle.
+- **Inconsistency detection** *(Rich profile)* — pairs claims across chapters and flags contradictions in kinship, body description, profession. Every flag is dismissible; the writer is still in charge.
 - **Sonification** — via [Tone.js](https://tonejs.github.io/), the mood of the current chapter drives an ambient chord.
 
 ### Exports
 
-Six formats: **Markdown, JSON, Fountain, EPUB, DOCX, PDF.** Inline bold / italic travels through. Fountain gets proper `CONT'D` markers. Scene metadata becomes a proper `INT./EXT.` line.
+Six formats: **Markdown, JSON, Fountain, EPUB, DOCX, PDF.** Inline bold / italic travels through. Fountain gets proper `CONT'D` markers. Scene metadata becomes a proper `INT./EXT.` line. Markdown can render in *novel style* (paragraph breaks for dialogue, no speaker labels) for sharing prose without the screenplay-ish chrome. EPUB picks up an optional cover image (JPEG or PNG, ≤ 2 MB) — set it in Document Settings.
 
 ### Backup / sync
 
@@ -54,6 +59,9 @@ Six formats: **Markdown, JSON, Fountain, EPUB, DOCX, PDF.** Inline bold / italic
 
 - **PWA** — installable, works offline after first load.
 - **Undo / redo** across block deletions and type changes.
+- **Command palette** (`Ctrl+K`) — fuzzy search every action and export format.
+- **Global rebindable hotkeys** with F1 settings, swap-on-clash, and an in-app Settings tab listing every binding plus a separate Block-editing reference.
+- **Plot timeline + Character arcs** — second-axis views grouped by chapter, so structure and emotional shape are both legible.
 - **Branded 404** and boot splash with a breathing mirror reflection.
 - **In-app feedback** — reaches a private Discord via a Cloudflare Worker proxy. No manuscript content is ever included.
 
@@ -80,7 +88,7 @@ Scripts:
 |---|---|
 | `npm run build` | Typecheck + Vite production build |
 | `npm run preview` | Local preview via Wrangler (matches prod) |
-| `npm test` | Vitest unit suite (143 tests) |
+| `npm test` | Vitest unit suite (~360 tests) |
 | `npm run test:e2e` | Playwright end-to-end suite |
 | `npm run deploy` | Build and deploy to Cloudflare Workers |
 
