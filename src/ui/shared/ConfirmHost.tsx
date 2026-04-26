@@ -1,5 +1,6 @@
 import { Show, onCleanup, onMount } from 'solid-js';
 import { pendingConfirm, resolveConfirm } from './confirm';
+import { ModalBackdrop } from './ModalBackdrop';
 
 export const ConfirmHost = () => {
   const onKey = (e: KeyboardEvent) => {
@@ -19,10 +20,7 @@ export const ConfirmHost = () => {
   return (
     <Show when={pendingConfirm()}>
       {(p) => (
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm inkmirror-modal-backdrop"
-          onClick={() => resolveConfirm('cancel')}
-        >
+        <ModalBackdrop z={50} opacity={50} onClick={() => resolveConfirm('cancel')}>
           <div
             class="w-[440px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl p-5 flex flex-col gap-4 inkmirror-modal-panel"
             onClick={(e) => e.stopPropagation()}
@@ -71,7 +69,7 @@ export const ConfirmHost = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalBackdrop>
       )}
     </Show>
   );

@@ -1,6 +1,7 @@
 import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { closeFeedback, feedbackOpen, submitFeedback } from './feedback';
 import { toast } from './toast';
+import { ModalBackdrop } from './ModalBackdrop';
 import { t } from '@/i18n';
 
 export const FeedbackHost = () => {
@@ -62,10 +63,7 @@ export const FeedbackHost = () => {
 
   return (
     <Show when={feedbackOpen()}>
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm inkmirror-modal-backdrop"
-        onClick={() => closeFeedback()}
-      >
+      <ModalBackdrop z={50} opacity={50} onClick={() => closeFeedback()}>
         <div
           class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl p-5 flex flex-col gap-4 inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
@@ -147,7 +145,7 @@ export const FeedbackHost = () => {
             </div>
           </div>
         </div>
-      </div>
+      </ModalBackdrop>
     </Show>
   );
 };

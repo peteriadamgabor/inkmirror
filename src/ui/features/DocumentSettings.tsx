@@ -6,6 +6,7 @@ import {
   updateDocumentSettings,
 } from '@/store/document';
 import { DEFAULT_STACK, FONT_STACKS } from '@/ui/fonts';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { LANGUAGES, lang, setLang, t } from '@/i18n';
 import {
   COVER_IMAGE_MAX_BYTES,
@@ -93,10 +94,7 @@ export const DocumentSettings = () => {
 
   return (
     <Show when={uiState.documentSettingsOpen && doc()}>
-      <div
-        class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm inkmirror-modal-backdrop"
-        onClick={() => setDocumentSettingsOpen(false)}
-      >
+      <ModalBackdrop onClick={() => setDocumentSettingsOpen(false)}>
         <div
           class="w-[560px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
@@ -396,7 +394,7 @@ export const DocumentSettings = () => {
             </div>
           </div>
         </div>
-      </div>
+      </ModalBackdrop>
     </Show>
   );
 };

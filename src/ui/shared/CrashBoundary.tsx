@@ -1,8 +1,8 @@
 import { ErrorBoundary } from 'solid-js';
 import type { JSX } from 'solid-js';
 import { flushPendingWrites, store } from '@/store/document';
-import { jsonExporter } from '@/exporters/json';
 import { downloadBlob, sanitizeFilename } from '@/exporters';
+import { loadExporter } from '@/exporters/registry';
 
 async function emergencyExport(): Promise<void> {
   if (!store.document) return;
@@ -16,7 +16,11 @@ async function emergencyExport(): Promise<void> {
         .filter(Boolean),
       characters: store.characters,
     };
-    const blob = await jsonExporter.run(input);
+    // Lazy-load through the registry so json.ts can split into its own
+    // chunk; we still want a custom filename here, so call the exporter
+    // directly rather than going through `runExportByFormat`.
+    const exporter = await loadExporter('json');
+    const blob = await exporter.run(input);
     const name = sanitizeFilename(store.document.title);
     downloadBlob(blob, `${name}-emergency-backup.json`);
   } catch {

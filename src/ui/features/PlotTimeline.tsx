@@ -1,6 +1,7 @@
 import { For, Show, createMemo } from 'solid-js';
 import { store } from '@/store/document';
 import { uiState, setPlotTimelineOpen } from '@/store/ui-state';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import type { Block, Chapter, SceneMetadata } from '@/types';
 import { t } from '@/i18n';
 
@@ -32,12 +33,9 @@ export const PlotTimeline = () => {
 
   return (
     <Show when={uiState.plotTimelineOpen}>
-      <div
-        class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
-        onClick={() => setPlotTimelineOpen(false)}
-      >
+      <ModalBackdrop onClick={() => setPlotTimelineOpen(false)}>
         <div
-          class="w-[720px] max-h-[80vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden"
+          class="w-[720px] max-h-[80vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
@@ -132,7 +130,7 @@ export const PlotTimeline = () => {
             </Show>
           </div>
         </div>
-      </div>
+      </ModalBackdrop>
     </Show>
   );
 };

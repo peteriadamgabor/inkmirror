@@ -1,5 +1,6 @@
 import { For, Show } from 'solid-js';
 import { uiState, setChapterTypesHelpOpen } from '@/store/ui-state';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { t } from '@/i18n';
 
 interface KindDoc {
@@ -56,10 +57,7 @@ const renderIntro = () => {
 
 export const ChapterTypesHelp = () => (
   <Show when={uiState.chapterTypesHelpOpen}>
-    <div
-      class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm inkmirror-modal-backdrop"
-      onClick={() => setChapterTypesHelpOpen(false)}
-    >
+    <ModalBackdrop onClick={() => setChapterTypesHelpOpen(false)}>
       <div
         class="w-[640px] max-w-[92vw] max-h-[85vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
         onClick={(e) => e.stopPropagation()}
@@ -154,6 +152,6 @@ export const ChapterTypesHelp = () => (
           </div>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   </Show>
 );

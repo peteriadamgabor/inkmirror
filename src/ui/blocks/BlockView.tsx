@@ -1,10 +1,9 @@
 import { createEffect, onMount } from 'solid-js';
-import type { Block, BlockType } from '@/types';
+import type { Block } from '@/types';
 import {
   updateBlockContent,
   updateBlockType,
   updateDialogueSpeaker,
-  updateDialogueParenthetical,
   matchLeadingSpeaker,
   createBlockAfter,
   createBlockBefore,
@@ -19,154 +18,38 @@ import { externalSync } from '@/store/undo';
 import { unwrap } from 'solid-js/store';
 import { marksToHtml, parseMarksFromDom, toggleMark } from '@/engine/marks';
 import type { MarkType } from '@/types/block';
-import { uiState, openCharacterPage } from '@/store/ui-state';
-import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
-import { IconDots, IconDrag, IconChevron, IconTrash, IconPlus } from '@/ui/shared/icons';
+import { uiState } from '@/store/ui-state';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 import { openSlashMenu } from '@/ui/shared/slashMenu';
 import { debounce } from '@/utils/debounce';
-import { SENTIMENT_COLORS } from './sentiment-colors';
 import { SceneMetadataEditor } from './SceneMetadataEditor';
-import { BlockHistory } from './BlockHistory';
 import { BlockTimestamp } from './BlockTimestamp';
 import { recordKeystroke } from '@/workers/pulse-client';
 import { applyTypographyReplacement } from '@/utils/typography';
 import { t } from '@/i18n';
-
-const TYPE_META: Record<Block['type'], { labelKey: string; className: string; hintKey: string }> = {
-  text:     { labelKey: 'block.types.text',     className: 'text-violet-500', hintKey: 'block.hints.text' },
-  dialogue: { labelKey: 'block.types.dialogue', className: 'text-teal-600',   hintKey: 'block.hints.dialogue' },
-  scene:    { labelKey: 'block.types.scene',    className: 'text-orange-600', hintKey: 'block.hints.scene' },
-  note:     { labelKey: 'block.types.note',     className: 'text-stone-400',  hintKey: 'block.hints.note' },
-};
+import {
+  focusBlock,
+  getCaretOffset,
+  getSelectionOffsets,
+  isCaretAtFirstLine,
+  isCaretAtLastLine,
+  restoreSelectionRange,
+  setCaretOffset,
+} from './block-caret';
+import { BlockHeader } from './BlockHeader';
+import { DRAG_MIME, useBlockDnd } from './useBlockDnd';
 
 const COMMIT_DEBOUNCE_MS = 300;
-
-function getCaretOffset(el: HTMLElement): number {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return 0;
-  const range = sel.getRangeAt(0);
-  if (!el.contains(range.startContainer)) return 0;
-  const pre = range.cloneRange();
-  pre.selectNodeContents(el);
-  pre.setEnd(range.startContainer, range.startOffset);
-  return pre.toString().length;
-}
-
-/**
- * Restore a non-collapsed selection by walking text nodes until the
- * cumulative character count reaches `start` and `end`. Used after
- * mark-toggle re-renders the block's innerHTML.
- */
-function restoreSelectionRange(el: HTMLElement, start: number, end: number): void {
-  const sel = window.getSelection();
-  if (!sel) return;
-  const range = document.createRange();
-  let remaining = start;
-  let startSet = false;
-  let endRemaining = end;
-  const walk = (node: Node): boolean => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const len = node.textContent?.length ?? 0;
-      if (!startSet && remaining <= len) {
-        range.setStart(node, remaining);
-        startSet = true;
-      } else if (!startSet) {
-        remaining -= len;
-      }
-      if (startSet && endRemaining <= len) {
-        range.setEnd(node, endRemaining);
-        return true;
-      }
-      endRemaining -= len;
-    } else {
-      for (const child of Array.from(node.childNodes)) {
-        if (walk(child)) return true;
-      }
-    }
-    return false;
-  };
-  walk(el);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function setCaretOffset(el: HTMLElement, offset: number): void {
-  const sel = window.getSelection();
-  if (!sel) return;
-  const range = document.createRange();
-  let remaining = offset;
-  let placed = false;
-  const walk = (node: Node): boolean => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const len = node.textContent?.length ?? 0;
-      if (remaining <= len) {
-        range.setStart(node, remaining);
-        range.collapse(true);
-        placed = true;
-        return true;
-      }
-      remaining -= len;
-    } else {
-      for (const child of Array.from(node.childNodes)) {
-        if (walk(child)) return true;
-      }
-    }
-    return false;
-  };
-  walk(el);
-  if (!placed) {
-    range.selectNodeContents(el);
-    range.collapse(false);
-  }
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function isCaretAtFirstLine(el: HTMLElement): boolean {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return true;
-  const range = sel.getRangeAt(0).cloneRange();
-  const caretRect = range.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '30');
-  return caretRect.top - elRect.top < lineHeight;
-}
-
-function isCaretAtLastLine(el: HTMLElement): boolean {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return true;
-  const range = sel.getRangeAt(0).cloneRange();
-  const caretRect = range.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '30');
-  return elRect.bottom - caretRect.bottom < lineHeight;
-}
-
-function focusBlock(blockId: string, caretPosition: 'start' | 'end' | number = 'start'): void {
-  requestAnimationFrame(() => {
-    const el = document.querySelector<HTMLElement>(
-      `[data-block-id="${blockId}"] [data-editable]`,
-    );
-    if (!el) return;
-    el.focus();
-    const offset =
-      caretPosition === 'start' ? 0 :
-      caretPosition === 'end' ? (el.innerText?.length ?? 0) :
-      caretPosition;
-    setCaretOffset(el, offset);
-  });
-}
-
-const DRAG_MIME = 'application/x-inkmirror-block-id';
 
 export const BlockView = (props: { block: Block }) => {
   let el!: HTMLDivElement;
   let wrapperEl!: HTMLDivElement;
   let isFocused = false;
   let isComposing = false;
+
+  const dnd = useBlockDnd({ block: props.block, wrapper: () => wrapperEl });
 
   onMount(() => {
     el.innerHTML = marksToHtml(props.block.content, props.block.marks);
@@ -231,6 +114,9 @@ export const BlockView = (props: { block: Block }) => {
     const { content, marks } = parseMarksFromDom(el);
     updateBlockContent(props.block.id, content, { detectSpeaker: true, marks });
   };
+
+  const dialogueSpeakerId = () =>
+    props.block.metadata.type === 'dialogue' ? props.block.metadata.data.speaker_id : '';
 
   const onInput = () => {
     if (isComposing) return;
@@ -354,26 +240,24 @@ export const BlockView = (props: { block: Block }) => {
     return true;
   };
 
-  // Get the current selection's character offsets relative to `el`'s
-  // plain-text content. Returns null if there's no selection inside
-  // this block or if collapsed (caret only, no range to mark).
-  const getSelectionOffsets = (): { start: number; end: number } | null => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    const range = sel.getRangeAt(0);
-    if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) {
-      return null;
+  // Walk backward from this block within the same chapter and find the
+  // nearest preceding scene block, returning its cast for Tab cycling.
+  const sceneCastIds = (): string[] | null => {
+    const chapterId = props.block.chapter_id;
+    const idx = store.blockOrder.indexOf(props.block.id);
+    for (let i = idx - 1; i >= 0; i--) {
+      const b = store.blocks[store.blockOrder[i]];
+      if (!b || b.chapter_id !== chapterId) break;
+      if (b.type === 'scene' && b.metadata.type === 'scene') {
+        const ids = b.metadata.data.character_ids;
+        return ids.length > 0 ? ids : null;
+      }
     }
-    const pre = range.cloneRange();
-    pre.selectNodeContents(el);
-    pre.setEnd(range.startContainer, range.startOffset);
-    const start = pre.toString().length;
-    const end = start + range.toString().length;
-    return { start, end };
+    return null;
   };
 
   const applyMarkToggle = (type: MarkType): void => {
-    const range = getSelectionOffsets();
+    const range = getSelectionOffsets(el);
     if (!range || range.end <= range.start) return;
     const { content, marks } = parseMarksFromDom(el);
     const next = toggleMark(marks, type, range.start, range.end, content.length);
@@ -467,14 +351,14 @@ export const BlockView = (props: { block: Block }) => {
       case 'move-block-up': {
         if (moveBlock(props.block.id, 'up')) {
           focusBlock(props.block.id, caret);
-          flashMoved();
+          dnd.flashMoved();
         }
         break;
       }
       case 'move-block-down': {
         if (moveBlock(props.block.id, 'down')) {
           focusBlock(props.block.id, caret);
-          flashMoved();
+          dnd.flashMoved();
         }
         break;
       }
@@ -533,236 +417,16 @@ export const BlockView = (props: { block: Block }) => {
     }
   };
 
-  const meta = () => {
-    const m = TYPE_META[props.block.type];
-    return { label: t(m.labelKey), className: m.className, hint: t(m.hintKey) };
-  };
-  const sentiment = () => store.sentiments[props.block.id];
-  const mentionedChars = () => {
-    const ids = store.characterMentions[props.block.id] ?? [];
-    return ids
-      .map((id) => store.characters.find((c) => c.id === id))
-      .filter((c): c is NonNullable<typeof c> => !!c);
-  };
-  const dialogueSpeakerId = () => {
-    if (props.block.metadata.type !== 'dialogue') return '';
-    return props.block.metadata.data.speaker_id;
-  };
-  const dialogueSpeaker = () => {
-    const id = dialogueSpeakerId();
-    if (!id) return null;
-    return store.characters.find((c) => c.id === id) ?? null;
-  };
-  const dialogueSpeakerColor = () => dialogueSpeaker()?.color ?? null;
-  const dialogueParenthetical = () =>
-    props.block.metadata.type === 'dialogue'
-      ? props.block.metadata.data.parenthetical ?? ''
-      : '';
   const isPovSpeaker = () => {
     const pov = store.document?.pov_character_id;
     if (!pov) return false;
     return dialogueSpeakerId() === pov;
   };
 
-  // Walk backward from this block within the same chapter and find the
-  // nearest preceding scene block. If it defines a cast, return those
-  // character ids — the speaker picker will narrow itself to this cast
-  // so dialogue in a scene only suggests the characters actually present.
-  const sceneCastIds = (): string[] | null => {
-    const chapterId = props.block.chapter_id;
-    const idx = store.blockOrder.indexOf(props.block.id);
-    for (let i = idx - 1; i >= 0; i--) {
-      const b = store.blocks[store.blockOrder[i]];
-      if (!b || b.chapter_id !== chapterId) break;
-      if (b.type === 'scene' && b.metadata.type === 'scene') {
-        const ids = b.metadata.data.character_ids;
-        return ids.length > 0 ? ids : null;
-      }
-    }
-    return null;
-  };
-
-  const openSpeakerMenu = (e: MouseEvent) => {
-    e.stopPropagation();
-    const trigger = e.currentTarget as HTMLElement;
-    const currentId = dialogueSpeakerId();
-    const castIds = sceneCastIds();
-    const items: ContextMenuItem[] = [
-      {
-        kind: 'header',
-        label: castIds ? t('block.speakerMenuSceneCast') : t('block.speakerMenuTitle'),
-      },
-      {
-        label: t('block.speakerUnassigned'),
-        active: !currentId,
-        onSelect: () => updateDialogueSpeaker(props.block.id, null),
-      },
-    ];
-
-    const allChars = store.characters;
-    const castChars = castIds
-      ? castIds
-          .map((id) => allChars.find((c) => c.id === id))
-          .filter((c): c is NonNullable<typeof c> => !!c)
-      : [];
-    const restChars = castIds
-      ? allChars.filter((c) => !castIds.includes(c.id))
-      : allChars;
-
-    if (castChars.length > 0) {
-      items.push({ kind: 'divider' });
-      for (const c of castChars) {
-        items.push({
-          label: c.name,
-          active: c.id === currentId,
-          onSelect: () => updateDialogueSpeaker(props.block.id, c.id),
-        });
-      }
-    }
-    if (restChars.length > 0) {
-      items.push({ kind: 'divider' });
-      if (castChars.length > 0) {
-        items.push({ kind: 'header', label: t('block.menuAllCharacters') });
-      }
-      for (const c of restChars) {
-        items.push({
-          label: c.name,
-          active: c.id === currentId,
-          onSelect: () => updateDialogueSpeaker(props.block.id, c.id),
-        });
-      }
-    }
-    openContextMenuAt(trigger, items);
-  };
-
-  // One-click type change from the header label: opens a compact menu
-  // right under the label so users don't have to drill into the ⋯ menu
-  // just to switch text → dialogue. Same infrastructure as the block
-  // menu, just the type rows.
-  const openTypeQuickMenu = (e: MouseEvent) => {
-    e.stopPropagation();
-    const trigger = e.currentTarget as HTMLElement;
-    const currentType = props.block.type;
-    const setType = (bt: BlockType) => updateBlockType(props.block.id, bt);
-    openContextMenuAt(
-      trigger,
-      [
-        { kind: 'header', label: t('block.menuBlockType') },
-        { label: t('block.types.text'),     hint: currentType === 'text' ? '·' : '',     active: currentType === 'text',     onSelect: () => setType('text') },
-        { label: t('block.types.dialogue'), active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
-        { label: t('block.types.scene'),    active: currentType === 'scene',    onSelect: () => setType('scene') },
-        { label: t('block.types.note'),     active: currentType === 'note',     onSelect: () => setType('note') },
-      ],
-      { align: 'left' },
-    );
-  };
-
-  // ---------- drag and drop reordering ----------
-
-  const onDragStart = (e: DragEvent) => {
-    if (!e.dataTransfer) return;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData(DRAG_MIME, props.block.id);
-    // A subtle visual: dim the source while it's in flight.
-    wrapperEl.setAttribute('data-dragging', '1');
-  };
-
-  const onDragEnd = () => {
-    wrapperEl?.removeAttribute('data-dragging');
-    wrapperEl?.removeAttribute('data-drop-before');
-    wrapperEl?.removeAttribute('data-drop-after');
-  };
-
-  const onDragOver = (e: DragEvent) => {
-    if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    // Pick a side based on the pointer's vertical position inside the row.
-    const rect = wrapperEl.getBoundingClientRect();
-    const before = e.clientY < rect.top + rect.height / 2;
-    wrapperEl.setAttribute(before ? 'data-drop-before' : 'data-drop-after', '1');
-    wrapperEl.removeAttribute(before ? 'data-drop-after' : 'data-drop-before');
-  };
-
-  const onDragLeave = () => {
-    wrapperEl?.removeAttribute('data-drop-before');
-    wrapperEl?.removeAttribute('data-drop-after');
-  };
-
-  const onDrop = (e: DragEvent) => {
-    if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
-    e.preventDefault();
-    const sourceId = e.dataTransfer.getData(DRAG_MIME);
-    wrapperEl.removeAttribute('data-drop-before');
-    wrapperEl.removeAttribute('data-drop-after');
-    if (!sourceId || sourceId === props.block.id) return;
-    const rect = wrapperEl.getBoundingClientRect();
-    const before = e.clientY < rect.top + rect.height / 2;
-    const targetIdx = store.blockOrder.indexOf(props.block.id);
-    if (targetIdx < 0) return;
-    const insertAt = before ? targetIdx : targetIdx + 1;
-    moveBlockToPosition(sourceId, insertAt);
-  };
-
-  const flashMoved = () => {
-    // Solid's For re-renders visible blocks while the store mutates, so
-    // the wrapperEl ref may not point at the same DOM node right after
-    // a move. Query fresh from the block id to be safe.
-    requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLElement>(
-        `[data-block-id="${props.block.id}"]`,
-      );
-      if (!el) return;
-      el.dataset.justMoved = '1';
-      setTimeout(() => delete el.dataset.justMoved, 350);
-    });
-  };
-
-  const openBlockMenu = (e: MouseEvent) => {
-    e.stopPropagation();
-    const trigger = e.currentTarget as HTMLElement;
-    const currentType = props.block.type;
-    const idx = store.blockOrder.indexOf(props.block.id);
-    const isFirst = idx === 0;
-    const isLast = idx === store.blockOrder.length - 1;
-
-    const setType = (bt: BlockType) => updateBlockType(props.block.id, bt);
-
-    const copyContent = async () => {
-      try {
-        await navigator.clipboard.writeText(props.block.content);
-        toast.success(t('block.contentCopied'));
-      } catch {
-        toast.error(t('block.copyFailed'));
-      }
-    };
-
-    const onDelete = async () => {
-      const ok = await askConfirm({
-        title: t('block.deleteConfirmTitle'),
-        message: t('block.deleteConfirmBody'),
-        confirmLabel: t('common.delete'),
-        danger: true,
-      });
-      if (ok) deleteBlock(props.block.id);
-    };
-
-    openContextMenuAt(trigger, [
-      { kind: 'header', label: t('block.convertTo') },
-      { label: t('block.types.text'),     active: currentType === 'text',     onSelect: () => setType('text') },
-      { label: t('block.types.dialogue'), active: currentType === 'dialogue', onSelect: () => setType('dialogue') },
-      { label: t('block.types.scene'),    active: currentType === 'scene',    onSelect: () => setType('scene') },
-      { label: t('block.types.note'),     active: currentType === 'note',     onSelect: () => setType('note') },
-      { kind: 'divider' },
-      { label: t('block.insertBelow'), onSelect: () => { const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); } },
-      { label: t('block.duplicate'), onSelect: () => { const id = duplicateBlock(props.block.id); if (id) toast.success(t('block.duplicated')); } },
-      { label: t('block.copyContent'), onSelect: () => void copyContent() },
-      { kind: 'divider' },
-      { label: t('block.moveUp'), disabled: isFirst, onSelect: () => moveBlock(props.block.id, 'up') },
-      { label: t('block.moveDown'), disabled: isLast, onSelect: () => moveBlock(props.block.id, 'down') },
-      { kind: 'divider' },
-      { label: t('block.deleteBlock'), danger: true, onSelect: () => void onDelete() },
-    ], { align: 'right' });
+  const dialogueSpeakerColor = () => {
+    const id = dialogueSpeakerId();
+    if (!id) return null;
+    return store.characters.find((c) => c.id === id)?.color ?? null;
   };
 
   // Fresh blocks (created within the last half second) get a one-shot
@@ -789,137 +453,15 @@ export const BlockView = (props: { block: Block }) => {
       data-block-id={props.block.id}
       data-block-type={props.block.type}
       data-pov-speaker={isPovSpeaker() ? '1' : undefined}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      onDragOver={dnd.onDragOver}
+      onDragLeave={dnd.onDragLeave}
+      onDrop={dnd.onDrop}
     >
-      <div class="flex items-center gap-1.5 mb-1 group/header flex-wrap">
-        <div
-          draggable="true"
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          class="flex items-center justify-center text-stone-400 hover:text-violet-500 cursor-grab active:cursor-grabbing opacity-40 hover:opacity-100 transition-opacity select-none shrink-0"
-          title={t('block.dragToReorder')}
-          aria-label={t('aria.dragHandle')}
-        >
-          <IconDrag size={14} />
-        </div>
-        <button
-          type="button"
-          onClick={openTypeQuickMenu}
-          class={`text-[10px] uppercase tracking-wider font-medium cursor-pointer hover:underline ${meta().className}`}
-          title={`${meta().hint} (${t('block.changeType')})`}
-        >
-          {meta().label}
-        </button>
-        {props.block.type === 'dialogue' && (
-          <button
-            type="button"
-            onClick={openSpeakerMenu}
-            class="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors"
-            classList={{
-              'border-stone-200 dark:border-stone-700 text-stone-400 italic hover:text-teal-600 hover:border-teal-500':
-                !dialogueSpeaker(),
-              'border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-teal-500':
-                !!dialogueSpeaker(),
-            }}
-            title={t('block.speakerChange')}
-          >
-            <span
-              class="w-2 h-2 rounded-full"
-              style={
-                dialogueSpeakerColor()
-                  ? { 'background-color': dialogueSpeakerColor()! }
-                  : undefined
-              }
-              classList={{
-                'border border-stone-300 dark:border-stone-600': !dialogueSpeakerColor(),
-              }}
-            />
-            <span>{dialogueSpeaker()?.name ?? t('block.speakerPlaceholder')}</span>
-            <IconChevron size={10} class="text-stone-400" />
-          </button>
-        )}
-        {props.block.type === 'dialogue' && (
-          <input
-            type="text"
-            value={dialogueParenthetical()}
-            onInput={(e) => updateDialogueParenthetical(props.block.id, e.currentTarget.value)}
-            onMouseDown={(e) => e.stopPropagation()}
-            placeholder={`(${t('block.parenthetical')})`}
-            class="bg-transparent outline-none text-[10px] italic text-stone-500 dark:text-stone-400 placeholder-stone-300 dark:placeholder-stone-600 border-b border-transparent focus:border-teal-500 w-[110px] py-0.5"
-            title={t('misc.parentheticalHelp')}
-          />
-        )}
-        {sentiment() && (
-          <span
-            class={`text-[10px] uppercase tracking-wider font-medium ${
-              SENTIMENT_COLORS[sentiment()!.label] ?? 'text-stone-400'
-            }`}
-          >
-            · {sentiment()!.label}
-          </span>
-        )}
-        {mentionedChars().length > 0 && (
-          <span class="flex items-center gap-0.5">
-            {mentionedChars().map((c) => (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openCharacterPage(c.id);
-                }}
-                class="w-2 h-2 rounded-full hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-stone-800 transition-[box-shadow]"
-                style={{
-                  'background-color': c.color,
-                  '--tw-ring-color': c.color,
-                }}
-                title={c.name}
-                data-mention-character-id={c.id}
-              />
-            ))}
-          </span>
-        )}
-        <span class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); }}
-            title={t('block.insertBelow')}
-            class="text-stone-400 hover:text-violet-500 px-0.5 leading-none"
-          >
-            <IconPlus size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              void (async () => {
-                const ok = await askConfirm({
-                  title: t('block.deleteConfirmTitle'),
-                  message: t('block.deleteConfirmBodyShort'),
-                  confirmLabel: t('common.delete'),
-                  danger: true,
-                });
-                if (ok) deleteBlock(props.block.id);
-              })();
-            }}
-            title={t('block.deleteBlock')}
-            class="text-stone-400 hover:text-red-500 px-0.5 leading-none"
-          >
-            <IconTrash size={13} />
-          </button>
-          <BlockHistory blockId={props.block.id} />
-        </span>
-        <button
-          type="button"
-          onClick={openBlockMenu}
-          title={t('misc.blockActions')}
-          class="text-stone-400 hover:text-violet-500 px-0.5 leading-none opacity-0 group-hover/header:opacity-100 focus:opacity-100 transition-opacity"
-          aria-label={t('block.openMenu')}
-        >
-          <IconDots size={14} />
-        </button>
-      </div>
+      <BlockHeader
+        block={props.block}
+        onDragStart={dnd.onDragStart}
+        onDragEnd={dnd.onDragEnd}
+      />
       {props.block.type === 'scene' && <SceneMetadataEditor block={props.block} />}
       <div
         ref={el}

@@ -2,19 +2,14 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'so
 import { uiState, setCommandPaletteOpen } from '@/store/ui-state';
 import { BINDING_META, hotkeys, type AppAction } from '@/store/hotkeys';
 import { runAction } from '@/ui/shared/globalHotkeys';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { t } from '@/i18n';
-import { jsonExporter } from '@/exporters/json';
-import { markdownExporter } from '@/exporters/markdown';
-import { fountainExporter } from '@/exporters/fountain';
-import { epubExporter } from '@/exporters/epub';
-import { docxExporter } from '@/exporters/docx';
-import { pdfExporter } from '@/exporters/pdf';
+import type { ExportInput } from '@/exporters';
 import {
-  downloadBlob,
-  sanitizeFilename,
-  type Exporter,
-  type ExportInput,
-} from '@/exporters';
+  EXPORTER_DESCRIPTORS,
+  runExportByFormat,
+  type ExporterDescriptor,
+} from '@/exporters/registry';
 import { store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
 
@@ -24,15 +19,6 @@ interface Command {
   hint?: string;
   run: () => void;
 }
-
-const EXPORTERS: Exporter[] = [
-  markdownExporter,
-  jsonExporter,
-  fountainExporter,
-  epubExporter,
-  docxExporter,
-  pdfExporter,
-];
 
 function currentExportInput(): ExportInput | null {
   if (!store.document) return null;
@@ -44,18 +30,14 @@ function currentExportInput(): ExportInput | null {
   };
 }
 
-async function runExport(exporter: Exporter): Promise<void> {
+async function runExport(format: ExporterDescriptor): Promise<void> {
   const input = currentExportInput();
   if (!input) return;
-  try {
-    const blob = await exporter.run(input);
-    const name = sanitizeFilename(input.document.title);
-    downloadBlob(blob, `${name}.${exporter.extension}`);
-    toast.success(`${exporter.label} exported`);
-  } catch (err) {
-    toast.error(
-      `${exporter.label} export failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
+  const result = await runExportByFormat(format.format, input);
+  if (result.ok) {
+    toast.success(`${format.label} exported`);
+  } else {
+    toast.error(`${format.label} export failed: ${result.error}`);
   }
 }
 
@@ -69,7 +51,7 @@ function buildCommands(): Command[] {
       run: () => runAction(meta.action as AppAction),
     });
   }
-  for (const exp of EXPORTERS) {
+  for (const exp of EXPORTER_DESCRIPTORS) {
     cmds.push({
       id: `export:${exp.format}`,
       label: t('misc.exportAs', { format: exp.label }),
@@ -157,12 +139,14 @@ export const CommandPalette = () => {
 
   return (
     <Show when={uiState.commandPaletteOpen}>
-      <div
-        class="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] bg-stone-900/40 backdrop-blur-sm"
+      <ModalBackdrop
+        z={50}
+        align="start"
+        class="pt-[18vh]"
         onClick={() => setCommandPaletteOpen(false)}
       >
         <div
-          class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden flex flex-col"
+          class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden flex flex-col inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
         >
           <input
@@ -211,7 +195,7 @@ export const CommandPalette = () => {
             </Show>
           </div>
         </div>
-      </div>
+      </ModalBackdrop>
     </Show>
   );
 };

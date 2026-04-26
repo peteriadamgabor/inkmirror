@@ -76,6 +76,30 @@ const [uiState, setUiState] = createStore<UiState>({
 
 export { uiState };
 
+/**
+ * Keys whose value is `boolean` — the only ones safe for the simple
+ * toggle/setter factory below.
+ */
+type BoolKey = {
+  [K in keyof UiState]: UiState[K] extends boolean ? K : never;
+}[keyof UiState];
+
+/**
+ * Create a `[toggle, setOpen]` pair for any boolean UI flag. Replaces
+ * the dozen mechanical pairs that used to hand-roll this.
+ *
+ * Anything with side effects (persistence, cross-flag implications) keeps
+ * its bespoke implementation below — the factory only covers the trivial
+ * "flip a boolean in the store" case.
+ */
+function bool(key: BoolKey): readonly [() => void, (open: boolean) => void] {
+  // setUiState's overloads can't infer that `key` narrows the value to
+  // boolean; cast at the boundary so callers stay strictly typed.
+  const toggle = () => setUiState(key as 'graveyardOpen', (v) => !v);
+  const set = (open: boolean) => setUiState(key as 'graveyardOpen', open);
+  return [toggle, set] as const;
+}
+
 export function toggleFocusMode(): void {
   setUiState('focusMode', (v) => !v);
   persistFocusMode(uiState.focusMode);
@@ -97,14 +121,6 @@ export function toggleZenMode(): void {
   }
 }
 
-export function toggleGraveyard(): void {
-  setUiState('graveyardOpen', (v) => !v);
-}
-
-export function setGraveyardOpen(open: boolean): void {
-  setUiState('graveyardOpen', open);
-}
-
 export function toggleSpellcheck(): void {
   const next = !uiState.spellcheck;
   setUiState('spellcheck', next);
@@ -113,21 +129,15 @@ export function toggleSpellcheck(): void {
   }
 }
 
-export function togglePlotTimeline(): void {
-  setUiState('plotTimelineOpen', (v) => !v);
-}
-
-export function setPlotTimelineOpen(open: boolean): void {
-  setUiState('plotTimelineOpen', open);
-}
-
-export function toggleBlockTypesHelp(): void {
-  setUiState('blockTypesHelpOpen', (v) => !v);
-}
-
-export function setBlockTypesHelpOpen(open: boolean): void {
-  setUiState('blockTypesHelpOpen', open);
-}
+export const [toggleGraveyard, setGraveyardOpen] = bool('graveyardOpen');
+export const [togglePlotTimeline, setPlotTimelineOpen] = bool('plotTimelineOpen');
+export const [toggleBlockTypesHelp, setBlockTypesHelpOpen] = bool('blockTypesHelpOpen');
+export const [toggleCommandPalette, setCommandPaletteOpen] = bool('commandPaletteOpen');
+export const [toggleDocumentSettings, setDocumentSettingsOpen] = bool('documentSettingsOpen');
+export const [toggleChapterTypesHelp, setChapterTypesHelpOpen] = bool('chapterTypesHelpOpen');
+export const [toggleSettingsModal, setSettingsModalOpen] = bool('settingsModalOpen');
+export const [toggleSearch, setSearchOpen] = bool('searchOpen');
+export const [toggleDebugMode] = bool('debugMode');
 
 /**
  * Legacy alias: pre-Near-tier "Hotkeys modal" now lives as a tab inside
@@ -139,43 +149,6 @@ export function toggleHotkeysModal(): void {
     return;
   }
   openSettingsModal('hotkeys');
-}
-
-
-export function toggleCommandPalette(): void {
-  setUiState('commandPaletteOpen', (v) => !v);
-}
-
-export function setCommandPaletteOpen(open: boolean): void {
-  setUiState('commandPaletteOpen', open);
-}
-
-export function toggleDocumentSettings(): void {
-  setUiState('documentSettingsOpen', (v) => !v);
-}
-
-export function setDocumentSettingsOpen(open: boolean): void {
-  setUiState('documentSettingsOpen', open);
-}
-
-export function toggleDebugMode(): void {
-  setUiState('debugMode', (v) => !v);
-}
-
-export function toggleChapterTypesHelp(): void {
-  setUiState('chapterTypesHelpOpen', (v) => !v);
-}
-
-export function setChapterTypesHelpOpen(open: boolean): void {
-  setUiState('chapterTypesHelpOpen', open);
-}
-
-export function toggleSettingsModal(): void {
-  setUiState('settingsModalOpen', (v) => !v);
-}
-
-export function setSettingsModalOpen(open: boolean): void {
-  setUiState('settingsModalOpen', open);
 }
 
 export function openSettingsModal(tab: SettingsModalTab = 'ai'): void {
@@ -201,14 +174,6 @@ export function openCharacterPage(id: UUID): void {
 
 export function closeCharacterPage(): void {
   setUiState('characterPageId', null);
-}
-
-export function toggleSearch(): void {
-  setUiState('searchOpen', (v) => !v);
-}
-
-export function setSearchOpen(open: boolean): void {
-  setUiState('searchOpen', open);
 }
 
 // Callback set by index.tsx to navigate back to the document picker.

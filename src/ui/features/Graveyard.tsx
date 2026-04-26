@@ -2,6 +2,7 @@ import { createEffect, For, Show } from 'solid-js';
 import { uiState, setGraveyardOpen } from '@/store/ui-state';
 import { graveyardBlocks, refreshGraveyard, restoreBlock } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { t } from '@/i18n';
 
 export const Graveyard = () => {
@@ -24,12 +25,9 @@ export const Graveyard = () => {
 
   return (
     <Show when={uiState.graveyardOpen}>
-      <div
-        class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
-        onClick={() => setGraveyardOpen(false)}
-      >
+      <ModalBackdrop onClick={() => setGraveyardOpen(false)}>
         <div
-          class="w-[560px] max-h-[70vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden"
+          class="w-[560px] max-h-[70vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
@@ -91,7 +89,7 @@ export const Graveyard = () => {
             </Show>
           </div>
         </div>
-      </div>
+      </ModalBackdrop>
     </Show>
   );
 };

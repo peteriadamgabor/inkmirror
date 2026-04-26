@@ -1,5 +1,6 @@
 import { For, Show } from 'solid-js';
 import { uiState, setBlockTypesHelpOpen } from '@/store/ui-state';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { t } from '@/i18n';
 
 interface TypeDoc {
@@ -23,12 +24,9 @@ const MENU_TOKEN = '\u0001MENU\u0001';
 
 export const BlockTypesHelp = () => (
   <Show when={uiState.blockTypesHelpOpen}>
-    <div
-      class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
-      onClick={() => setBlockTypesHelpOpen(false)}
-    >
+    <ModalBackdrop onClick={() => setBlockTypesHelpOpen(false)}>
       <div
-        class="w-[640px] max-w-[92vw] max-h-[85vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden"
+        class="w-[640px] max-w-[92vw] max-h-[85vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
@@ -112,6 +110,6 @@ export const BlockTypesHelp = () => (
           </div>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   </Show>
 );

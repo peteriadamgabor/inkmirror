@@ -2,6 +2,7 @@ import { createEffect, createMemo, For, Show, onCleanup } from 'solid-js';
 import { store, updateCharacter, setActiveChapter } from '@/store/document';
 import { uiState, closeCharacterPage } from '@/store/ui-state';
 import { allVisibleBlocks, dialogueBlocksForSpeaker } from '@/store/selectors';
+import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { t } from '@/i18n';
 import type { Block, UUID } from '@/types';
 
@@ -123,10 +124,7 @@ export const CharacterPage = () => {
   return (
     <Show when={character()}>
       {(c) => (
-        <div
-          class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm inkmirror-modal-backdrop"
-          onClick={closeCharacterPage}
-        >
+        <ModalBackdrop onClick={closeCharacterPage}>
           <div
             class="w-[600px] max-w-[92vw] max-h-[82vh] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl flex flex-col overflow-hidden inkmirror-modal-panel"
             onClick={(e) => e.stopPropagation()}
@@ -295,7 +293,7 @@ export const CharacterPage = () => {
               </details>
             </div>
           </div>
-        </div>
+        </ModalBackdrop>
       )}
     </Show>
   );
