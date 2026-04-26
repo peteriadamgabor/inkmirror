@@ -27,6 +27,7 @@ export type SettingsModalTab = 'ai' | 'hotkeys' | 'language';
 
 const SPELLCHECK_KEY = 'inkmirror.spellcheck';
 const RIGHT_PANEL_KEY = 'inkmirror.rightPanel.collapsed';
+const FOCUS_MODE_KEY = 'inkmirror.focusMode';
 
 function loadInitialRightPanelCollapsed(): boolean {
   if (typeof localStorage === 'undefined') return false;
@@ -40,8 +41,18 @@ function loadInitialSpellcheck(): boolean {
   return v === '1';
 }
 
+function loadInitialFocusMode(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(FOCUS_MODE_KEY) === '1';
+}
+
+function persistFocusMode(on: boolean): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(FOCUS_MODE_KEY, on ? '1' : '0');
+}
+
 const [uiState, setUiState] = createStore<UiState>({
-  focusMode: false,
+  focusMode: loadInitialFocusMode(),
   zenMode: false,
   spellcheck: loadInitialSpellcheck(),
   graveyardOpen: false,
@@ -61,18 +72,23 @@ export { uiState };
 
 export function toggleFocusMode(): void {
   setUiState('focusMode', (v) => !v);
+  persistFocusMode(uiState.focusMode);
   // If focus is being turned off, zen can't survive either.
   if (!uiState.focusMode) setUiState('zenMode', false);
 }
 
 export function setFocusMode(on: boolean): void {
   setUiState('focusMode', on);
+  persistFocusMode(on);
 }
 
 export function toggleZenMode(): void {
   setUiState('zenMode', (v) => !v);
   // Zen implies focus (panels hidden), so flip focus on too.
-  if (uiState.zenMode) setUiState('focusMode', true);
+  if (uiState.zenMode && !uiState.focusMode) {
+    setUiState('focusMode', true);
+    persistFocusMode(true);
+  }
 }
 
 export function toggleGraveyard(): void {

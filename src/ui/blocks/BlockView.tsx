@@ -205,6 +205,20 @@ export const BlockView = (props: { block: Block }) => {
 
   const onFocus = () => {
     isFocused = true;
+    // Typewriter scroll: when focus mode is on, center the active block in
+    // the editor viewport. Defer to a microtask so the focus settles before
+    // the scroll computation reads layout.
+    if (uiState.focusMode && wrapperEl) {
+      const reduced =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      queueMicrotask(() => {
+        wrapperEl?.scrollIntoView({
+          block: 'center',
+          behavior: reduced ? 'auto' : 'smooth',
+        });
+      });
+    }
   };
 
   const onBlur = () => {
