@@ -48,6 +48,10 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
 }
 
 async function postCircle(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  const rl = await rateLimit(env.RL_SYNC_PAIR, ip);
+  if (rl) return rl;
+
   const body = await safeJson(request);
   if (!body) return jsonError(400, 'invalid_body');
 
@@ -107,11 +111,23 @@ async function authenticateCircle(
   return { ok: true, circle };
 }
 
+// --- rate-limit helper ---
+
+async function rateLimit(
+  binding: { limit(opts: { key: string }): Promise<{ success: boolean }> },
+  key: string,
+): Promise<Response | null> {
+  const result = await binding.limit({ key });
+  return result.success ? null : jsonError(429, 'rate_limited');
+}
+
 // --- new handlers ---
 
 async function postIssuePaircode(request: Request, env: Env, syncId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
+  if (rl) return rl;
 
   const paircode = generatePaircode();
   const expiresAt = new Date(Date.now() + PAIRCODE_TTL_SECONDS * 1000).toISOString();
@@ -126,6 +142,10 @@ async function postIssuePaircode(request: Request, env: Env, syncId: string): Pr
 }
 
 async function postPairRedeem(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  const rl = await rateLimit(env.RL_SYNC_PAIR, ip);
+  if (rl) return rl;
+
   const body = await safeJson(request);
   if (!body || typeof body.paircode !== 'string') return jsonError(400, 'invalid_body');
   if (!PAIRCODE_REGEX.test(body.paircode)) return jsonError(410, 'invalid_paircode');
@@ -149,6 +169,8 @@ const MAX_BLOB_BYTES = 10 * 1024 * 1024; // 10 MB
 async function putDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
+  if (rl) return rl;
 
   const text = await request.text();
   if (text.length > MAX_BLOB_BYTES + 1024) return jsonError(413, 'too_large');
@@ -184,6 +206,8 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
 async function getDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_READ, syncId);
+  if (rl) return rl;
 
   const metaKey = `meta:${syncId}:${docId}`;
   const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
@@ -203,6 +227,8 @@ async function getDoc(request: Request, env: Env, syncId: string, docId: string)
 async function deleteDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
+  if (rl) return rl;
 
   await env.INKMIRROR_SYNC_R2.delete(`${syncId}/${docId}`);
   await env.INKMIRROR_SYNC_KV.delete(`meta:${syncId}:${docId}`);
@@ -212,6 +238,8 @@ async function deleteDoc(request: Request, env: Env, syncId: string, docId: stri
 async function deleteCircle(request: Request, env: Env, syncId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
+  if (rl) return rl;
 
   const prefix = `meta:${syncId}:`;
   let cursor: string | undefined;
@@ -232,6 +260,8 @@ async function deleteCircle(request: Request, env: Env, syncId: string): Promise
 async function getList(request: Request, env: Env, syncId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
   if (!a.ok) return a.res;
+  const rl = await rateLimit(env.RL_SYNC_READ, syncId);
+  if (rl) return rl;
 
   const prefix = `meta:${syncId}:`;
   const items: Array<{ docId: string; revision: number; updatedAt: string }> = [];

@@ -76,12 +76,19 @@ function makeR2Stub(): R2Bucket & { _store: Map<string, string> } {
   } as unknown as R2Bucket & { _store: Map<string, string> };
 }
 
+function makeRateLimit(): { limit(opts: { key: string }): Promise<{ success: boolean }> } {
+  return { async limit() { return { success: true }; } };
+}
+
 function makeEnv(kv?: KVNamespace, r2?: R2Bucket): Env {
   return {
     ASSETS: {} as Fetcher,
     DISCORD_WEBHOOK: undefined,
     INKMIRROR_SYNC_KV: kv ?? makeKVStub(),
     INKMIRROR_SYNC_R2: r2 ?? makeR2Stub(),
+    RL_SYNC_WRITE: makeRateLimit() as Env['RL_SYNC_WRITE'],
+    RL_SYNC_READ:  makeRateLimit() as Env['RL_SYNC_READ'],
+    RL_SYNC_PAIR:  makeRateLimit() as Env['RL_SYNC_PAIR'],
   };
 }
 
@@ -590,5 +597,21 @@ describe('DELETE /sync/circles/:syncId', () => {
       env,
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe('rate limiting', () => {
+  it('returns 429 when the read limiter rejects', async () => {
+    const denyRead = { async limit() { return { success: false }; } };
+    const env = makeEnv();
+    (env as unknown as Record<string, unknown>).RL_SYNC_READ = denyRead;
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/list/${syncId}`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(429);
   });
 });
