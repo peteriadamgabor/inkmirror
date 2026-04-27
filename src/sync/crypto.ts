@@ -151,3 +151,31 @@ export function fromBase64Url(s: string): Uint8Array {
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
+
+// --- paircode + constant-time compare ---
+
+const PAIRCODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // base32 minus 0/O/1/I/L
+const PAIRCODE_LENGTH = 6;
+
+/**
+ * Generate a 6-character paircode using a confusable-free alphabet.
+ * Entropy: log2(31) * 6 ≈ 29.7 bits — fine because paircodes have a
+ * 2-min TTL and are single-use, and the server validates them before
+ * an attacker could enumerate.
+ */
+export function generatePaircode(): string {
+  const buf = crypto.getRandomValues(new Uint8Array(PAIRCODE_LENGTH));
+  let out = '';
+  for (let i = 0; i < PAIRCODE_LENGTH; i++) {
+    out += PAIRCODE_ALPHABET[buf[i] % PAIRCODE_ALPHABET.length];
+  }
+  return out;
+}
+
+/** Constant-time byte-array equality. */
+export function constantTimeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll } from 'vitest';
-import { deriveKeys, encryptBundle, decryptBundle } from './crypto';
+import { deriveKeys, encryptBundle, decryptBundle, generatePaircode, constantTimeEqualBytes } from './crypto';
 
 // Argon2id MODERATE is ~1 s; each test with two calls ≈ 2 s + headroom
 const TIMEOUT = 20_000;
@@ -102,5 +102,33 @@ describe('crypto.encryptBundle / decryptBundle', () => {
     const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
     const wrongKey = crypto.getRandomValues(new Uint8Array(32));
     await expect(decryptBundle(wrongKey, blob, 'sync-id-A', 'doc-id-X')).rejects.toThrow();
+  });
+});
+
+describe('crypto.generatePaircode', () => {
+  it('produces a 6-character code excluding 0/O/1/I/L', () => {
+    for (let i = 0; i < 100; i++) {
+      const code = generatePaircode();
+      expect(code).toMatch(/^[A-HJKMNP-Z2-9]{6}$/);
+    }
+  });
+  it('produces a different code on each call (probabilistic)', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) seen.add(generatePaircode());
+    expect(seen.size).toBeGreaterThan(95);
+  });
+});
+
+describe('crypto.constantTimeEqualBytes', () => {
+  it('returns true for identical buffers', () => {
+    const a = new Uint8Array([1, 2, 3, 4]);
+    const b = new Uint8Array([1, 2, 3, 4]);
+    expect(constantTimeEqualBytes(a, b)).toBe(true);
+  });
+  it('returns false for differing buffers (same length)', () => {
+    expect(constantTimeEqualBytes(new Uint8Array([1, 2, 3, 4]), new Uint8Array([1, 2, 3, 5]))).toBe(false);
+  });
+  it('returns false for different-length buffers', () => {
+    expect(constantTimeEqualBytes(new Uint8Array([1, 2, 3]), new Uint8Array([1, 2, 3, 0]))).toBe(false);
   });
 });
