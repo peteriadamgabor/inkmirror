@@ -2,7 +2,7 @@ import { SyncHttpError } from './client';
 import type { SyncClient } from './client';
 import { encryptBundle, decryptBundle } from './crypto';
 import type { EncryptedBlob } from './crypto';
-import { setDocStatus, docStatusFor } from './state';
+import { setCircleStatus, setDocStatus, docStatusFor } from './state';
 
 export const DEBOUNCE_MS  = 10_000;
 export const HEARTBEAT_MS = 5 * 60 * 1000;
@@ -117,8 +117,20 @@ export function createEngine(deps: EngineDeps): Engine {
     let serverList: Array<{ docId: string; revision: number; updatedAt: string }>;
     try {
       serverList = await deps.client.list(deps.syncId);
-    } catch {
-      return; // network errors silently skip; next heartbeat retries
+    } catch (err) {
+      // 401/404 on /sync/list means our local syncId+K_auth doesn't match any
+      // server-side circle (KV evicted, server wipe, or a pairing that
+      // happened before the production KV binding existed). Surface the state
+      // to the UI and stop the heartbeat loop — re-pairing is the only path
+      // forward, and silent retries every 5 min serve no one.
+      if (err instanceof SyncHttpError && (err.status === 401 || err.status === 404)) {
+        setCircleStatus({ kind: 'orphaned', syncId: deps.syncId });
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+      }
+      return; // other errors (network, 429, 5xx) silently skip; next heartbeat retries
     }
 
     for (const item of serverList) {

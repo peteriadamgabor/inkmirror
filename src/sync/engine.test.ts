@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createEngine, type EngineDeps, DEBOUNCE_MS, HEARTBEAT_MS } from './engine';
-import { docStatusFor, setDocStatus } from './state';
+import { circleStatus, docStatusFor, setCircleStatus, setDocStatus } from './state';
 import type { SyncClient } from './client';
 import { SyncHttpError } from './client';
 import type { EncryptedBlob } from './crypto';
@@ -287,6 +287,85 @@ describe('engine heartbeat + pull', () => {
     await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 2);
     await vi.runAllTimersAsync();
     expect(client.list).toHaveBeenCalledTimes(1); // no new calls after stop
+  });
+});
+
+describe('engine heartbeat orphan detection', () => {
+  beforeEach(() => {
+    if (typeof navigator === 'undefined') {
+      vi.stubGlobal('navigator', { onLine: true });
+    }
+    setCircleStatus({ kind: 'active', syncId: 'sync-id-1' });
+  });
+
+  it('marks circle orphaned and stops heartbeats on 401 from list', async () => {
+    client.list.mockRejectedValueOnce(new SyncHttpError(401, { error: 'auth_mismatch' }));
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(circleStatus()).toEqual({ kind: 'orphaned', syncId: 'sync-id-1' });
+
+    // No further polls — even after multiple intervals elapse.
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 3);
+    await vi.runAllTimersAsync();
+    expect(client.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks circle orphaned on legacy 404 unknown_circle from list', async () => {
+    client.list.mockRejectedValueOnce(new SyncHttpError(404, { error: 'unknown_circle' }));
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(circleStatus()).toEqual({ kind: 'orphaned', syncId: 'sync-id-1' });
+  });
+
+  it('keeps polling on transient 429 / 5xx without orphaning', async () => {
+    client.list
+      .mockRejectedValueOnce(new SyncHttpError(429, { error: 'rate_limited' }))
+      .mockRejectedValueOnce(new SyncHttpError(503, { error: 'unavailable' }))
+      .mockResolvedValue([]);
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(circleStatus()).toEqual({ kind: 'active', syncId: 'sync-id-1' });
+
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(circleStatus()).toEqual({ kind: 'active', syncId: 'sync-id-1' });
+
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.list).toHaveBeenCalledTimes(3);
+
+    engine.stop();
+    await vi.runAllTimersAsync();
+  });
+
+  it('keeps polling on plain network errors (non-SyncHttpError)', async () => {
+    client.list
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValue([]);
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(circleStatus()).toEqual({ kind: 'active', syncId: 'sync-id-1' });
+
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.list).toHaveBeenCalledTimes(2);
+
+    engine.stop();
+    await vi.runAllTimersAsync();
   });
 });
 

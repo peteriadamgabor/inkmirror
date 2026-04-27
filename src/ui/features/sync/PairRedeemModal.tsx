@@ -2,6 +2,7 @@ import { createSignal, Show } from 'solid-js';
 import { connectDB } from '@/db/connection';
 import { redeemPaircode, SyncHttpError } from '@/sync';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
+import { IconEye, IconEyeOff } from '@/ui/shared/icons';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
@@ -25,6 +26,7 @@ export function PairRedeemModal(props: Props) {
   const [error, setError] = createSignal<string | null>(null);
   // When 410: show a retry hint but keep the form usable
   const [expired, setExpired] = createSignal(false);
+  const [reveal, setReveal] = createSignal(false);
 
   async function submit(e: Event) {
     e.preventDefault();
@@ -97,15 +99,30 @@ export function PairRedeemModal(props: Props) {
             autofocus
             required
           />
-          <input
-            type="password"
-            placeholder={t('sync.connect.passphraseLabel')}
-            class="w-full mb-3 px-3 py-2 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400 disabled:opacity-50"
-            value={pass()}
-            onInput={(e) => setPass(e.currentTarget.value)}
-            disabled={busy()}
-            required
-          />
+          <div class="relative mb-3">
+            <input
+              type={reveal() ? 'text' : 'password'}
+              placeholder={t('sync.connect.passphraseLabel')}
+              class="w-full px-3 py-2 pr-10 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400 disabled:opacity-50 font-mono"
+              value={pass()}
+              onInput={(e) => setPass(e.currentTarget.value)}
+              disabled={busy()}
+              autocomplete="current-password"
+              spellcheck={false}
+              required
+            />
+            <button
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-stone-400 hover:text-stone-700 dark:text-stone-500 dark:hover:text-stone-200 transition-colors disabled:opacity-50"
+              onClick={() => setReveal((r) => !r)}
+              disabled={busy()}
+              title={reveal() ? t('sync.passphrase.hide') : t('sync.passphrase.show')}
+              aria-label={reveal() ? t('sync.passphrase.hide') : t('sync.passphrase.show')}
+              aria-pressed={reveal()}
+            >
+              {reveal() ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+            </button>
+          </div>
 
           <Show when={error()}>
             <p class="text-red-500 dark:text-red-400 text-sm mb-3">{error()}</p>

@@ -1,7 +1,10 @@
 import { createSignal, Show, onCleanup } from 'solid-js';
 import { connectDB } from '@/db/connection';
 import { initCircle, issuePaircode } from '@/sync';
+import { generatePassphrase } from '@/sync/wordlist';
+import { passphraseStrength } from '@/sync/strength';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
+import { IconEye, IconEyeOff } from '@/ui/shared/icons';
 import { t } from '@/i18n';
 
 type Step =
@@ -9,23 +12,6 @@ type Step =
   | { kind: 'deriving' }
   | { kind: 'done'; syncId: string }
   | { kind: 'paircode'; code: string; expiresAt: number };
-
-const DICEWARE_WORDS = [
-  'river', 'canyon', 'violet', 'anchor', 'quiet', 'candle', 'meadow', 'glass',
-  'ember', 'horizon', 'willow', 'shore', 'silver', 'prairie', 'harbor', 'garnet',
-  'ivory', 'sparrow', 'marigold', 'crescent', 'beacon', 'lantern', 'copper', 'grove',
-];
-
-function generateDicewareLike(): string {
-  const buf = crypto.getRandomValues(new Uint32Array(4));
-  return Array.from(buf, (n) => DICEWARE_WORDS[n % DICEWARE_WORDS.length]).join('-');
-}
-
-function strengthOf(pw: string): 'weak' | 'medium' | 'strong' {
-  if (pw.length < 12) return 'weak';
-  if (pw.length < 20) return 'medium';
-  return 'strong';
-}
 
 interface Props {
   onClose: () => void;
@@ -36,6 +22,7 @@ export function PairingSetupModal(props: Props) {
   const [pass, setPass] = createSignal('');
   const [confirm, setConfirm] = createSignal('');
   const [error, setError] = createSignal<string | null>(null);
+  const [reveal, setReveal] = createSignal(false);
 
   async function submitPassphrase(e: Event) {
     e.preventDefault();
@@ -45,7 +32,7 @@ export function PairingSetupModal(props: Props) {
       setError(t('sync.passphrase.mismatch'));
       return;
     }
-    if (strengthOf(pass()) === 'weak') {
+    if (passphraseStrength(pass()) === 'weak') {
       setError(t('sync.passphrase.tooWeak'));
       return;
     }
@@ -77,7 +64,7 @@ export function PairingSetupModal(props: Props) {
     }
   }
 
-  const strength = () => strengthOf(pass());
+  const strength = () => passphraseStrength(pass());
 
   return (
     <ModalBackdrop onClick={props.onClose}>
@@ -93,19 +80,35 @@ export function PairingSetupModal(props: Props) {
             {t('sync.passphrase.explanation')}
           </p>
           <form onSubmit={submitPassphrase}>
+            <div class="relative mb-2">
+              <input
+                type={reveal() ? 'text' : 'password'}
+                placeholder={t('sync.passphrase.label')}
+                class="w-full px-3 py-2 pr-10 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400 font-mono"
+                value={pass()}
+                onInput={(e) => setPass(e.currentTarget.value)}
+                autocomplete="new-password"
+                spellcheck={false}
+              />
+              <button
+                type="button"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-stone-400 hover:text-stone-700 dark:text-stone-500 dark:hover:text-stone-200 transition-colors"
+                onClick={() => setReveal((r) => !r)}
+                title={reveal() ? t('sync.passphrase.hide') : t('sync.passphrase.show')}
+                aria-label={reveal() ? t('sync.passphrase.hide') : t('sync.passphrase.show')}
+                aria-pressed={reveal()}
+              >
+                {reveal() ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+              </button>
+            </div>
             <input
-              type="password"
-              placeholder={t('sync.passphrase.label')}
-              class="w-full mb-2 px-3 py-2 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400"
-              value={pass()}
-              onInput={(e) => setPass(e.currentTarget.value)}
-            />
-            <input
-              type="password"
+              type={reveal() ? 'text' : 'password'}
               placeholder={t('sync.passphrase.confirm')}
-              class="w-full mb-3 px-3 py-2 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400"
+              class="w-full mb-3 px-3 py-2 border border-stone-200 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-violet-400 font-mono"
               value={confirm()}
               onInput={(e) => setConfirm(e.currentTarget.value)}
+              autocomplete="new-password"
+              spellcheck={false}
             />
 
             <Show when={pass().length > 0}>
@@ -135,9 +138,12 @@ export function PairingSetupModal(props: Props) {
               type="button"
               class="text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 mb-3 block"
               onClick={() => {
-                const g = generateDicewareLike();
+                const g = generatePassphrase();
                 setPass(g);
                 setConfirm(g);
+                // The whole point of generation is the user reading and saving
+                // the result somewhere — auto-reveal so it's not buried as dots.
+                setReveal(true);
               }}
             >
               {t('sync.passphrase.generate')}

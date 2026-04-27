@@ -111,6 +111,8 @@ export const en = {
     daysAgo: '{{n}}d ago',
     lightMode: 'Light mode',
     darkMode: 'Dark mode',
+    settings: 'Settings',
+    settingsTitle: 'Open app settings (sync, AI, hotkeys, language)',
     exportLabel: 'Export',
     exportTitle: 'Export this document as .inkmirror.json',
     deleteTitle: 'Delete document',
@@ -916,6 +918,8 @@ export const en = {
       tooWeak: 'Pick a stronger passphrase or use Generate.',
       mismatch: "The two passphrases don't match.",
       deriving: 'Encrypting your manuscripts…',
+      show: 'Show passphrase',
+      hide: 'Hide passphrase',
     },
 
     paircode: {
@@ -969,6 +973,14 @@ export const en = {
       syncedAgo: 'Synced {{ago}} · revision {{rev}}',
       removeFromServer: "Remove this document's encrypted copy from the server?",
       removedFromOther: 'Sync disabled for "{{title}}" from another device. Re-enable in Document Settings if you want to keep syncing.',
+    },
+
+    orphan: {
+      title: 'Sync needs to be re-paired',
+      explanation: "The server no longer recognises this device's sync circle. This usually means the circle was wiped on the server side, or this device paired before the production sync storage was active. Your manuscripts are safe on this device — only the server-side encrypted copy is gone.",
+      reset: 'Reset and re-pair',
+      resetConfirm: 'Clear local sync state and disconnect from the (missing) server circle? Your documents stay on this device. You can pair fresh after.',
+      resetDone: 'Local sync state cleared. Set up sync again to start syncing.',
     },
   },
 } as const;

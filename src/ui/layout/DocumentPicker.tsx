@@ -20,6 +20,7 @@ import { openDemo } from '@/backup/demo';
 import { DEMO_DOC_ID } from '@/backup/demo-bundle';
 import { downloadBlob } from '@/exporters';
 import { openFeedback } from '@/ui/shared/feedback';
+import { openSettingsModal } from '@/store/ui-state';
 import { t } from '@/i18n';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 
@@ -275,6 +276,14 @@ export const DocumentPicker = (props: Props) => {
               {theme() === 'dark' ? t('picker.lightMode') : t('picker.darkMode')}
             </button>
             <LanguagePicker />
+            <button
+              type="button"
+              onClick={() => openSettingsModal()}
+              class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
+              title={t('picker.settingsTitle')}
+            >
+              {t('picker.settings')}
+            </button>
           </div>
         </div>
 

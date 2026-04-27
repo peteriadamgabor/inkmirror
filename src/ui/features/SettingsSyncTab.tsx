@@ -74,12 +74,64 @@ export function SettingsSyncTab() {
         />
       </Show>
 
+      <Show when={circleStatus().kind === 'orphaned'}>
+        <OrphanedSyncPanel />
+      </Show>
+
       <Show when={setupOpen()}>
         <PairingSetupModal onClose={() => setSetupOpen(false)} />
       </Show>
       <Show when={redeemOpen()}>
         <PairRedeemModal onClose={() => setRedeemOpen(false)} />
       </Show>
+    </div>
+  );
+}
+
+function OrphanedSyncPanel() {
+  async function handleReset() {
+    const ok = await askConfirm({
+      title: t('sync.orphan.title'),
+      message: t('sync.orphan.resetConfirm'),
+      confirmLabel: t('common.confirm'),
+      cancelLabel: t('common.cancel'),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const db = await connectDB();
+      const keys = await loadKeys(db);
+      db.close();
+      // No keys = nothing to wipe; defensively reset the status anyway.
+      if (!keys) return;
+      // destroyCircle best-effort-deletes server side and unconditionally wipes
+      // local keystore + sets circleStatus back to 'unconfigured'. Perfect for
+      // the orphan case where the server side is already gone.
+      await destroyCircle({ db: await connectDB(), baseUrl: '', syncId: keys.syncId, K_auth: keys.K_auth });
+      toast.success(t('sync.orphan.resetDone'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <div>
+      <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+        {t('sync.title')}
+      </h2>
+      <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-2">
+        {t('sync.orphan.title')}
+      </p>
+      <p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+        {t('sync.orphan.explanation')}
+      </p>
+      <button
+        type="button"
+        onClick={handleReset}
+        class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+      >
+        {t('sync.orphan.reset')}
+      </button>
     </div>
   );
 }

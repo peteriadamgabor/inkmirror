@@ -112,6 +112,8 @@ export const hu: Messages = {
     daysAgo: '{{n}} napja',
     lightMode: 'Világos',
     darkMode: 'Sötét',
+    settings: 'Beállítások',
+    settingsTitle: 'Alkalmazás-beállítások megnyitása (szinkron, MI, gyorsbillentyűk, nyelv)',
     exportLabel: 'Export',
     exportTitle: 'Dokumentum exportálása .inkmirror.json fájlba',
     deleteTitle: 'Dokumentum törlése',
@@ -909,6 +911,8 @@ export const hu: Messages = {
       tooWeak: 'Válassz erősebb jelmondatot, vagy generálj egyet.',
       mismatch: 'A két jelmondat nem egyezik.',
       deriving: 'Kéziratok titkosítása…',
+      show: 'Jelmondat megjelenítése',
+      hide: 'Jelmondat elrejtése',
     },
 
     paircode: {
@@ -962,6 +966,14 @@ export const hu: Messages = {
       syncedAgo: 'Szinkronizálva {{ago}} · {{rev}}. verzió',
       removeFromServer: 'Eltávolítjuk a dokumentum titkosított másolatát a szerverről?',
       removedFromOther: 'A(z) „{{title}}" szinkronizálása letiltva egy másik eszközön. Ha továbbra is szinkronizálni szeretnéd, kapcsold be a Dokumentum-beállításokban.',
+    },
+
+    orphan: {
+      title: 'A szinkron újrapárosítást igényel',
+      explanation: 'A szerver már nem ismeri ennek az eszköznek a szinkronkörét. Ez általában azt jelenti, hogy a kör a szerveroldalon törlődött, vagy ez az eszköz még a végleges szinkron-tároló élesítése előtt párosított. A kéziratok biztonságban vannak ezen az eszközön — csak a szerveroldali titkosított másolat veszett el.',
+      reset: 'Visszaállítás és újrapárosítás',
+      resetConfirm: 'Töröljük a helyi szinkronállapotot, és bontsuk a kapcsolatot az immár nem létező szerveroldali körrel? A dokumentumok az eszközön maradnak. Utána újrapárosíthatsz.',
+      resetDone: 'A helyi szinkronállapot törölve. Állítsd be újra a szinkront a folytatáshoz.',
     },
   },
 };

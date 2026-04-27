@@ -22,4 +22,6 @@ export {
   TbOutlineSettings as IconSettings,
   TbOutlineSearch as IconSearch,
   TbOutlineX as IconClose,
+  TbOutlineEye as IconEye,
+  TbOutlineEyeOff as IconEyeOff,
 } from 'solid-icons/tb';

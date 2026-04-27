@@ -4,7 +4,10 @@ import { createStore } from 'solid-js/store';
 export type CircleStatus =
   | { kind: 'unconfigured' }
   | { kind: 'active'; syncId: string }
-  | { kind: 'pairing'; paircode: string; expiresAt: number };
+  | { kind: 'pairing'; paircode: string; expiresAt: number }
+  // Local keystore points at a syncId the server no longer recognises (401/404
+  // on auth). Surfaces a re-pair CTA in the UI; engine stops heartbeating.
+  | { kind: 'orphaned'; syncId: string };
 
 export type DocSyncStatus =
   | { kind: 'off' }

@@ -21,6 +21,11 @@ describe('sync state', () => {
     expect(circleStatus()).toEqual({ kind: 'pairing', paircode: 'ABCDEF', expiresAt: 1000 });
   });
 
+  it('transitions to orphaned with the syncId that lost its server-side circle', () => {
+    setCircleStatus({ kind: 'orphaned', syncId: 'sync-id-XYZ' });
+    expect(circleStatus()).toEqual({ kind: 'orphaned', syncId: 'sync-id-XYZ' });
+  });
+
   it('per-doc status defaults to off', () => {
     expect(docStatusFor('unknown-doc').kind).toBe('off');
   });
