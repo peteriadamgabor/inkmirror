@@ -97,3 +97,142 @@ describe('POST /sync/circles', () => {
     expect(res.status).toBe(404);
   });
 });
+
+// helper: create a circle and return everything tests need
+async function createCircle(env: Env): Promise<{
+  syncId: string;
+  K_auth: Uint8Array;
+  K_auth_b64: string;
+  auth_proof_b64: string;
+  salt_b64: string;
+}> {
+  const K_auth = crypto.getRandomValues(new Uint8Array(32));
+  const auth_proof = new Uint8Array(await crypto.subtle.digest('SHA-256', K_auth));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const auth_proof_b64 = toBase64Url(auth_proof);
+  const K_auth_b64 = toBase64Url(K_auth);
+  const salt_b64 = toBase64Url(salt);
+
+  const res = await handleSync(makeRequest({ auth_proof: auth_proof_b64, salt: salt_b64 }), env);
+  const { syncId } = (await res.json()) as { syncId: string };
+  return { syncId, K_auth, K_auth_b64, auth_proof_b64, salt_b64 };
+}
+
+function authedRequest(url: string, K_auth_b64: string, body: unknown = {}): Request {
+  return new Request(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${K_auth_b64}`,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+describe('POST /sync/circles/:syncId/paircode', () => {
+  it('issues a paircode for an authenticated request', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      authedRequest(`http://x/sync/circles/${syncId}/paircode`, K_auth_b64),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const j = (await res.json()) as { paircode: string; expiresAt: string };
+    expect(j.paircode).toMatch(/^[A-HJKMNP-Z2-9]{6}$/);
+    expect(new Date(j.expiresAt).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('rejects unauthenticated requests with 401', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/circles/${syncId}/paircode`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects requests with a wrong K_auth (bad bearer token)', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const wrongK_auth = toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+    const res = await handleSync(
+      authedRequest(`http://x/sync/circles/${syncId}/paircode`, wrongK_auth),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /sync/pair/redeem', () => {
+  it('redeems a valid paircode and returns syncId + salt', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64, salt_b64 } = await createCircle(env);
+
+    const issue = await handleSync(
+      authedRequest(`http://x/sync/circles/${syncId}/paircode`, K_auth_b64),
+      env,
+    );
+    const { paircode } = (await issue.json()) as { paircode: string };
+
+    const redeemReq = new Request('http://x/sync/pair/redeem', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ paircode }),
+    });
+    const redeem = await handleSync(redeemReq, env);
+    expect(redeem.status).toBe(200);
+    const r = (await redeem.json()) as { syncId: string; salt: string };
+    expect(r.syncId).toBe(syncId);
+    expect(r.salt).toBe(salt_b64);
+  });
+
+  it('rejects an unknown paircode with 410', async () => {
+    const env = makeEnv();
+    const res = await handleSync(
+      new Request('http://x/sync/pair/redeem', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ paircode: 'ZZZZZZ' }),
+      }),
+      env,
+    );
+    expect(res.status).toBe(410);
+  });
+
+  it('rejects a paircode redeemed twice (single-use)', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const issue = await handleSync(
+      authedRequest(`http://x/sync/circles/${syncId}/paircode`, K_auth_b64),
+      env,
+    );
+    const { paircode } = (await issue.json()) as { paircode: string };
+
+    const redeemReq = () => new Request('http://x/sync/pair/redeem', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ paircode }),
+    });
+
+    const first = await handleSync(redeemReq(), env);
+    expect(first.status).toBe(200);
+
+    const second = await handleSync(redeemReq(), env);
+    expect(second.status).toBe(410);
+  });
+
+  it('rejects a malformed paircode (wrong length / chars) with 410', async () => {
+    const env = makeEnv();
+    const res = await handleSync(
+      new Request('http://x/sync/pair/redeem', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ paircode: '0000' }),  // contains '0', wrong length
+      }),
+      env,
+    );
+    expect(res.status).toBe(410);
+  });
+});
