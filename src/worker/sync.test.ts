@@ -438,3 +438,98 @@ describe('PUT /sync/doc/:syncId/:docId', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('GET /sync/doc/:syncId/:docId', () => {
+  it('returns a previously PUT blob with revision and updatedAt', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: toBase64Url(new Uint8Array([7, 8, 9, 10])),
+    };
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    const res = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-1`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const j = (await res.json()) as { v: 1; iv: string; ciphertext: string; revision: number; updatedAt: string };
+    expect(j.v).toBe(1);
+    expect(j.iv).toBe(blob.iv);
+    expect(j.ciphertext).toBe(blob.ciphertext);
+    expect(j.revision).toBe(1);
+    expect(typeof j.updatedAt).toBe('string');
+  });
+
+  it('returns 404 for a doc that was never written', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/missing`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 401 without auth', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-1`),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('DELETE /sync/doc/:syncId/:docId', () => {
+  it('deletes the blob and meta, subsequent GET 404s', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: 'AAAA',
+    };
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    const del = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-1`, {
+        method: 'DELETE',
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(del.status).toBe(204);
+    const after = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-1`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(after.status).toBe(404);
+  });
+
+  it('DELETE on a missing doc still returns 204 (idempotent)', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/never-existed`, {
+        method: 'DELETE',
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(204);
+  });
+});

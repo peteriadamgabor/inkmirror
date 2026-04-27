@@ -33,8 +33,9 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
   const docMatch = path.match(/^\/sync\/doc\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/);
   if (docMatch) {
     const [, syncId, docId] = docMatch;
-    if (method === 'PUT') return await putDoc(request, env, syncId, docId);
-    // GET and DELETE land in B6
+    if (method === 'PUT')    return await putDoc(request, env, syncId, docId);
+    if (method === 'GET')    return await getDoc(request, env, syncId, docId);
+    if (method === 'DELETE') return await deleteDoc(request, env, syncId, docId);
   }
 
   return new Response('Not Found', { status: 404 });
@@ -172,6 +173,34 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   await env.INKMIRROR_SYNC_KV.put(metaKey, JSON.stringify({ revision: newRevision, updatedAt }));
 
   return Response.json({ revision: newRevision, updatedAt }, { status: 200 });
+}
+
+async function getDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
+  const a = await authenticateCircle(request, env, syncId);
+  if (!a.ok) return a.res;
+
+  const metaKey = `meta:${syncId}:${docId}`;
+  const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
+  if (!rawMeta) return jsonError(404, 'doc_missing');
+  const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
+
+  const r2obj = await env.INKMIRROR_SYNC_R2.get(`${syncId}/${docId}`);
+  if (!r2obj) return jsonError(404, 'doc_missing');
+  const blob = await r2obj.json() as { v: 1; iv: string; ciphertext: string };
+
+  return Response.json(
+    { ...blob, revision: meta.revision, updatedAt: meta.updatedAt },
+    { status: 200 },
+  );
+}
+
+async function deleteDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
+  const a = await authenticateCircle(request, env, syncId);
+  if (!a.ok) return a.res;
+
+  await env.INKMIRROR_SYNC_R2.delete(`${syncId}/${docId}`);
+  await env.INKMIRROR_SYNC_KV.delete(`meta:${syncId}:${docId}`);
+  return new Response(null, { status: 204 });
 }
 
 async function getList(request: Request, env: Env, syncId: string): Promise<Response> {
