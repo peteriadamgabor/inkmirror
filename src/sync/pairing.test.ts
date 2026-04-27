@@ -52,8 +52,19 @@ describe('issuePaircode', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const r = await issuePaircode({ baseUrl: 'http://x', syncId: 'sync-id-1', K_auth: new Uint8Array(32) });
+    // Populate the keystore first so issuePaircode can load K_auth internally.
+    const db = await connectDB(TEST_DB);
+    const { saveKeys } = await import('./keystore');
+    await saveKeys(db, {
+      syncId: 'sync-id-1',
+      K_enc:  crypto.getRandomValues(new Uint8Array(32)),
+      K_auth: new Uint8Array(32),
+      salt:   crypto.getRandomValues(new Uint8Array(16)),
+    });
+
+    const r = await issuePaircode({ db, baseUrl: 'http://x', syncId: 'sync-id-1' });
     expect(r).toEqual({ paircode: 'ABCDEF', expiresAt: '2026-04-27T12:02:00Z' });
+    db.close();
   });
 });
 

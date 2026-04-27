@@ -922,7 +922,7 @@ export const en = {
       step1: '1. Open InkMirror',
       step2: '2. Settings → Sync → Add this device',
       step3: '3. Enter this code and your passphrase',
-      expires: 'Code expires in {time}',
+      expires: 'Code expires in {{time}}',
       expired: 'Code expired — generate a new one?',
       generateNew: 'Generate new code',
     },

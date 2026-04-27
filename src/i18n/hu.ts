@@ -915,7 +915,7 @@ export const hu: Messages = {
       step1: '1. Nyisd meg az InkMirrort',
       step2: '2. Beállítások → Szinkronizálás → Eszköz hozzáadása',
       step3: '3. Add meg ezt a kódot és a jelmondatot',
-      expires: 'A kód {time} múlva lejár',
+      expires: 'A kód {{time}} múlva lejár',
       expired: 'A kód lejárt — generálsz újat?',
       generateNew: 'Új kód generálása',
     },

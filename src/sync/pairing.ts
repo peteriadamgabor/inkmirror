@@ -1,6 +1,6 @@
 import type { InkMirrorDb } from '../db/connection';
 import { deriveKeys, toBase64Url, fromBase64Url } from './crypto';
-import { saveKeys, wipeKeys } from './keystore';
+import { saveKeys, wipeKeys, loadKeys } from './keystore';
 import { createSyncClient } from './client';
 import { setCircleStatus } from './state';
 
@@ -26,13 +26,17 @@ export async function initCircle(args: InitCircleArgs): Promise<{ syncId: string
 }
 
 export interface IssuePaircodeArgs {
+  db: InkMirrorDb;
   baseUrl: string;
   syncId: string;
-  K_auth: Uint8Array;
 }
 
 export async function issuePaircode(args: IssuePaircodeArgs): Promise<{ paircode: string; expiresAt: string }> {
-  const client = createSyncClient({ baseUrl: args.baseUrl, K_auth: args.K_auth });
+  const keys = await loadKeys(args.db);
+  if (!keys || keys.syncId !== args.syncId) {
+    throw new Error('no keys for this syncId — cannot issue paircode');
+  }
+  const client = createSyncClient({ baseUrl: args.baseUrl, K_auth: keys.K_auth });
   return client.issuePaircode(args.syncId);
 }
 
