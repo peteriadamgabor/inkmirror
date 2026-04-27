@@ -8,6 +8,7 @@ import { PlotTimeline } from './features/PlotTimeline';
 import { BlockTypesHelp } from './features/BlockTypesHelp';
 import { ChapterTypesHelp } from './features/ChapterTypesHelp';
 import { SettingsModal } from './features/SettingsModal';
+import { WhatsNewModal } from './features/WhatsNewModal';
 import { CommandPalette } from './features/CommandPalette';
 import { DocumentSettings } from './features/DocumentSettings';
 import { CharacterPage } from './features/CharacterPage';
@@ -117,6 +118,7 @@ export const App = (props: { children?: JSX.Element }) => (
     <BlockTypesHelp />
     <ChapterTypesHelp />
     <SettingsModal />
+    <WhatsNewModal />
     <CommandPalette />
     <DocumentSettings />
     <CharacterPage />

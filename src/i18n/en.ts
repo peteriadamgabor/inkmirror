@@ -896,6 +896,14 @@ export const en = {
       },
     },
   },
+  whatsNew: {
+    title: "What's new",
+    triggerTitle: "What's new",
+    badgeAria: 'Unread updates',
+    empty: 'No release notes yet.',
+    footer: 'Build {{commit}} · {{date}}',
+    close: 'Close',
+  },
   sync: {
     title: 'Sync',
     off: 'Sync is off',

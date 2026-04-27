@@ -24,6 +24,7 @@ import { openFeedback } from '@/ui/shared/feedback';
 import { openSettingsModal } from '@/store/ui-state';
 import { t } from '@/i18n';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { WhatsNewButton } from '@/ui/shared/WhatsNewButton';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -285,6 +286,7 @@ export const DocumentPicker = (props: Props) => {
             >
               {theme() === 'dark' ? t('picker.lightMode') : t('picker.darkMode')}
             </button>
+            <WhatsNewButton />
             <LanguagePicker />
             <button
               type="button"

@@ -159,6 +159,19 @@ Types: `feat` `fix` `perf` `refactor` `style` `docs` `test` `chore`.
 Scope: `engine` · `ui` · `store` · `db` · `ai` · `audio` · `backup` · `i18n` · `exporters` · `dev`.
 Example: `feat(i18n): system-lang auto-detect with English fallback`.
 
+## Releasing to master
+
+**Before pushing to `master` (production):**
+
+1. Bump `version` in `package.json` (semver — patch for fixes, minor for features, major for breaking).
+2. Add a new entry to the top of both `en` and `hu` arrays in `src/i18n/whats-new.ts` with:
+   - `id` set to today's date (`YYYY-MM-DD`) — must match across locales.
+   - `title` that includes the new version (`v0.2.0 — …`).
+   - `items[]` covering what users will notice (skip pure refactors / chores).
+3. Commit those two changes together with the release: `chore(release): v0.2.0`.
+
+The build identity (`__APP_COMMIT__`, `__APP_BUILT_AT__`) updates automatically on every Cloudflare build and shows in the modal footer. The version + changelog id are the things that drive the user-facing badge — auto-build SHAs do not, by design (otherwise every minor deploy would nag every user).
+
 ## If you get stuck
 
 Ask, don't guess — code written on wrong assumptions is more expensive than a clarifying question.

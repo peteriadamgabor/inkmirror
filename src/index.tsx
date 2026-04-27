@@ -30,6 +30,7 @@ import { ConfirmHost } from '@/ui/shared/ConfirmHost';
 import { ToastHost } from '@/ui/shared/ToastHost';
 import { FeedbackHost } from '@/ui/shared/FeedbackHost';
 import { SettingsModal } from '@/ui/features/SettingsModal';
+import { WhatsNewModal } from '@/ui/features/WhatsNewModal';
 import { daysSinceLastExport } from '@/exporters';
 import { toast } from '@/ui/shared/toast';
 import type { UUID } from '@/types';
@@ -145,6 +146,7 @@ render(
         <Match when={appState().kind === 'picker'}>
           <DocumentPicker onSelect={(id) => void openDocument(id)} />
           <SettingsModal />
+          <WhatsNewModal />
           <ConfirmHost />
           <FeedbackHost />
           <ToastHost />

@@ -11,6 +11,7 @@ import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-st
 import { getSonificationEngine, resolveMoodLabel, type MoodLabel } from '@/audio/engine';
 import { IconSun, IconMoon, IconSpellcheck, IconVolume } from '@/ui/shared/icons';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { WhatsNewButton } from '@/ui/shared/WhatsNewButton';
 import { DemoBanner } from '@/ui/shared/DemoBanner';
 import { t } from '@/i18n';
 import type { Block } from '@/types';
@@ -289,7 +290,7 @@ export const Editor = () => {
     <div class="h-full flex flex-col bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
       <div class="flex items-center px-3 py-1.5 border-b border-stone-200/50 dark:border-stone-700/30 shrink-0 gap-2">
         {/* Left: toolbar icons — fixed width to balance the right side */}
-        <div class="flex items-center gap-1 w-[120px] shrink-0">
+        <div class="flex items-center gap-1 w-[160px] shrink-0">
           <button
             type="button"
             onClick={toggleTheme}
@@ -365,13 +366,14 @@ export const Editor = () => {
           </Show>
         </div>
 
-        {/* Right: save state + language picker — same width as left for centering */}
-        <div class="w-[120px] flex items-center justify-end gap-2 shrink-0">
+        {/* Right: save state + What's new + language picker — same width as left for centering */}
+        <div class="w-[160px] flex items-center justify-end gap-2 shrink-0">
           <Show when={saveState() !== 'idle'}>
             <span class="text-[10px] text-stone-400">
               {saveState() === 'saving' ? t('common.saving') : t('common.saved')}
             </span>
           </Show>
+          <WhatsNewButton tone="muted" />
           <LanguagePicker tone="muted" />
         </div>
       </div>

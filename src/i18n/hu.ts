@@ -889,6 +889,14 @@ export const hu: Messages = {
       },
     },
   },
+  whatsNew: {
+    title: 'Újdonságok',
+    triggerTitle: 'Újdonságok',
+    badgeAria: 'Olvasatlan változások',
+    empty: 'Még nincsenek megjegyzések.',
+    footer: 'Build {{commit}} · {{date}}',
+    close: 'Bezárás',
+  },
   sync: {
     title: 'Szinkronizálás',
     off: 'A szinkronizálás ki van kapcsolva',

@@ -24,4 +24,5 @@ export {
   TbOutlineX as IconClose,
   TbOutlineEye as IconEye,
   TbOutlineEyeOff as IconEyeOff,
+  TbOutlineSparkles as IconSparkles,
 } from 'solid-icons/tb';
