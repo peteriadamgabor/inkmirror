@@ -80,12 +80,28 @@ export interface DocumentRow {
   pov_character_id?: string | null;
   created_at: string;
   updated_at: string;
+  sync_enabled: boolean;
+  last_sync_revision: number;
+  last_synced_at: number | null;
+}
+
+export interface SyncKeysRow {
+  id: 'singleton';
+  syncId: string;
+  salt: string;       // base64url, 16 bytes
+  K_enc_b64: string;  // base64url, 32 bytes
+  K_auth_b64: string; // base64url, 32 bytes
+  createdAt: string;
 }
 
 export interface InkMirrorSchema extends DBSchema {
   documents: {
     key: string;
     value: DocumentRow;
+  };
+  sync_keys: {
+    key: string;
+    value: SyncKeysRow;
   };
   chapters: {
     key: string;
@@ -132,58 +148,82 @@ const DB_NAME = 'inkmirror';
 // v4: add `characters` store for Phase 3 slice 4
 // v5: add `block_revisions` store for per-block history
 // v6: add `inconsistencies` store for the Near tier
-const DB_VERSION = 6;
+// v7: add `sync_keys` store + sync_enabled / last_sync_revision / last_synced_at on documents
+const DB_VERSION = 7;
 
 export type InkMirrorDb = IDBPDatabase<InkMirrorSchema>;
+
+/**
+ * Open an InkMirror database by name and run all schema migrations up to
+ * `DB_VERSION`. Exposed with an optional `name` parameter so test suites
+ * can open an isolated DB without touching the real `'inkmirror'` store.
+ */
+export async function connectDB(name = DB_NAME): Promise<InkMirrorDb> {
+  return openDB<InkMirrorSchema>(name, DB_VERSION, {
+    async upgrade(db, oldVersion, _newVersion, tx) {
+      // ── Idempotent store / index creation (all versions) ────────────
+      if (!db.objectStoreNames.contains('documents')) {
+        db.createObjectStore('documents', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('chapters')) {
+        const chapters = db.createObjectStore('chapters', { keyPath: 'id' });
+        chapters.createIndex('by_document', 'document_id');
+      }
+      if (!db.objectStoreNames.contains('blocks')) {
+        const blocks = db.createObjectStore('blocks', { keyPath: 'id' });
+        blocks.createIndex('by_document', 'document_id');
+        blocks.createIndex('by_chapter', 'chapter_id');
+      }
+      if (!db.objectStoreNames.contains('sentiments')) {
+        const sentiments = db.createObjectStore('sentiments', { keyPath: 'block_id' });
+        sentiments.createIndex('by_document', 'document_id');
+      }
+      if (!db.objectStoreNames.contains('characters')) {
+        const characters = db.createObjectStore('characters', { keyPath: 'id' });
+        characters.createIndex('by_document', 'document_id');
+      }
+      if (!db.objectStoreNames.contains('block_revisions')) {
+        const revs = db.createObjectStore('block_revisions', { keyPath: 'id' });
+        revs.createIndex('by_block', 'block_id');
+      }
+      if (!db.objectStoreNames.contains('inconsistencies')) {
+        const inc = db.createObjectStore('inconsistencies', { keyPath: 'id' });
+        inc.createIndex('by_document', 'document_id');
+        inc.createIndex('by_character', 'character_id');
+        inc.createIndex('by_block_a', 'block_a_id');
+        inc.createIndex('by_block_b', 'block_b_id');
+        inc.createIndex('by_status', 'status');
+      }
+
+      // ── v7: sync_keys store + backfill document sync fields ─────────
+      if (oldVersion < 7) {
+        if (!db.objectStoreNames.contains('sync_keys')) {
+          db.createObjectStore('sync_keys', { keyPath: 'id' });
+        }
+        // Backfill existing documents with the new sync fields.
+        const docsStore = tx.objectStore('documents');
+        let cursor = await docsStore.openCursor();
+        while (cursor) {
+          const row = cursor.value as unknown as Record<string, unknown>;
+          if (row.sync_enabled === undefined)       row.sync_enabled = false;
+          if (row.last_sync_revision === undefined) row.last_sync_revision = 0;
+          if (row.last_synced_at === undefined)     row.last_synced_at = null;
+          await cursor.update(row as unknown as DocumentRow);
+          cursor = await cursor.continue();
+        }
+      }
+    },
+  });
+}
 
 let dbPromise: Promise<InkMirrorDb> | null = null;
 
 export function getDb(): Promise<InkMirrorDb> {
   if (dbPromise) return dbPromise;
-  dbPromise = (async () => {
-    try {
-      return await openDB<InkMirrorSchema>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
-          // Idempotent: create any store/index that doesn't already exist.
-          if (!db.objectStoreNames.contains('documents')) {
-            db.createObjectStore('documents', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('chapters')) {
-            const chapters = db.createObjectStore('chapters', { keyPath: 'id' });
-            chapters.createIndex('by_document', 'document_id');
-          }
-          if (!db.objectStoreNames.contains('blocks')) {
-            const blocks = db.createObjectStore('blocks', { keyPath: 'id' });
-            blocks.createIndex('by_document', 'document_id');
-            blocks.createIndex('by_chapter', 'chapter_id');
-          }
-          if (!db.objectStoreNames.contains('sentiments')) {
-            const sentiments = db.createObjectStore('sentiments', { keyPath: 'block_id' });
-            sentiments.createIndex('by_document', 'document_id');
-          }
-          if (!db.objectStoreNames.contains('characters')) {
-            const characters = db.createObjectStore('characters', { keyPath: 'id' });
-            characters.createIndex('by_document', 'document_id');
-          }
-          if (!db.objectStoreNames.contains('block_revisions')) {
-            const revs = db.createObjectStore('block_revisions', { keyPath: 'id' });
-            revs.createIndex('by_block', 'block_id');
-          }
-          if (!db.objectStoreNames.contains('inconsistencies')) {
-            const inc = db.createObjectStore('inconsistencies', { keyPath: 'id' });
-            inc.createIndex('by_document', 'document_id');
-            inc.createIndex('by_character', 'character_id');
-            inc.createIndex('by_block_a', 'block_a_id');
-            inc.createIndex('by_block_b', 'block_b_id');
-            inc.createIndex('by_status', 'status');
-          }
-        },
-      });
-    } catch (err) {
-      logDbError('connection.boot', err);
-      throw err;
-    }
-  })();
+  dbPromise = connectDB(DB_NAME).catch((err) => {
+    logDbError('connection.boot', err);
+    throw err;
+  });
   return dbPromise;
 }
 

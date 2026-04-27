@@ -110,6 +110,9 @@ async function seed(docId = 'doc-1'): Promise<void> {
     pov_character_id: document.pov_character_id,
     created_at: document.created_at,
     updated_at: document.updated_at,
+    sync_enabled: false,
+    last_sync_revision: 0,
+    last_synced_at: null,
   });
   await db.put('chapters', {
     id: chapter.id,

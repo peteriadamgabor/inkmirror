@@ -310,6 +310,9 @@ describe('loadDocument', () => {
       settings: {},
       created_at: now,
       updated_at: now,
+      sync_enabled: false,
+      last_sync_revision: 0,
+      last_synced_at: null,
     });
     state.blocks.push(
       {
@@ -435,6 +438,9 @@ describe('listDocuments', () => {
         settings: {},
         created_at: '2026-04-14T12:00:02.000Z',
         updated_at: '2026-04-14T12:00:02.000Z',
+        sync_enabled: false,
+        last_sync_revision: 0,
+        last_synced_at: null,
       },
       {
         id: 'd1',
@@ -444,6 +450,9 @@ describe('listDocuments', () => {
         settings: {},
         created_at: '2026-04-14T12:00:01.000Z',
         updated_at: '2026-04-14T12:00:01.000Z',
+        sync_enabled: false,
+        last_sync_revision: 0,
+        last_synced_at: null,
       },
     );
     const docs = await listDocuments();

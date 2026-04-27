@@ -111,6 +111,11 @@ export function documentToRow(d: Document): DocumentRow {
     pov_character_id: d.pov_character_id,
     created_at: d.created_at,
     updated_at: d.updated_at,
+    // New in v7 — always written with safe defaults so fresh rows are
+    // immediately valid without needing the migration backfill path.
+    sync_enabled: false,
+    last_sync_revision: 0,
+    last_synced_at: null,
   };
 }
 
