@@ -21,6 +21,7 @@ import {
   saveBlock,
   saveCharacter,
   saveSentiment,
+  disambiguateTitle,
   type SentimentEntry,
 } from '@/db/repository';
 import {
@@ -168,7 +169,10 @@ export async function applySyncBundleToDocument(
       }
     : {
         id: docId,
-        title: bundle.document.title,
+        // If a different local doc already uses this title, append " (n)"
+        // so the picker can disambiguate them. Source-side keeps its
+        // original title; only the receiving device renames its copy.
+        title: await disambiguateTitle(bundle.document.title),
         author: bundle.document.author ?? '',
         synopsis: bundle.document.synopsis ?? '',
         settings: bundle.document.settings ?? FALLBACK_SETTINGS,

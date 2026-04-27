@@ -2,6 +2,7 @@ import type { Block, Chapter, Character, Document, UUID } from '@/types';
 import { getDb, type BlockRevisionRow, type InkMirrorDb } from '@/db/connection';
 import {
   deleteDocumentAllRows,
+  disambiguateTitle,
   saveBlock,
   saveChapter,
   saveCharacter,
@@ -126,12 +127,26 @@ export async function importDocumentBundle(
 
   const mapId = (m: Map<UUID, UUID>, id: UUID): UUID => m.get(id) ?? id;
 
+  // Title resolution:
+  //   - replace: keep the bundle's title as-is (we just deleted the prior doc with the same id).
+  //   - copy (id-collision): suffix "(imported)" then disambiguate further if that's also taken.
+  //   - new (no id collision): disambiguate against the existing library so we
+  //     never silently land two distinct docs sharing a title.
+  let resolvedTitle: string;
+  if (remap) {
+    resolvedTitle = await disambiguateTitle(
+      `${bundle.document.title || 'Untitled'} (imported)`,
+    );
+  } else if (collides && strategy === 'replace') {
+    resolvedTitle = bundle.document.title;
+  } else {
+    resolvedTitle = await disambiguateTitle(bundle.document.title || 'Untitled');
+  }
+
   const importedDoc: Document = {
     ...bundle.document,
     id: newDocId,
-    title: remap
-      ? `${bundle.document.title || 'Untitled'} (imported)`
-      : bundle.document.title,
+    title: resolvedTitle,
     pov_character_id: bundle.document.pov_character_id
       ? mapId(characterIdMap, bundle.document.pov_character_id)
       : null,

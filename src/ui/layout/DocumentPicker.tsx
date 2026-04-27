@@ -45,6 +45,7 @@ export const DocumentPicker = (props: Props) => {
   const [creating, setCreating] = createSignal(false);
   const [showNewForm, setShowNewForm] = createSignal(false);
   const [newTitle, setNewTitle] = createSignal('');
+  const [titleError, setTitleError] = createSignal<string | null>(null);
   const [loadingDemo, setLoadingDemo] = createSignal(false);
 
   const tryDemo = async () => {
@@ -79,6 +80,11 @@ export const DocumentPicker = (props: Props) => {
 
   const createNew = async () => {
     const title = newTitle().trim() || 'Untitled';
+    setTitleError(null);
+    if (await repo.isTitleTaken(title)) {
+      setTitleError(t('picker.titleTaken'));
+      return;
+    }
     setCreating(true);
     try {
       const now = new Date().toISOString();
@@ -137,6 +143,7 @@ export const DocumentPicker = (props: Props) => {
       setCreating(false);
       setShowNewForm(false);
       setNewTitle('');
+      setTitleError(null);
     }
   };
 
@@ -313,34 +320,45 @@ export const DocumentPicker = (props: Props) => {
 
           <div class="max-h-[50vh] overflow-auto">
             <Show when={showNewForm()}>
-              <div class="flex items-center gap-2 px-5 py-3 border-b border-stone-200 dark:border-stone-700 bg-violet-50 dark:bg-violet-950/20">
-                <input
-                  type="text"
-                  value={newTitle()}
-                  onInput={(e) => setNewTitle(e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); void createNew(); }
-                    if (e.key === 'Escape') { e.preventDefault(); setShowNewForm(false); setNewTitle(''); }
-                  }}
-                  ref={(el) => queueMicrotask(() => el.focus())}
-                  placeholder={t('picker.titlePlaceholder')}
-                  class="flex-1 bg-transparent outline-none border-b border-violet-300 dark:border-violet-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-base py-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => void createNew()}
-                  disabled={creating()}
-                  class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
-                >
-                  {creating() ? '…' : t('common.create')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowNewForm(false); setNewTitle(''); }}
-                  class="text-stone-400 hover:text-stone-600 text-xs"
-                >
-                  ×
-                </button>
+              <div class="px-5 py-3 border-b border-stone-200 dark:border-stone-700 bg-violet-50 dark:bg-violet-950/20">
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newTitle()}
+                    onInput={(e) => {
+                      setNewTitle(e.currentTarget.value);
+                      if (titleError()) setTitleError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); void createNew(); }
+                      if (e.key === 'Escape') { e.preventDefault(); setShowNewForm(false); setNewTitle(''); setTitleError(null); }
+                    }}
+                    ref={(el) => queueMicrotask(() => el.focus())}
+                    placeholder={t('picker.titlePlaceholder')}
+                    class="flex-1 bg-transparent outline-none border-b border-violet-300 dark:border-violet-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-base py-1"
+                    classList={{ 'border-red-400 focus:border-red-500': !!titleError() }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void createNew()}
+                    disabled={creating()}
+                    class="px-3 py-1 text-xs rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
+                  >
+                    {creating() ? '…' : t('common.create')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewForm(false); setNewTitle(''); setTitleError(null); }}
+                    class="text-stone-400 hover:text-stone-600 text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+                <Show when={titleError()}>
+                  <div class="text-[11px] text-red-500 dark:text-red-400 mt-1">
+                    {titleError()}
+                  </div>
+                </Show>
               </div>
             </Show>
             <Show

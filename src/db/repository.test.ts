@@ -15,6 +15,8 @@ import {
   loadInconsistencyFlagsByBlock,
   deleteInconsistencyFlag,
   setInconsistencyFlagStatus,
+  isTitleTaken,
+  disambiguateTitle,
   type DbLike,
 } from './repository';
 import type { Block, InconsistencyFlag } from '@/types';
@@ -558,3 +560,90 @@ describe('inconsistency flag repository', () => {
     expect(state.inconsistencies).toHaveLength(0);
   });
 });
+
+function makeDocRow(overrides: Partial<DocumentRow> = {}): DocumentRow {
+  return {
+    id: 'doc-1',
+    title: 'My Book',
+    author: '',
+    synopsis: '',
+    settings: {},
+    pov_character_id: null,
+    created_at: '2026-04-27T00:00:00.000Z',
+    updated_at: '2026-04-27T00:00:00.000Z',
+    sync_enabled: false,
+    last_sync_revision: 0,
+    last_synced_at: null,
+    ...overrides,
+  };
+}
+
+describe('isTitleTaken', () => {
+  it('returns false on an empty library', async () => {
+    const { db } = createMockDb();
+    __setTestDb(db);
+    expect(await isTitleTaken('My Book')).toBe(false);
+  });
+
+  it('returns true when another doc has the same title (exact match)', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My Book' }));
+    expect(await isTitleTaken('My Book')).toBe(true);
+  });
+
+  it('compares case-insensitively', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My Book' }));
+    expect(await isTitleTaken('my book')).toBe(true);
+    expect(await isTitleTaken('MY BOOK')).toBe(true);
+  });
+
+  it('trims surrounding whitespace before comparing', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My Book' }));
+    expect(await isTitleTaken('  My Book  ')).toBe(true);
+  });
+
+  it('preserves internal whitespace differences', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My  Book' }));
+    expect(await isTitleTaken('My Book')).toBe(false);
+  });
+
+  it('excludes the renaming doc itself when an excludeDocId is given', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My Book' }));
+    expect(await isTitleTaken('My Book', 'doc-1')).toBe(false);
+    expect(await isTitleTaken('My Book', 'doc-2')).toBe(true);
+  });
+});
+
+describe('disambiguateTitle', () => {
+  it('returns the original title when nothing collides', async () => {
+    const { db } = createMockDb();
+    __setTestDb(db);
+    expect(await disambiguateTitle('My Book')).toBe('My Book');
+  });
+
+  it('appends " (2)" when the bare title is taken', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'doc-1', title: 'My Book' }));
+    expect(await disambiguateTitle('My Book')).toBe('My Book (2)');
+  });
+
+  it('skips already-used " (n)" suffixes and finds the next free one', async () => {
+    const { db, state } = createMockDb();
+    __setTestDb(db);
+    state.documents.push(makeDocRow({ id: 'd1', title: 'My Book' }));
+    state.documents.push(makeDocRow({ id: 'd2', title: 'My Book (2)' }));
+    state.documents.push(makeDocRow({ id: 'd3', title: 'My Book (3)' }));
+    expect(await disambiguateTitle('My Book')).toBe('My Book (4)');
+  });
+});
+

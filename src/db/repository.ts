@@ -126,6 +126,53 @@ export async function listDocumentRows(): Promise<import('./connection').Documen
 }
 
 /**
+ * Title equality used by uniqueness checks. Trimmed and case-folded so
+ * "MyTest", "mytest", and "MyTest " are treated as the same name. Internal
+ * whitespace is preserved so "My Test" and "My  Test" stay distinct.
+ */
+function normalizeTitle(s: string): string {
+  return s.trim().toLocaleLowerCase();
+}
+
+/**
+ * Whether another document already uses this title. `excludeDocId` lets the
+ * caller skip the document being renamed (so editing a doc back to its own
+ * current title doesn't false-positive).
+ */
+export async function isTitleTaken(
+  title: string,
+  excludeDocId?: UUID,
+): Promise<boolean> {
+  try {
+    const d = await db();
+    const rows = await d.documents.getAll();
+    const target = normalizeTitle(title);
+    return rows.some(
+      (r) => r.id !== excludeDocId && normalizeTitle(r.title) === target,
+    );
+  } catch (err) {
+    logDbError('repository.isTitleTaken', err);
+    throw err;
+  }
+}
+
+/**
+ * Return `title` if it's free, otherwise `title (2)`, `title (3)`, … until
+ * a free name is found. Used on sync-pull and backup-import where blocking
+ * isn't an option but a silent collision would be confusing.
+ */
+export async function disambiguateTitle(title: string): Promise<string> {
+  if (!(await isTitleTaken(title))) return title;
+  for (let n = 2; n < 10_000; n++) {
+    const candidate = `${title} (${n})`;
+    if (!(await isTitleTaken(candidate))) return candidate;
+  }
+  // Pathological: 10k collisions. Fall through to a uuid suffix so we
+  // never return something that's still taken.
+  return `${title} (${crypto.randomUUID().slice(0, 8)})`;
+}
+
+/**
  * Patch only the `sync_enabled` flag on a document row, preserving every
  * other field. Used by the Sync settings tab and DocumentSettings sync toggle.
  * We cannot go through `saveDocument` because `documentToRow` hardcodes

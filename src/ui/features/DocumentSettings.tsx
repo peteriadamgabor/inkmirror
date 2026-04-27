@@ -63,6 +63,39 @@ async function fileToCoverImage(file: File): Promise<CoverImage> {
 
 export const DocumentSettings = () => {
   const doc = () => store.document;
+
+  // Title rename guard: keep a local draft separate from the persisted doc
+  // so the user can type freely. We only commit to the store when the title
+  // is unique; on blur we revert the input to the persisted value if it's
+  // still colliding.
+  const [titleDraft, setTitleDraft] = createSignal<string | null>(null);
+  const [titleError, setTitleError] = createSignal<string | null>(null);
+  const liveTitle = () => titleDraft() ?? (doc()?.title ?? '');
+
+  async function onTitleInput(value: string) {
+    setTitleDraft(value);
+    const trimmed = value.trim();
+    const currentId = doc()?.id;
+    if (!currentId) return;
+    if (trimmed && (await repo.isTitleTaken(trimmed, currentId))) {
+      setTitleError(t('docSettings.titleTaken'));
+      return;
+    }
+    setTitleError(null);
+    // Safe to persist — title is either unique or unchanged from current.
+    updateDocumentMeta({ title: value });
+  }
+
+  function onTitleBlur() {
+    if (titleError()) {
+      // Discard the bad draft and snap back to the persisted title.
+      setTitleDraft(null);
+      setTitleError(null);
+      toast.error(t('docSettings.titleTakenReverted'));
+      return;
+    }
+    setTitleDraft(null);
+  }
   const currentFontFamily = () =>
     doc()?.settings.font_family ?? DEFAULT_STACK.stack;
   const currentDialogueStyle = (): DialogueStyle =>
@@ -129,16 +162,25 @@ export const DocumentSettings = () => {
               </label>
               <input
                 type="text"
-                value={doc()?.title ?? ''}
-                onInput={(e) =>
-                  updateDocumentMeta({ title: e.currentTarget.value })
-                }
+                value={liveTitle()}
+                onInput={(e) => void onTitleInput(e.currentTarget.value)}
+                onBlur={onTitleBlur}
                 placeholder={t('common.untitled')}
                 class="bg-transparent outline-none border-b border-stone-200 dark:border-stone-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-lg py-1"
+                classList={{ 'border-red-400 focus:border-red-500': !!titleError() }}
               />
-              <div class="text-[10px] text-stone-400 mt-0.5">
-                {t('docSettings.titleHelp')}
-              </div>
+              <Show
+                when={titleError()}
+                fallback={
+                  <div class="text-[10px] text-stone-400 mt-0.5">
+                    {t('docSettings.titleHelp')}
+                  </div>
+                }
+              >
+                <div class="text-[11px] text-red-500 dark:text-red-400 mt-0.5">
+                  {titleError()}
+                </div>
+              </Show>
             </div>
 
             <div class="flex flex-col gap-1">
