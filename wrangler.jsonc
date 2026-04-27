@@ -1,38 +1,61 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "inkmirror",
-  "compatibility_date": "2026-04-16",
-  "main": "src/worker.ts",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "dist",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "kv_namespaces": [
-    {
-      "binding": "INKMIRROR_SYNC_KV",
-      "id": "<TODO: paste from `wrangler kv:namespace create INKMIRROR_SYNC_KV`>",
-      "preview_id": "<TODO: paste from `wrangler kv:namespace create INKMIRROR_SYNC_KV --preview`>"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "INKMIRROR_SYNC_R2",
-      "bucket_name": "inkmirror-sync-blobs",
-      "preview_bucket_name": "inkmirror-sync-blobs-preview"
-    }
-  ],
-  "unsafe": {
-    "bindings": [
-      { "name": "RL_SYNC_WRITE", "type": "ratelimit", "namespace_id": "1001", "simple": { "limit": 6,  "period": 60 } },
-      { "name": "RL_SYNC_READ",  "type": "ratelimit", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } },
-      { "name": "RL_SYNC_PAIR",  "type": "ratelimit", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
-    ]
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "inkmirror",
+	"compatibility_date": "2026-04-16",
+	"main": "src/worker.ts",
+	"observability": {
+		"enabled": true
+	},
+	"assets": {
+		"directory": "dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application"
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"kv_namespaces": [
+		{
+			"binding": "INKMIRROR_SYNC_KV",
+			"id": "6fc54de93a1646b4bc9d036b38b00b44"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "INKMIRROR_SYNC_R2",
+			"bucket_name": "inkmirror-sync-blobs",
+			"preview_bucket_name": "inkmirror-sync-blobs-preview"
+		}
+	],
+	"unsafe": {
+		"bindings": [
+			{
+				"name": "RL_SYNC_WRITE",
+				"type": "ratelimit",
+				"namespace_id": "1001",
+				"simple": {
+					"limit": 6,
+					"period": 60
+				}
+			},
+			{
+				"name": "RL_SYNC_READ",
+				"type": "ratelimit",
+				"namespace_id": "1002",
+				"simple": {
+					"limit": 20,
+					"period": 60
+				}
+			},
+			{
+				"name": "RL_SYNC_PAIR",
+				"type": "ratelimit",
+				"namespace_id": "1003",
+				"simple": {
+					"limit": 60,
+					"period": 60
+				}
+			}
+		]
+	}
 }
