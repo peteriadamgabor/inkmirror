@@ -68,3 +68,86 @@ async function hkdfExpand(ikm: Uint8Array<ArrayBuffer>, info: string): Promise<U
   );
   return new Uint8Array(bits.slice(0));
 }
+
+/**
+ * Wire-level encrypted blob. `v` is the *encryption-layer* version
+ * (cipher + KDF). It is independent of the inner plaintext bundle's own
+ * version field. Bumping v is reserved for crypto changes only.
+ */
+export interface EncryptedBlob {
+  v: 1;
+  iv: string;          // base64url, 12 bytes
+  ciphertext: string;  // base64url
+}
+
+const ENC_VERSION = 1 as const;
+
+/**
+ * Encrypt a plaintext bundle for storage. AAD is bound to (syncId, docId, v)
+ * so an attacker with R2 write access cannot swap blob slots — decryption
+ * fails the AES-GCM auth tag.
+ */
+export async function encryptBundle(
+  K_enc: Uint8Array,
+  plaintext: Uint8Array,
+  syncId: string,
+  docId: string,
+): Promise<EncryptedBlob> {
+  const iv = narrowBuffer(crypto.getRandomValues(new Uint8Array(12)));
+  const aad = new TextEncoder().encode(`${syncId}|${docId}|v${ENC_VERSION}`);
+  const key = await crypto.subtle.importKey('raw', narrowBuffer(K_enc), 'AES-GCM', false, ['encrypt']);
+  const cipher = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, narrowBuffer(plaintext)),
+  );
+  return {
+    v: ENC_VERSION,
+    iv: toBase64Url(iv),
+    ciphertext: toBase64Url(cipher),
+  };
+}
+
+export async function decryptBundle(
+  K_enc: Uint8Array,
+  blob: EncryptedBlob,
+  syncId: string,
+  docId: string,
+): Promise<Uint8Array> {
+  if (blob.v !== ENC_VERSION) {
+    throw new Error(`unsupported blob version ${blob.v}`);
+  }
+  const iv = narrowBuffer(fromBase64Url(blob.iv));
+  const cipher = narrowBuffer(fromBase64Url(blob.ciphertext));
+  const aad = new TextEncoder().encode(`${syncId}|${docId}|v${blob.v}`);
+  const key = await crypto.subtle.importKey('raw', narrowBuffer(K_enc), 'AES-GCM', false, ['decrypt']);
+  const plain = new Uint8Array(
+    await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, cipher),
+  );
+  return plain;
+}
+
+/**
+ * Narrow a Uint8Array<ArrayBufferLike> to a fresh Uint8Array<ArrayBuffer> so it
+ * passes Web Crypto's strict `BufferSource` overloads on TS 5.7+. ~32-byte alloc
+ * per call — negligible.
+ */
+function narrowBuffer(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return new Uint8Array(buf);
+}
+
+// --- base64url helpers (RFC 4648 §5, no padding) ---
+
+export function toBase64Url(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+export function fromBase64Url(s: string): Uint8Array {
+  const pad = (4 - (s.length % 4)) % 4;
+  const b64 = s.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat(pad);
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}

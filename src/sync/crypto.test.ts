@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { deriveKeys } from './crypto';
+// @vitest-environment node
+import { describe, it, expect, beforeAll } from 'vitest';
+import { deriveKeys, encryptBundle, decryptBundle } from './crypto';
 
 // Argon2id MODERATE is ~1 s; each test with two calls ≈ 2 s + headroom
 const TIMEOUT = 20_000;
@@ -60,4 +61,46 @@ describe('crypto.deriveKeys', () => {
     const expected = new Uint8Array(await crypto.subtle.digest('SHA-256', K_auth_buf));
     expect(out.auth_proof).toEqual(expected);
   }, TIMEOUT);
+});
+
+describe('crypto.encryptBundle / decryptBundle', () => {
+  let K_enc: Uint8Array;
+
+  beforeAll(async () => {
+    K_enc = crypto.getRandomValues(new Uint8Array(32));
+  });
+
+  const PLAINTEXT = new TextEncoder().encode(JSON.stringify({ payloadVersion: 1, blocks: [] }));
+
+  it('round-trips a plaintext bundle with matching AAD', async () => {
+    const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    expect(blob.v).toBe(1);
+    expect(blob.iv).toMatch(/^[A-Za-z0-9_-]+$/);            // base64url
+    expect(blob.ciphertext).toMatch(/^[A-Za-z0-9_-]+$/);
+    const decrypted = await decryptBundle(K_enc, blob, 'sync-id-A', 'doc-id-X');
+    expect(decrypted).toEqual(PLAINTEXT);
+  });
+
+  it('produces a fresh IV every call (no reuse)', async () => {
+    const a = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    const b = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    expect(a.iv).not.toEqual(b.iv);
+    expect(a.ciphertext).not.toEqual(b.ciphertext);
+  });
+
+  it('rejects decryption when AAD syncId differs (anti-blob-swap)', async () => {
+    const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    await expect(decryptBundle(K_enc, blob, 'sync-id-B', 'doc-id-X')).rejects.toThrow();
+  });
+
+  it('rejects decryption when AAD docId differs', async () => {
+    const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    await expect(decryptBundle(K_enc, blob, 'sync-id-A', 'doc-id-Y')).rejects.toThrow();
+  });
+
+  it('rejects decryption with the wrong key', async () => {
+    const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
+    const wrongKey = crypto.getRandomValues(new Uint8Array(32));
+    await expect(decryptBundle(wrongKey, blob, 'sync-id-A', 'doc-id-X')).rejects.toThrow();
+  });
 });
