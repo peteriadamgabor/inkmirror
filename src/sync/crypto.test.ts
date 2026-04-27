@@ -39,4 +39,25 @@ describe('crypto.deriveKeys', () => {
     const b = await deriveKeys('different-passphrase-here-now', SALT);
     expect(a.K_enc).not.toEqual(b.K_enc);
   }, TIMEOUT);
+
+  it('rejects a salt of the wrong length', async () => {
+    await expect(deriveKeys(PASSPHRASE, new Uint8Array(8))).rejects.toThrow(/16 bytes/);
+  });
+
+  it('different salts produce different keys', async () => {
+    const otherSalt = new Uint8Array(SALT);
+    otherSalt[0] ^= 0xff;
+    const a = await deriveKeys(PASSPHRASE, SALT);
+    const b = await deriveKeys(PASSPHRASE, otherSalt);
+    expect(a.K_enc).not.toEqual(b.K_enc);
+  }, TIMEOUT);
+
+  it('auth_proof equals SHA-256(K_auth)', async () => {
+    const out = await deriveKeys(PASSPHRASE, SALT);
+    // Slice into a plain ArrayBuffer-backed Uint8Array so crypto.subtle.digest
+    // accepts it under TS 5.9's stricter Uint8Array<ArrayBuffer> overloads.
+    const K_auth_buf = new Uint8Array(out.K_auth.buffer.slice(out.K_auth.byteOffset, out.K_auth.byteOffset + out.K_auth.byteLength) as ArrayBuffer);
+    const expected = new Uint8Array(await crypto.subtle.digest('SHA-256', K_auth_buf));
+    expect(out.auth_proof).toEqual(expected);
+  }, TIMEOUT);
 });
