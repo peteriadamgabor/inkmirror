@@ -2,7 +2,7 @@
 
 AI-assisted novel writing webapp. **Two hearts, one soul** — the writer's and the story's pulse. Offline-first, everything runs in the browser.
 
-Production: https://inkmirror.peteriadamgabor.workers.dev
+Production: https://inkmirror.cc
 Repo: https://github.com/peteriadamgabor/inkmirror
 
 The numbered design docs (`01-…md` → `06-…md`) are **not tracked in git** (gitignored) — they live only on the original author's machine. This file plus the README are the source of truth for anyone cloning the repo.

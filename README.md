@@ -5,7 +5,7 @@
 **Two hearts, one soul.**
 An AI-assisted, offline-first novel writing web app.
 
-[**→ Try it live**](https://inkmirror.peteriadamgabor.workers.dev)
+[**→ Try it live**](https://inkmirror.cc)
 
 </div>
 
