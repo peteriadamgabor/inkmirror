@@ -105,6 +105,7 @@ export const en = {
     emptyBody: 'Your library is empty. Start a new document or import an {{ext}} bundle from another browser.',
     noAuthor: 'No author',
     updatedAgo: 'updated {{ago}}',
+    syncedAgo: 'synced {{ago}}',
     justNow: 'just now',
     minutesAgo: '{{n}}m ago',
     hoursAgo: '{{n}}h ago',

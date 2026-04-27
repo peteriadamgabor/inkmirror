@@ -6,6 +6,7 @@ import * as repo from '@/db/repository';
 import type { DocumentRow } from '@/db/connection';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
+import { Checkbox } from '@/ui/shared/Checkbox';
 import { PairingSetupModal } from './sync/PairingSetupModal';
 import { PairRedeemModal } from './sync/PairRedeemModal';
 import { formatEditedTimestamp } from '@/utils/block-timestamp';
@@ -219,22 +220,24 @@ function DocSyncRow(props: {
   const status = () => docStatusFor(props.row.id);
 
   return (
-    <label class="flex items-start gap-3 py-2 px-3 rounded-lg border border-stone-100 dark:border-stone-700 hover:border-violet-200 dark:hover:border-violet-800 cursor-pointer transition-colors">
-      <input
-        type="checkbox"
-        class="mt-0.5 accent-violet-500"
+    <div class="flex items-start gap-3 py-2 px-3 rounded-lg border border-stone-100 dark:border-stone-700 hover:border-violet-200 dark:hover:border-violet-800 transition-colors">
+      <Checkbox
         checked={props.row.sync_enabled}
-        onChange={(e) => void props.onToggle(props.row.id, e.currentTarget.checked)}
+        onChange={(checked) => void props.onToggle(props.row.id, checked)}
+        ariaLabel={t('sync.doc.toggle')}
+        label={
+          <div class="flex-1 min-w-0">
+            <div class="text-sm text-stone-800 dark:text-stone-100 truncate">
+              {props.row.title || t('common.untitled')}
+            </div>
+            <Show when={props.row.sync_enabled}>
+              <DocRowStatus status={status()} lastSyncedAt={props.row.last_synced_at} />
+            </Show>
+          </div>
+        }
+        class="w-full"
       />
-      <div class="flex-1 min-w-0">
-        <div class="text-sm text-stone-800 dark:text-stone-100 truncate">
-          {props.row.title || t('common.untitled')}
-        </div>
-        <Show when={props.row.sync_enabled}>
-          <DocRowStatus status={status()} lastSyncedAt={props.row.last_synced_at} />
-        </Show>
-      </div>
-    </label>
+    </div>
   );
 }
 

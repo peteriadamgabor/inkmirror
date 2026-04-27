@@ -296,5 +296,12 @@ export async function setDocLastSyncRevision(docId: UUID, revision: number): Pro
   const idb = await getDb();
   const row = await idb.get('documents', docId);
   if (!row) return;
-  await idb.put('documents', { ...row, last_sync_revision: revision });
+  // Stamp last_synced_at on every successful push or pull. Without this the
+  // schema field stays null forever and the UI can't display "synced N
+  // minutes ago" for the picker / sync settings list.
+  await idb.put('documents', {
+    ...row,
+    last_sync_revision: revision,
+    last_synced_at: Date.now(),
+  });
 }

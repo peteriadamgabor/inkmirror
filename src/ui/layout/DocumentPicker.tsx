@@ -1,6 +1,7 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
 import * as repo from '@/db/repository';
 import type { Document } from '@/types';
+import type { DocumentRow } from '@/db/connection';
 import { askConfirm, askConfirmChoice } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { useTheme } from '@/ui/theme';
@@ -41,7 +42,9 @@ function timeAgo(iso: string): string {
 
 export const DocumentPicker = (props: Props) => {
   const { theme, toggleTheme } = useTheme();
-  const [docs, { refetch }] = createResource(() => repo.listDocuments());
+  // Use listDocumentRows so the picker has access to sync metadata
+  // (sync_enabled / last_synced_at) without a second IDB round-trip.
+  const [docs, { refetch }] = createResource(() => repo.listDocumentRows());
   const [creating, setCreating] = createSignal(false);
   const [showNewForm, setShowNewForm] = createSignal(false);
   const [newTitle, setNewTitle] = createSignal('');
@@ -147,7 +150,7 @@ export const DocumentPicker = (props: Props) => {
     }
   };
 
-  const exportDoc = async (doc: Document) => {
+  const exportDoc = async (doc: DocumentRow) => {
     try {
       const bundle = await exportDocumentBundle(doc.id);
       const blob = bundleToBlob(bundle);
@@ -240,7 +243,7 @@ export const DocumentPicker = (props: Props) => {
     input.click();
   };
 
-  const deleteDoc = async (doc: Document) => {
+  const deleteDoc = async (doc: DocumentRow) => {
     const title = doc.title || t('common.untitled');
     const ok = await askConfirm({
       title: t('picker.deleteConfirmTitle', { title }),
@@ -407,6 +410,11 @@ export const DocumentPicker = (props: Props) => {
                         </div>
                         <div class="text-[11px] text-stone-400 mt-0.5">
                           {doc.author || t('picker.noAuthor')} · {t('picker.updatedAgo', { ago: timeAgo(doc.updated_at) })}
+                          <Show when={doc.sync_enabled && doc.last_synced_at !== null}>
+                            <span class="ml-1.5 text-emerald-600 dark:text-emerald-400">
+                              · {t('picker.syncedAgo', { ago: timeAgo(new Date(doc.last_synced_at!).toISOString()) })}
+                            </span>
+                          </Show>
                         </div>
                       </button>
                       <button

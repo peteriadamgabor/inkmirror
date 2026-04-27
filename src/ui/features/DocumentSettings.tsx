@@ -15,6 +15,7 @@ import {
   type DialogueStyle,
 } from '@/types';
 import { toast } from '@/ui/shared/toast';
+import { Checkbox } from '@/ui/shared/Checkbox';
 import { circleStatus, syncNow, docStatusFor } from '@/sync';
 import type { DocSyncStatus } from '@/sync';
 import * as repo from '@/db/repository';
@@ -482,19 +483,17 @@ function DocSyncSection(props: DocSyncSectionProps) {
       <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
         {t('sync.doc.sectionTitle')}
       </label>
-      <label class="flex items-center gap-2 cursor-pointer">
-        <Show when={syncEnabled() !== null}>
-          <input
-            type="checkbox"
-            class="accent-violet-500"
-            checked={syncEnabled() ?? false}
-            onChange={(e) => void handleToggle(e.currentTarget.checked)}
-          />
-          <span class="text-sm text-stone-700 dark:text-stone-200">
-            {t('sync.doc.toggle')}
-          </span>
-        </Show>
-      </label>
+      <Show when={syncEnabled() !== null}>
+        <Checkbox
+          checked={syncEnabled() ?? false}
+          onChange={(checked) => void handleToggle(checked)}
+          label={
+            <span class="text-sm text-stone-700 dark:text-stone-200">
+              {t('sync.doc.toggle')}
+            </span>
+          }
+        />
+      </Show>
       <Show when={syncEnabled()}>
         <DocSyncStatusLine docId={props.docId} />
       </Show>

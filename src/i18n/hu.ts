@@ -106,6 +106,7 @@ export const hu: Messages = {
     emptyBody: 'A könyvtárad üres. Kezdj egy új dokumentumot, vagy importálj egy {{ext}} csomagot egy másik böngészőből.',
     noAuthor: 'Nincs szerző',
     updatedAgo: 'frissítve {{ago}}',
+    syncedAgo: 'szinkronizálva {{ago}}',
     justNow: 'épp most',
     minutesAgo: '{{n}} perce',
     hoursAgo: '{{n}} órája',
