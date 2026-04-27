@@ -35,12 +35,53 @@ function makeKVStub(): KVNamespace & { _store: Map<string, KVEntry> } {
   } as unknown as KVNamespace & { _store: Map<string, KVEntry> };
 }
 
-function makeEnv(kv?: KVNamespace): Env {
+function makeR2Stub(): R2Bucket & { _store: Map<string, string> } {
+  const _store = new Map<string, string>();
+  return {
+    _store,
+    async put(key: string, body: string | ArrayBuffer | Uint8Array | ReadableStream, _opts?: R2PutOptions) {
+      const text = typeof body === 'string' ? body
+        : body instanceof Uint8Array ? new TextDecoder().decode(body)
+        : body instanceof ArrayBuffer ? new TextDecoder().decode(body)
+        : '';
+      _store.set(key, text);
+      return { key, version: 'v1', size: text.length, etag: 'mock', httpEtag: 'mock', uploaded: new Date(), checksums: {} as R2Checksums, httpMetadata: {}, customMetadata: {} } as R2Object;
+    },
+    async get(key: string) {
+      const text = _store.get(key);
+      if (text === undefined) return null;
+      return {
+        key,
+        version: 'v1',
+        size: text.length,
+        etag: 'mock',
+        httpEtag: 'mock',
+        uploaded: new Date(),
+        checksums: {} as R2Checksums,
+        httpMetadata: {},
+        customMetadata: {},
+        async json<T>() { return JSON.parse(text) as T; },
+        async text() { return text; },
+        async arrayBuffer() { return new TextEncoder().encode(text).buffer; },
+        body: null as unknown as ReadableStream,
+        bodyUsed: false,
+        async blob() { return new Blob([text]); },
+        writeHttpMetadata: () => {},
+      } as unknown as R2ObjectBody;
+    },
+    async delete(key: string | string[]) {
+      if (Array.isArray(key)) key.forEach(k => _store.delete(k));
+      else _store.delete(key);
+    },
+  } as unknown as R2Bucket & { _store: Map<string, string> };
+}
+
+function makeEnv(kv?: KVNamespace, r2?: R2Bucket): Env {
   return {
     ASSETS: {} as Fetcher,
     DISCORD_WEBHOOK: undefined,
     INKMIRROR_SYNC_KV: kv ?? makeKVStub(),
-    INKMIRROR_SYNC_R2: {} as R2Bucket,
+    INKMIRROR_SYNC_R2: r2 ?? makeR2Stub(),
   };
 }
 
@@ -281,5 +322,119 @@ describe('GET /sync/list/:syncId', () => {
     const { syncId } = await createCircle(env);
     const res = await handleSync(new Request(`http://x/sync/list/${syncId}`), env);
     expect(res.status).toBe(401);
+  });
+});
+
+// ---------- PUT /sync/doc ----------
+
+const TEN_MB = 10 * 1024 * 1024;
+
+function authedJsonRequest(url: string, K_auth_b64: string, method: string, body: unknown): Request {
+  return new Request(url, {
+    method,
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${K_auth_b64}`,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+describe('PUT /sync/doc/:syncId/:docId', () => {
+  it('first PUT with expectedRevision 0 stores the blob and returns revision 1', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: toBase64Url(new Uint8Array([1,2,3,4])),
+    };
+    const res = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const j = (await res.json()) as { revision: number; updatedAt: string };
+    expect(j.revision).toBe(1);
+    expect(typeof j.updatedAt).toBe('string');
+  });
+
+  it('second PUT with correct expectedRevision increments to 2', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = (n: number) => ({
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: toBase64Url(new Uint8Array([n])),
+    });
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob(1), expectedRevision: 0 }),
+      env,
+    );
+    const res = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob(2), expectedRevision: 1 }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const j = (await res.json()) as { revision: number };
+    expect(j.revision).toBe(2);
+  });
+
+  it('returns 409 with currentRevision when expectedRevision is stale', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: toBase64Url(new Uint8Array([1,2,3,4])),
+    };
+    // first PUT lands at rev 1
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    // second PUT with wrong expectedRevision 0 → 409
+    const stale = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    expect(stale.status).toBe(409);
+    const conflict = (await stale.json()) as { currentRevision: number };
+    expect(conflict.currentRevision).toBe(1);
+  });
+
+  it('rejects oversized blobs with 413', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const huge = 'A'.repeat(TEN_MB + 1024);
+    const res = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { v: 1, iv: 'AAAAAAAAAAAAAAAA', ciphertext: huge, expectedRevision: 0 }),
+      env,
+    );
+    expect(res.status).toBe(413);
+  });
+
+  it('rejects unauthenticated PUT with 401', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-1`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ v: 1, iv: 'AA', ciphertext: 'BB', expectedRevision: 0 }),
+      }),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects unsupported wire version with 400', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { v: 99, iv: 'AA', ciphertext: 'BB', expectedRevision: 0 }),
+      env,
+    );
+    expect(res.status).toBe(400);
   });
 });

@@ -29,6 +29,14 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     return await getList(request, env, listMatch[1]);
   }
 
+  // /sync/doc/:syncId/:docId
+  const docMatch = path.match(/^\/sync\/doc\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/);
+  if (docMatch) {
+    const [, syncId, docId] = docMatch;
+    if (method === 'PUT') return await putDoc(request, env, syncId, docId);
+    // GET and DELETE land in B6
+  }
+
   return new Response('Not Found', { status: 404 });
 }
 
@@ -127,6 +135,43 @@ async function postPairRedeem(request: Request, env: Env): Promise<Response> {
   const { salt } = JSON.parse(circleRaw) as { salt: string };
 
   return Response.json({ syncId, salt }, { status: 200 });
+}
+
+const MAX_BLOB_BYTES = 10 * 1024 * 1024; // 10 MB
+
+async function putDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
+  const a = await authenticateCircle(request, env, syncId);
+  if (!a.ok) return a.res;
+
+  const text = await request.text();
+  if (text.length > MAX_BLOB_BYTES + 1024) return jsonError(413, 'too_large');
+
+  let body: { v?: number; iv?: string; ciphertext?: string; expectedRevision?: number };
+  try { body = JSON.parse(text); } catch { return jsonError(400, 'invalid_body'); }
+
+  if (body.v !== 1) return jsonError(400, 'unsupported_v');
+  if (typeof body.iv !== 'string' || typeof body.ciphertext !== 'string') return jsonError(400, 'invalid_body');
+  if (typeof body.expectedRevision !== 'number') return jsonError(400, 'invalid_body');
+  if (body.ciphertext.length > MAX_BLOB_BYTES) return jsonError(413, 'too_large');
+
+  const metaKey = `meta:${syncId}:${docId}`;
+  const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
+  const currentRevision = rawMeta ? (JSON.parse(rawMeta) as { revision: number }).revision : 0;
+
+  if (body.expectedRevision !== currentRevision) {
+    return Response.json({ currentRevision }, { status: 409 });
+  }
+
+  const newRevision = currentRevision + 1;
+  const updatedAt = new Date().toISOString();
+  const blob = JSON.stringify({ v: body.v, iv: body.iv, ciphertext: body.ciphertext });
+
+  await env.INKMIRROR_SYNC_R2.put(`${syncId}/${docId}`, blob, {
+    httpMetadata: { contentType: 'application/json' },
+  });
+  await env.INKMIRROR_SYNC_KV.put(metaKey, JSON.stringify({ revision: newRevision, updatedAt }));
+
+  return Response.json({ revision: newRevision, updatedAt }, { status: 200 });
 }
 
 async function getList(request: Request, env: Env, syncId: string): Promise<Response> {
