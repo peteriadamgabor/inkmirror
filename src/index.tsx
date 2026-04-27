@@ -14,6 +14,14 @@ import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
 import { clearUndoStack } from '@/store/undo';
 import { scheduleAiPreload } from '@/ai';
 import { installGlobalHotkeys } from '@/ui/shared/globalHotkeys';
+import { SYNC_FEATURE, startSync } from '@/sync';
+import {
+  buildSyncBundleForDocument,
+  applySyncBundleToDocument,
+  getDocLastSyncRevision,
+  setDocLastSyncRevision,
+  preloadSyncRevisions,
+} from '@/store/sync-bridge';
 import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
@@ -164,6 +172,19 @@ render(
 if (isKnownPath && !isLanding && !isRoadmap) {
   void initDb()
     .then(async () => {
+      // Preload last_sync_revision into the in-memory cache before startSync
+      // is called, so the engine's synchronous getDocLastRevision works.
+      if (SYNC_FEATURE) {
+        const docRows = await repo.listDocumentRows();
+        preloadSyncRevisions(docRows);
+        void startSync({
+          baseUrl: '',
+          buildBundle: buildSyncBundleForDocument,
+          applyBundle: applySyncBundleToDocument,
+          getDocLastRevision: getDocLastSyncRevision,
+          setDocLastRevision: (id, rev) => { void setDocLastSyncRevision(id, rev); },
+        });
+      }
       const docs = await repo.listDocuments();
       if (docs.length === 1) {
         await openDocument(docs[0].id);

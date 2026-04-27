@@ -25,6 +25,7 @@ import * as repo from '@/db/repository';
 import type { LoadedDocument, SentimentEntry } from '@/db/repository';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import { findMentions } from '@/engine/character-matcher';
+import { markDirty } from '@/sync';
 
 export interface ViewportState {
   scrollTop: number;
@@ -138,6 +139,10 @@ export function track<T>(p: Promise<T>): Promise<T> {
   pendingWrites.add(p);
   setSaveState('saving');
   if (saveStateTimer) clearTimeout(saveStateTimer);
+  // Notify the sync engine that this document has unsaved remote state.
+  // markDirty is a no-op when sync isn't running, so this is always safe.
+  const docId = store.document?.id;
+  if (docId) markDirty(docId);
   p.finally(() => {
     pendingWrites.delete(p);
     if (pendingWrites.size === 0) {
