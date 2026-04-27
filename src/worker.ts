@@ -21,6 +21,7 @@
 import { withSecurityHeaders } from './worker/security-headers';
 import { handleHfProxy } from './worker/hf-proxy';
 import { handleFeedback } from './worker/feedback';
+import { handleSync } from './worker/sync';
 import type { Env } from './worker/types';
 
 export type { Env };
@@ -35,6 +36,10 @@ export default {
 
     if (url.pathname === '/feedback') {
       return withSecurityHeaders(await handleFeedback(request, env));
+    }
+
+    if (url.pathname.startsWith('/sync/')) {
+      return withSecurityHeaders(await handleSync(request, env));
     }
 
     // Static assets — let the asset Fetcher answer, then layer headers on top.
