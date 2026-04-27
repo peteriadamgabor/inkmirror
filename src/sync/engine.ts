@@ -1,9 +1,12 @@
+import { SyncHttpError } from './client';
 import type { SyncClient } from './client';
 import { encryptBundle } from './crypto';
 import { setDocStatus } from './state';
 
 export const DEBOUNCE_MS  = 10_000;
 export const HEARTBEAT_MS = 5 * 60 * 1000;
+
+const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000, 32_000];
 
 export interface EngineDeps {
   syncId: string;
@@ -34,12 +37,12 @@ export function createEngine(deps: EngineDeps): Engine {
     setDocStatus(docId, { kind: 'pending' });
     const existing = debounceTimers.get(docId);
     if (existing) clearTimeout(existing);
-    const t = setTimeout(() => { void pushDoc(docId, generation); }, DEBOUNCE_MS);
+    const t = setTimeout(() => { void pushDoc(docId, generation, 0); }, DEBOUNCE_MS);
     debounceTimers.set(docId, t);
   }
 
-  async function pushDoc(docId: string, gen: number): Promise<void> {
-    debounceTimers.delete(docId);
+  async function pushDoc(docId: string, gen: number, attempt: number): Promise<void> {
+    if (attempt === 0) debounceTimers.delete(docId);
     if (gen !== generation) return;
     setDocStatus(docId, { kind: 'syncing' });
     try {
@@ -59,7 +62,25 @@ export function createEngine(deps: EngineDeps): Engine {
       setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: result.revision });
     } catch (err) {
       if (gen !== generation) return;
-      // E2 will refine this; for E1 we just transition to error.
+      if (err instanceof SyncHttpError && err.status === 409) {
+        const body = err.body as { currentRevision: number } | null;
+        setDocStatus(docId, {
+          kind: 'conflict',
+          localRevision: deps.getDocLastRevision(docId),
+          serverRevision: body?.currentRevision ?? 0,
+        });
+        return;
+      }
+      const isRetryable =
+        (err instanceof SyncHttpError && err.status >= 500) ||
+        !(err instanceof SyncHttpError);
+      if (isRetryable && attempt < RETRY_DELAYS_MS.length) {
+        setDocStatus(docId, { kind: 'pending' });
+        const delay = RETRY_DELAYS_MS[attempt];
+        const t = setTimeout(() => { void pushDoc(docId, gen, attempt + 1); }, delay);
+        debounceTimers.set(docId, t);
+        return;
+      }
       setDocStatus(docId, { kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
   }

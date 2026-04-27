@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createEngine, type EngineDeps, DEBOUNCE_MS } from './engine';
 import { docStatusFor, setDocStatus } from './state';
 import type { SyncClient } from './client';
+import { SyncHttpError } from './client';
 
 // Stub that returns a structurally valid EncryptedBlob without real crypto.subtle I/O.
 // This keeps fake-timer promise chains drainable via vi.advanceTimersByTimeAsync.
@@ -108,5 +109,83 @@ describe('engine push state machine', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 2);
     await vi.runAllTimersAsync();
     expect(client.putDoc).not.toHaveBeenCalled();
+  });
+});
+
+describe('engine push errors', () => {
+  it('409 transitions to CONFLICT with serverRevision', async () => {
+    client.putDoc.mockReset();
+    client.putDoc.mockRejectedValueOnce(new SyncHttpError(409, { currentRevision: 7 }));
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    const s = docStatusFor('doc-1');
+    expect(s.kind).toBe('conflict');
+    if (s.kind === 'conflict') {
+      expect(s.localRevision).toBe(4);
+      expect(s.serverRevision).toBe(7);
+    }
+  });
+
+  it('5xx retries with exponential backoff and eventually gives up', async () => {
+    client.putDoc.mockReset();
+    client.putDoc.mockRejectedValue(new SyncHttpError(503, null));
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+
+    // First push attempt happens after debounce; advance by each retry delay
+    // sequentially so we can confirm all 7 attempts fire before ERROR.
+    // Total elapsed: DEBOUNCE_MS + 1 + 2 + 4 + 8 + 16 + 32 = DEBOUNCE_MS + 63s
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 63_000 + 1_000);
+    await vi.runAllTimersAsync();
+
+    // 1 initial + 6 retries = 7 attempts, then ERROR
+    expect(client.putDoc).toHaveBeenCalledTimes(7);
+    expect(docStatusFor('doc-1').kind).toBe('error');
+  });
+
+  it('5xx retry that eventually succeeds transitions to IDLE', async () => {
+    client.putDoc.mockReset();
+    client.putDoc
+      .mockRejectedValueOnce(new SyncHttpError(503, null))
+      .mockRejectedValueOnce(new SyncHttpError(503, null))
+      .mockResolvedValueOnce({ revision: 5, updatedAt: '2026-04-27T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+    // First retry after 1s
+    await vi.advanceTimersByTimeAsync(1_100);
+    await vi.runAllTimersAsync();
+    // Second retry after 2s
+    await vi.advanceTimersByTimeAsync(2_100);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(3);
+    const s = docStatusFor('doc-1');
+    expect(s.kind).toBe('idle');
+    if (s.kind === 'idle') expect(s.revision).toBe(5);
+  });
+
+  it('non-409, non-5xx error transitions immediately to ERROR (no retry)', async () => {
+    client.putDoc.mockReset();
+    client.putDoc.mockRejectedValueOnce(new SyncHttpError(401, { error: 'auth_mismatch' }));
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+    // Wait long enough that retries WOULD have fired
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(docStatusFor('doc-1').kind).toBe('error');
   });
 });
