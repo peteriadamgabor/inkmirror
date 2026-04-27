@@ -23,9 +23,12 @@ export interface EngineDeps {
   decrypt?: (K_enc: Uint8Array, blob: EncryptedBlob, syncId: string, docId: string) => Promise<Uint8Array>;
 }
 
+export type ConflictResolution = 'keepLocal' | 'pullServer' | 'saveAsCopy' | 'decideLater';
+
 export interface Engine {
   markDirty: (docId: string) => void;
   syncNow: () => Promise<void>;
+  resolveConflict: (docId: string, choice: ConflictResolution) => Promise<void>;
   start: () => void;
   stop: () => void;
 }
@@ -137,6 +140,41 @@ export function createEngine(deps: EngineDeps): Engine {
     }
   }
 
+  async function resolveConflict(docId: string, choice: ConflictResolution): Promise<void> {
+    const s = docStatusFor(docId);
+    if (s.kind !== 'conflict') return;
+    if (choice === 'decideLater') return;
+
+    if (choice === 'saveAsCopy') {
+      throw new Error(
+        'saveAsCopy must be handled by the caller (clone the local doc with sync_enabled=false, then call resolveConflict("pullServer") on the original)',
+      );
+    }
+
+    if (choice === 'keepLocal') {
+      // Inline push with expectedRevision = serverRevision so the server accepts our overwrite.
+      setDocStatus(docId, { kind: 'syncing' });
+      try {
+        const plaintext = await deps.buildBundle(docId);
+        const encryptFn = deps.encrypt ?? encryptBundle;
+        const blob = await encryptFn(deps.K_enc, plaintext, deps.syncId, docId);
+        const result = await deps.client.putDoc(
+          deps.syncId,
+          docId,
+          { ...blob, expectedRevision: s.serverRevision },
+        );
+        deps.setDocLastRevision(docId, result.revision);
+        setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: result.revision });
+      } catch (err) {
+        setDocStatus(docId, { kind: 'error', message: err instanceof Error ? err.message : String(err) });
+      }
+      return;
+    }
+
+    // choice === 'pullServer'
+    await pullDoc(docId, s.serverRevision);
+  }
+
   return {
     markDirty,
     syncNow: async () => {
@@ -148,6 +186,7 @@ export function createEngine(deps: EngineDeps): Engine {
       }
       await heartbeat();
     },
+    resolveConflict,
     start: () => {
       if (heartbeatTimer) return;
       heartbeatTimer = setInterval(() => { void heartbeat(); }, HEARTBEAT_MS);

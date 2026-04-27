@@ -307,3 +307,71 @@ describe('engine syncNow', () => {
     expect(client.list).toHaveBeenCalledTimes(1);     // heartbeat ran
   });
 });
+
+describe('engine conflict resolution', () => {
+  beforeEach(() => {
+    setDocStatus('doc-1', { kind: 'conflict', localRevision: 4, serverRevision: 9 });
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+  });
+
+  it('keepLocal re-PUTs with expectedRevision = serverRevision and lands IDLE', async () => {
+    client.putDoc.mockReset();
+    client.putDoc.mockResolvedValueOnce({ revision: 10, updatedAt: '2026-04-27T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    await engine.resolveConflict('doc-1', 'keepLocal');
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(client.putDoc).toHaveBeenCalledWith(
+      'sync-id-1',
+      'doc-1',
+      expect.objectContaining({ expectedRevision: 9 }),
+    );
+    const s = docStatusFor('doc-1');
+    expect(s.kind).toBe('idle');
+    if (s.kind === 'idle') expect(s.revision).toBe(10);
+    expect(deps.setDocLastRevision).toHaveBeenCalledWith('doc-1', 10);
+  });
+
+  it('pullServer downloads, decrypts, applies, lands IDLE', async () => {
+    client.getDoc.mockReset();
+    client.getDoc.mockResolvedValueOnce({ v: 1, iv: 'AA', ciphertext: 'BB', revision: 9, updatedAt: '2026-04-27T12:00:00Z' });
+    deps.decrypt = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
+
+    const engine = createEngine(deps);
+    await engine.resolveConflict('doc-1', 'pullServer');
+
+    expect(deps.applyBundle).toHaveBeenCalledTimes(1);
+    expect(deps.setDocLastRevision).toHaveBeenCalledWith('doc-1', 9);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+
+  it('decideLater is a no-op (doc stays in CONFLICT)', async () => {
+    client.putDoc.mockReset();
+    client.getDoc.mockReset();
+
+    const engine = createEngine(deps);
+    await engine.resolveConflict('doc-1', 'decideLater');
+
+    expect(client.putDoc).not.toHaveBeenCalled();
+    expect(client.getDoc).not.toHaveBeenCalled();
+    expect(docStatusFor('doc-1').kind).toBe('conflict');
+  });
+
+  it('saveAsCopy throws (caller must handle the clone)', async () => {
+    const engine = createEngine(deps);
+    await expect(engine.resolveConflict('doc-1', 'saveAsCopy'))
+      .rejects.toThrow(/saveAsCopy/);
+  });
+
+  it('resolveConflict on a non-CONFLICT doc is a no-op', async () => {
+    setDocStatus('doc-1', { kind: 'idle', lastSyncedAt: 0, revision: 5 });
+    client.putDoc.mockReset();
+
+    const engine = createEngine(deps);
+    await engine.resolveConflict('doc-1', 'keepLocal');
+
+    expect(client.putDoc).not.toHaveBeenCalled();
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+});
