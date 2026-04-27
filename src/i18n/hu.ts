@@ -892,9 +892,9 @@ export const hu: Messages = {
     syncNow: 'Szinkronizálás most',
     disableGlobally: 'Szinkronizálás teljes letiltása',
     disableConfirm: 'Az összes szinkronizált másolat törlődik a szerverről. A dokumentumok ezen az eszközön maradnak. Folytatod?',
-    lastActivity: 'Utolsó tevékenység: {ago}',
+    lastActivity: 'Utolsó tevékenység: {{ago}}',
     documentsHeader: 'Dokumentumok',
-    syncedCounter: '{n}/{total} dokumentum szinkronizálva',
+    syncedCounter: '{{n}}/{{total}} dokumentum szinkronizálva',
 
     passphrase: {
       title: 'Válassz jelmondatot',
@@ -927,11 +927,11 @@ export const hu: Messages = {
       submit: 'Csatlakozás',
       wrongPassphrase: 'A jelmondat nem egyezik. Próbáld újra.',
       paircodeExpired: 'A kód lejárt — kérj egy újat a másik eszközön.',
-      connected: 'Csatlakoztatva · {n} dokumentum szinkronizálva',
+      connected: 'Csatlakoztatva · {{n}} dokumentum szinkronizálva',
     },
 
     status: {
-      idle: 'szinkronizálva · {ago}',
+      idle: 'szinkronizálva · {{ago}}',
       syncing: 'szinkronizálás…',
       pending: 'várakozás…',
       offline: 'nincs internet',
@@ -941,10 +941,10 @@ export const hu: Messages = {
 
     conflict: {
       title: 'Szinkronizálási ütközés',
-      intro: 'A(z) „{title}" dokumentumot egy másik eszközön szerkesztették. Válassz, mit tegyünk:',
+      intro: 'A(z) „{{title}}" dokumentumot egy másik eszközön szerkesztették. Válassz, mit tegyünk:',
       localLabel: 'Ez az eszköz',
       serverLabel: 'Szerver',
-      revisionAgo: '{rev}. verzió · {ago}',
+      revisionAgo: '{{rev}}. verzió · {{ago}}',
       warn: 'Amelyik verziót eldobod, azt nem lehet automatikusan visszaállítani.',
       keepLocal: 'Ennek az eszköznek a verzióját megtartom',
       pullServer: 'Letöltöm a szerveren lévő verziót',
@@ -958,9 +958,9 @@ export const hu: Messages = {
     doc: {
       sectionTitle: 'Szinkronizálás',
       toggle: 'Dokumentum szinkronizálása',
-      syncedAgo: 'Szinkronizálva {ago} · {rev}. verzió',
+      syncedAgo: 'Szinkronizálva {{ago}} · {{rev}}. verzió',
       removeFromServer: 'Eltávolítjuk a dokumentum titkosított másolatát a szerverről?',
-      removedFromOther: 'A(z) „{title}" szinkronizálása letiltva egy másik eszközön. Ha továbbra is szinkronizálni szeretnéd, kapcsold be a Dokumentum-beállításokban.',
+      removedFromOther: 'A(z) „{{title}}" szinkronizálása letiltva egy másik eszközön. Ha továbbra is szinkronizálni szeretnéd, kapcsold be a Dokumentum-beállításokban.',
     },
   },
 };

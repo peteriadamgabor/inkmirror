@@ -899,9 +899,9 @@ export const en = {
     syncNow: 'Sync now',
     disableGlobally: 'Disable sync globally',
     disableConfirm: 'All synced copies will be deleted from the server. Documents stay on this device. Continue?',
-    lastActivity: 'Last activity: {ago}',
+    lastActivity: 'Last activity: {{ago}}',
     documentsHeader: 'Documents',
-    syncedCounter: '{n} of {total} documents synced',
+    syncedCounter: '{{n}} of {{total}} documents synced',
 
     passphrase: {
       title: 'Choose a passphrase',
@@ -934,11 +934,11 @@ export const en = {
       submit: 'Connect',
       wrongPassphrase: "Passphrase doesn't match. Try again.",
       paircodeExpired: 'Code expired — ask the other device for a new one.',
-      connected: 'Connected · {n} documents synced',
+      connected: 'Connected · {{n}} documents synced',
     },
 
     status: {
-      idle: 'synced · {ago}',
+      idle: 'synced · {{ago}}',
       syncing: 'syncing…',
       pending: 'pending…',
       offline: 'offline',
@@ -948,10 +948,10 @@ export const en = {
 
     conflict: {
       title: 'Sync conflict',
-      intro: '"{title}" was edited on another device. Choose what to do:',
+      intro: '"{{title}}" was edited on another device. Choose what to do:',
       localLabel: 'This device',
       serverLabel: 'Server',
-      revisionAgo: 'revision {rev} · {ago}',
+      revisionAgo: 'revision {{rev}} · {{ago}}',
       warn: 'Whichever version you discard cannot be automatically recovered.',
       keepLocal: "Keep this device's version",
       pullServer: 'Pull the server version',
@@ -965,9 +965,9 @@ export const en = {
     doc: {
       sectionTitle: 'Sync',
       toggle: 'Sync this document',
-      syncedAgo: 'Synced {ago} · revision {rev}',
+      syncedAgo: 'Synced {{ago}} · revision {{rev}}',
       removeFromServer: "Remove this document's encrypted copy from the server?",
-      removedFromOther: 'Sync disabled for "{title}" from another device. Re-enable in Document Settings if you want to keep syncing.',
+      removedFromOther: 'Sync disabled for "{{title}}" from another device. Re-enable in Document Settings if you want to keep syncing.',
     },
   },
 } as const;
