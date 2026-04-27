@@ -85,6 +85,15 @@ async function authenticateCircle(
   env: Env,
   syncId: string,
 ): Promise<AuthOk | AuthFail> {
+  // Per-IP rate-limit BEFORE any KV read so a spammer with arbitrary
+  // bearer tokens can't amplify KV usage on guessed syncIds. This is
+  // intentionally the same RL_SYNC_PAIR binding used for unauth pair
+  // routes — both are unauth-from-the-attacker's-perspective until
+  // proof verification succeeds.
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  const ipRl = await rateLimit(env.RL_SYNC_PAIR, ip);
+  if (ipRl) return { ok: false, res: ipRl };
+
   const auth = request.headers.get('authorization');
   if (!auth || !auth.startsWith('Bearer ')) {
     return { ok: false, res: jsonError(401, 'missing_auth') };
@@ -96,7 +105,9 @@ async function authenticateCircle(
   if (K_auth.length !== 32) return { ok: false, res: jsonError(401, 'malformed_auth') };
 
   const raw = await env.INKMIRROR_SYNC_KV.get(`circle:${syncId}`);
-  if (!raw) return { ok: false, res: jsonError(404, 'unknown_circle') };
+  // Unknown circle and wrong proof both return 401 with the same code so
+  // an attacker can't use the response to enumerate which syncIds exist.
+  if (!raw) return { ok: false, res: jsonError(401, 'auth_mismatch') };
   const circle = JSON.parse(raw) as { salt: string; auth_proof: string; createdAt: string };
 
   const proofBuf = await crypto.subtle.digest(
@@ -171,6 +182,12 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   if (!a.ok) return a.res;
   const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
   if (rl) return rl;
+
+  // Reject oversized payloads BEFORE buffering the body. Cloudflare
+  // Workers will otherwise read up to ~100 MB. Headroom of 1 KB covers
+  // JSON envelope around the ciphertext.
+  const cl = Number(request.headers.get('content-length') ?? '');
+  if (Number.isFinite(cl) && cl > MAX_BLOB_BYTES + 1024) return jsonError(413, 'too_large');
 
   const text = await request.text();
   if (text.length > MAX_BLOB_BYTES + 1024) return jsonError(413, 'too_large');

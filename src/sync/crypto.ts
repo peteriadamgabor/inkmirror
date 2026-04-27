@@ -162,12 +162,20 @@ const PAIRCODE_LENGTH = 6;
  * Entropy: log2(31) * 6 ≈ 29.7 bits — fine because paircodes have a
  * 2-min TTL and are single-use, and the server validates them before
  * an attacker could enumerate.
+ *
+ * Uses rejection sampling to avoid modulo bias: bytes ≥ floor(256/31)*31
+ * (i.e. ≥ 248) would skew the first 8 alphabet positions. We redraw
+ * those instead. Average ~1.03 bytes consumed per output character.
  */
 export function generatePaircode(): string {
-  const buf = crypto.getRandomValues(new Uint8Array(PAIRCODE_LENGTH));
+  const ALPHA = PAIRCODE_ALPHABET.length;          // 31
+  const REJECT_AT = Math.floor(256 / ALPHA) * ALPHA; // 248
   let out = '';
-  for (let i = 0; i < PAIRCODE_LENGTH; i++) {
-    out += PAIRCODE_ALPHABET[buf[i] % PAIRCODE_ALPHABET.length];
+  while (out.length < PAIRCODE_LENGTH) {
+    const buf = crypto.getRandomValues(new Uint8Array(PAIRCODE_LENGTH));
+    for (let i = 0; i < buf.length && out.length < PAIRCODE_LENGTH; i++) {
+      if (buf[i] < REJECT_AT) out += PAIRCODE_ALPHABET[buf[i] % ALPHA];
+    }
   }
   return out;
 }

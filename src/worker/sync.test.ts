@@ -570,14 +570,15 @@ describe('DELETE /sync/circles/:syncId', () => {
     );
     expect(del.status).toBe(204);
 
-    // Subsequent auth fails (circle gone)
+    // Subsequent auth fails (circle gone). Returns 401 (not 404) so an
+    // attacker can't distinguish unknown syncId from wrong K_auth.
     const afterList = await handleSync(
       new Request(`http://x/sync/list/${syncId}`, {
         headers: { 'authorization': `Bearer ${K_auth_b64}` },
       }),
       env,
     );
-    expect(afterList.status).toBe(404);
+    expect(afterList.status).toBe(401);
 
     // R2 doc blobs are gone too
     const r2 = env.INKMIRROR_SYNC_R2 as R2Bucket & { _store: Map<string, string> };
@@ -613,5 +614,43 @@ describe('rate limiting', () => {
       env,
     );
     expect(res.status).toBe(429);
+  });
+
+  it('per-IP RL fires before any KV read for a guessed syncId', async () => {
+    const env = makeEnv();
+    let kvReads = 0;
+    const realKv = env.INKMIRROR_SYNC_KV;
+    (env as unknown as Record<string, unknown>).INKMIRROR_SYNC_KV = new Proxy(realKv, {
+      get(target, prop, receiver) {
+        if (prop === 'get') {
+          return (key: string) => { kvReads++; return realKv.get(key); };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    (env as unknown as Record<string, unknown>).RL_SYNC_PAIR = { async limit() { return { success: false }; } };
+
+    const res = await handleSync(
+      new Request('http://x/sync/list/some-fake-syncid', {
+        headers: { 'authorization': 'Bearer ' + toBase64Url(crypto.getRandomValues(new Uint8Array(32))) },
+      }),
+      env,
+    );
+    expect(res.status).toBe(429);
+    expect(kvReads).toBe(0);
+  });
+});
+
+describe('auth response indistinguishability', () => {
+  it('unknown syncId with valid bearer returns 401, not 404', async () => {
+    const env = makeEnv();
+    const fakeBearer = toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+    const res = await handleSync(
+      new Request('http://x/sync/list/never-existed-syncid', {
+        headers: { 'authorization': `Bearer ${fakeBearer}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(401);
   });
 });

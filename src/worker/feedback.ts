@@ -65,6 +65,17 @@ async function isRateLimited(ip: string): Promise<boolean> {
   return false;
 }
 
+/**
+ * Backslash-escape Discord markdown control characters so attacker-controlled
+ * Referer/UA/contact strings can't render as links, mentions, or formatting
+ * inside the channel. Discord interprets these in embed fields and titles;
+ * the message body is already neutralized by `allowed_mentions.parse=[]` for
+ * @everyone/@here but markdown still renders.
+ */
+function sanitizeMarkdown(s: string): string {
+  return s.replace(/[\\*_~`>|[\]()#@]/g, '\\$&');
+}
+
 function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     ...(init ?? {}),
@@ -130,12 +141,15 @@ export async function handleFeedback(request: Request, env: Env): Promise<Respon
     return jsonResponse({ ok: true }, { status: 200 });
   }
 
-  // Too-fast submit — also silent success.
-  if (typeof payload.startedAt === 'number') {
-    const elapsed = Date.now() - payload.startedAt;
-    if (elapsed < 2000) {
-      return jsonResponse({ ok: true }, { status: 200 });
-    }
+  // The legitimate client always sends a numeric startedAt — see
+  // src/ui/shared/feedback.ts. A missing or non-numeric value means a
+  // bot submitting raw JSON; treat as silent success so they don't retry.
+  if (typeof payload.startedAt !== 'number') {
+    return jsonResponse({ ok: true }, { status: 200 });
+  }
+  const elapsed = Date.now() - payload.startedAt;
+  if (elapsed < 2000) {
+    return jsonResponse({ ok: true }, { status: 200 });
   }
 
   const message =
@@ -162,12 +176,12 @@ export async function handleFeedback(request: Request, env: Env): Promise<Respon
     content: '**New InkMirror feedback**',
     embeds: [
       {
-        description: message.slice(0, FEEDBACK_MAX_MESSAGE),
+        description: sanitizeMarkdown(message.slice(0, FEEDBACK_MAX_MESSAGE)),
         color: 0x7f77dd,
         fields: [
-          { name: 'Contact', value: contact || '_not provided_', inline: false },
-          { name: 'Referer', value: ref, inline: false },
-          { name: 'User-Agent', value: ua.slice(0, 512), inline: false },
+          { name: 'Contact', value: sanitizeMarkdown(contact) || '_not provided_', inline: false },
+          { name: 'Referer', value: sanitizeMarkdown(ref.slice(0, 512)), inline: false },
+          { name: 'User-Agent', value: sanitizeMarkdown(ua.slice(0, 512)), inline: false },
         ],
         timestamp: new Date().toISOString(),
       },
