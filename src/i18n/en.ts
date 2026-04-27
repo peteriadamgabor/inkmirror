@@ -889,6 +889,87 @@ export const en = {
       },
     },
   },
+  sync: {
+    title: 'Sync',
+    off: 'Sync is off',
+    on: 'Sync is on',
+    description: 'Sync your manuscripts across devices, end-to-end encrypted. The server cannot read your novels — only your devices can.',
+    setUp: 'Set up sync',
+    addDevice: 'Add another device',
+    syncNow: 'Sync now',
+    disableGlobally: 'Disable sync globally',
+    disableConfirm: 'All synced copies will be deleted from the server. Documents stay on this device. Continue?',
+    lastActivity: 'Last activity: {ago}',
+    documentsHeader: 'Documents',
+    syncedCounter: '{n} of {total} documents synced',
+
+    passphrase: {
+      title: 'Choose a passphrase',
+      explanation: 'Your passphrase encrypts your manuscripts before they leave this device. We cannot recover it if you forget it.',
+      label: 'Passphrase',
+      confirm: 'Confirm',
+      generate: 'Generate strong passphrase',
+      strengthWeak: 'weak',
+      strengthMedium: 'medium',
+      strengthStrong: 'strong',
+      tooWeak: 'Pick a stronger passphrase or use Generate.',
+      mismatch: "The two passphrases don't match.",
+      deriving: 'Encrypting your manuscripts…',
+    },
+
+    paircode: {
+      instructionsTitle: 'On your other device:',
+      step1: '1. Open InkMirror',
+      step2: '2. Settings → Sync → Add this device',
+      step3: '3. Enter this code and your passphrase',
+      expires: 'Code expires in {time}',
+      expired: 'Code expired — generate a new one?',
+      generateNew: 'Generate new code',
+    },
+
+    connect: {
+      title: 'Connect to existing sync',
+      paircodeLabel: 'Pair code',
+      passphraseLabel: 'Passphrase',
+      submit: 'Connect',
+      wrongPassphrase: "Passphrase doesn't match. Try again.",
+      paircodeExpired: 'Code expired — ask the other device for a new one.',
+      connected: 'Connected · {n} documents synced',
+    },
+
+    status: {
+      idle: 'synced · {ago}',
+      syncing: 'syncing…',
+      pending: 'pending…',
+      offline: 'offline',
+      error: 'sync error',
+      conflict: 'conflict',
+    },
+
+    conflict: {
+      title: 'Sync conflict',
+      intro: '"{title}" was edited on another device. Choose what to do:',
+      localLabel: 'This device',
+      serverLabel: 'Server',
+      revisionAgo: 'revision {rev} · {ago}',
+      warn: 'Whichever version you discard cannot be automatically recovered.',
+      keepLocal: "Keep this device's version",
+      pullServer: 'Pull the server version',
+      saveAsCopy: 'Save mine as a copy',
+      saveAsCopyRecommended: 'Recommended',
+      decideLater: 'Decide later',
+      banner: 'Sync conflict pending. New edits will only sync once you resolve.',
+      copySuffix: '(conflict copy)',
+    },
+
+    doc: {
+      sectionTitle: 'Sync',
+      toggle: 'Sync this document',
+      syncedAgo: 'Synced {ago} · revision {rev}',
+      removeFromServer: "Remove this document's encrypted copy from the server?",
+      removedFromOther: 'Sync disabled for "{title}" from another device. Re-enable in Document Settings if you want to keep syncing.',
+    },
+  },
 } as const;
 
 /**
