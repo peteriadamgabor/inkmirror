@@ -29,6 +29,12 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     return await getList(request, env, listMatch[1]);
   }
 
+  // /sync/circles/:syncId  (strict end — no /paircode suffix)
+  const circleDeleteMatch = path.match(/^\/sync\/circles\/([A-Za-z0-9_-]+)$/);
+  if (circleDeleteMatch && method === 'DELETE') {
+    return await deleteCircle(request, env, circleDeleteMatch[1]);
+  }
+
   // /sync/doc/:syncId/:docId
   const docMatch = path.match(/^\/sync\/doc\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/);
   if (docMatch) {
@@ -200,6 +206,26 @@ async function deleteDoc(request: Request, env: Env, syncId: string, docId: stri
 
   await env.INKMIRROR_SYNC_R2.delete(`${syncId}/${docId}`);
   await env.INKMIRROR_SYNC_KV.delete(`meta:${syncId}:${docId}`);
+  return new Response(null, { status: 204 });
+}
+
+async function deleteCircle(request: Request, env: Env, syncId: string): Promise<Response> {
+  const a = await authenticateCircle(request, env, syncId);
+  if (!a.ok) return a.res;
+
+  const prefix = `meta:${syncId}:`;
+  let cursor: string | undefined;
+  do {
+    const page = await env.INKMIRROR_SYNC_KV.list({ prefix, cursor });
+    for (const k of page.keys) {
+      const docId = k.name.slice(prefix.length);
+      await env.INKMIRROR_SYNC_R2.delete(`${syncId}/${docId}`);
+      await env.INKMIRROR_SYNC_KV.delete(k.name);
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+
+  await env.INKMIRROR_SYNC_KV.delete(`circle:${syncId}`);
   return new Response(null, { status: 204 });
 }
 

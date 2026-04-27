@@ -533,3 +533,62 @@ describe('DELETE /sync/doc/:syncId/:docId', () => {
     expect(res.status).toBe(204);
   });
 });
+
+describe('DELETE /sync/circles/:syncId', () => {
+  it('deletes all docs, meta, and circle record', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const blob = {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: 'AAAA',
+    };
+    // PUT two docs
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-1`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+    await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/doc-2`, K_auth_b64, 'PUT', { ...blob, expectedRevision: 0 }),
+      env,
+    );
+
+    // Delete the circle
+    const del = await handleSync(
+      new Request(`http://x/sync/circles/${syncId}`, {
+        method: 'DELETE',
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(del.status).toBe(204);
+
+    // Subsequent auth fails (circle gone)
+    const afterList = await handleSync(
+      new Request(`http://x/sync/list/${syncId}`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(afterList.status).toBe(404);
+
+    // R2 doc blobs are gone too
+    const r2 = env.INKMIRROR_SYNC_R2 as R2Bucket & { _store: Map<string, string> };
+    expect(r2._store.size).toBe(0);
+
+    // No leftover KV records
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
+    expect(Array.from(kv._store.keys()).filter(k => k.startsWith(`meta:${syncId}:`)).length).toBe(0);
+    expect(kv._store.has(`circle:${syncId}`)).toBe(false);
+  });
+
+  it('rejects unauthenticated DELETE with 401', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/circles/${syncId}`, { method: 'DELETE' }),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+});
