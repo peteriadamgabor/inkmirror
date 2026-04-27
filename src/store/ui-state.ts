@@ -28,7 +28,7 @@ export interface UiState {
   searchOpen: boolean;
 }
 
-export type SettingsModalTab = 'ai' | 'hotkeys' | 'language';
+export type SettingsModalTab = 'ai' | 'hotkeys' | 'language' | 'sync';
 
 const SPELLCHECK_KEY = 'inkmirror.spellcheck';
 const RIGHT_PANEL_KEY = 'inkmirror.rightPanel.collapsed';

@@ -10,6 +10,8 @@ import {
 import { SettingsAiTab } from './SettingsAiTab';
 import { SettingsHotkeysTab } from './SettingsHotkeysTab';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
+import { SettingsSyncTab } from './SettingsSyncTab';
+import { SYNC_FEATURE } from '@/sync';
 
 interface SidebarTab {
   id: SettingsModalTab;
@@ -43,11 +45,15 @@ export const SettingsModal = () => {
 
   // Tabs are a memo so swapping the language re-renders the labels
   // without re-mounting the modal — `t()` reads `lang()` reactively.
-  const tabs = createMemo<SidebarTab[]>(() => [
-    { id: 'ai', label: t('settings.tabs.ai') },
-    { id: 'hotkeys', label: t('settings.tabs.hotkeys') },
-    { id: 'language', label: t('settings.tabs.language') },
-  ]);
+  const tabs = createMemo<SidebarTab[]>(() => {
+    const base: SidebarTab[] = [
+      { id: 'ai', label: t('settings.tabs.ai') },
+      { id: 'hotkeys', label: t('settings.tabs.hotkeys') },
+      { id: 'language', label: t('settings.tabs.language') },
+    ];
+    if (SYNC_FEATURE) base.push({ id: 'sync', label: t('settings.tabs.sync') });
+    return base;
+  });
 
   // Track focus before the modal opens so we can restore it on close —
   // matches the expected behavior of `aria-modal="true"` dialogs.
@@ -147,6 +153,9 @@ export const SettingsModal = () => {
               </Show>
               <Show when={activeTab() === 'language'}>
                 <SettingsLanguageTab />
+              </Show>
+              <Show when={activeTab() === 'sync'}>
+                <SettingsSyncTab />
               </Show>
             </section>
           </div>

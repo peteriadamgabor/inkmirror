@@ -828,6 +828,7 @@ export const hu: Messages = {
       ai: 'MI',
       hotkeys: 'Gyorsbillentyűk',
       language: 'Nyelv',
+      sync: 'Szinkron',
       export: 'Exportálás',
       comingSoon: 'Hamarosan',
     },

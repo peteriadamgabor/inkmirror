@@ -835,6 +835,7 @@ export const en = {
       ai: 'AI',
       hotkeys: 'Hotkeys',
       language: 'Language',
+      sync: 'Sync',
       export: 'Export',
       comingSoon: 'Coming soon',
     },

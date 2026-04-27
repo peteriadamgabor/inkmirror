@@ -15,6 +15,10 @@ import {
   type DialogueStyle,
 } from '@/types';
 import { toast } from '@/ui/shared/toast';
+import { circleStatus, syncNow, docStatusFor } from '@/sync';
+import type { DocSyncStatus } from '@/sync';
+import * as repo from '@/db/repository';
+import { formatEditedTimestamp } from '@/utils/block-timestamp';
 
 const DIALOGUE_STYLE_ORDER: DialogueStyle[] = ['straight', 'curly', 'hu_dash'];
 const COVER_IMAGE_ALLOWED_MIME = ['image/jpeg', 'image/png'];
@@ -386,6 +390,10 @@ export const DocumentSettings = () => {
               </div>
             </div>
 
+            <Show when={circleStatus().kind === 'active'}>
+              <DocSyncSection docId={doc()!.id} />
+            </Show>
+
             <div class="pt-2 border-t border-stone-200 dark:border-stone-700 flex items-center justify-between text-[10px] text-stone-400">
               <span>{t('docSettings.autosaveNote')}</span>
               <span class="font-mono tabular-nums">
@@ -398,3 +406,97 @@ export const DocumentSettings = () => {
     </Show>
   );
 };
+
+// ---------- per-document sync section ----------
+
+interface DocSyncSectionProps {
+  docId: string;
+}
+
+function DocSyncSection(props: DocSyncSectionProps) {
+  const [syncEnabled, setSyncEnabled] = createSignal<boolean | null>(null);
+
+  // Load the current sync_enabled value from the row once when the section mounts.
+  // We can't read it from store.document because the domain Document type doesn't
+  // carry sync_enabled — it lives only in the DocumentRow.
+  const loadEnabled = async () => {
+    const rows = await repo.listDocumentRows();
+    const row = rows.find((r) => r.id === props.docId);
+    if (row !== undefined) setSyncEnabled(row.sync_enabled);
+  };
+  void loadEnabled();
+
+  async function handleToggle(enabled: boolean) {
+    try {
+      await repo.setSyncEnabled(props.docId, enabled);
+      setSyncEnabled(enabled);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <div class="flex flex-col gap-2 pt-3 border-t border-stone-200 dark:border-stone-700">
+      <label class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
+        {t('sync.doc.sectionTitle')}
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <Show when={syncEnabled() !== null}>
+          <input
+            type="checkbox"
+            class="accent-violet-500"
+            checked={syncEnabled() ?? false}
+            onChange={(e) => void handleToggle(e.currentTarget.checked)}
+          />
+          <span class="text-sm text-stone-700 dark:text-stone-200">
+            {t('sync.doc.toggle')}
+          </span>
+        </Show>
+      </label>
+      <Show when={syncEnabled()}>
+        <DocSyncStatusLine docId={props.docId} />
+      </Show>
+    </div>
+  );
+}
+
+function DocSyncStatusLine(props: { docId: string }) {
+  const status = () => docStatusFor(props.docId);
+
+  return (
+    <div class="flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400">
+      <Show when={status().kind === 'idle'}>
+        {(() => {
+          const s = status() as Extract<DocSyncStatus, { kind: 'idle' }>;
+          return (
+            <span class="tabular-nums">
+              {t('sync.doc.syncedAgo', {
+                ago: formatEditedTimestamp(new Date(s.lastSyncedAt).toISOString()),
+                rev: String(s.revision),
+              })}
+            </span>
+          );
+        })()}
+      </Show>
+      <Show when={status().kind === 'syncing'}>
+        <span>{t('sync.status.syncing')}</span>
+      </Show>
+      <Show when={status().kind === 'pending'}>
+        <span>{t('sync.status.pending')}</span>
+      </Show>
+      <Show when={status().kind === 'conflict'}>
+        <span class="text-orange-600">{t('sync.status.conflict')}</span>
+      </Show>
+      <Show when={status().kind === 'error'}>
+        <span class="text-red-500">{t('sync.status.error')}</span>
+      </Show>
+      <button
+        type="button"
+        class="underline hover:text-violet-500 transition-colors"
+        onClick={() => void syncNow()}
+      >
+        {t('sync.syncNow')}
+      </button>
+    </div>
+  );
+}

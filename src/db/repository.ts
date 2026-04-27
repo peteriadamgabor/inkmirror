@@ -113,6 +113,36 @@ export async function listDocuments(): Promise<Document[]> {
   }
 }
 
+export async function listDocumentRows(): Promise<import('./connection').DocumentRow[]> {
+  try {
+    const d = await db();
+    const rows = await d.documents.getAll();
+    rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    return rows;
+  } catch (err) {
+    logDbError('repository.listDocumentRows', err);
+    throw err;
+  }
+}
+
+/**
+ * Patch only the `sync_enabled` flag on a document row, preserving every
+ * other field. Used by the Sync settings tab and DocumentSettings sync toggle.
+ * We cannot go through `saveDocument` because `documentToRow` hardcodes
+ * `sync_enabled: false` (it doesn't carry the flag on the domain type).
+ */
+export async function setSyncEnabled(docId: UUID, enabled: boolean): Promise<void> {
+  try {
+    const d = await db();
+    const row = await d.documents.get(docId);
+    if (!row) return;
+    await d.documents.put({ ...row, sync_enabled: enabled });
+  } catch (err) {
+    logDbError('repository.setSyncEnabled', err);
+    throw err;
+  }
+}
+
 export async function saveSentiment(
   documentId: UUID,
   entry: SentimentEntry,
