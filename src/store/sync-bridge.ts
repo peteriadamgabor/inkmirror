@@ -15,8 +15,8 @@
  */
 
 import { getDb } from '@/db/connection';
+import type { DocumentRow } from '@/db/connection';
 import {
-  saveDocument,
   saveChapter,
   saveBlock,
   saveCharacter,
@@ -24,13 +24,12 @@ import {
   type SentimentEntry,
 } from '@/db/repository';
 import {
-  rowToDocument,
   rowToCharacter,
   rowToChapter,
   rowToBlock,
 } from '@/db/repository-rows';
 import { serializeForSync, parseFromSync, type SyncBundle } from '@/sync/format';
-import type { Block, Chapter, Character, Document, UUID } from '@/types';
+import type { Block, Chapter, Character, UUID } from '@/types';
 
 // ─── read side ────────────────────────────────────────────────────────────────
 
@@ -62,6 +61,10 @@ export async function buildSyncBundleForDocument(docId: UUID): Promise<Uint8Arra
       title: docRow.title,
       created_at: docRow.created_at,
       updated_at: docRow.updated_at,
+      author: docRow.author,
+      synopsis: docRow.synopsis,
+      settings: docRow.settings as Record<string, unknown>,
+      pov_character_id: docRow.pov_character_id,
     },
     chapters: chapterRows
       .sort((a, b) => a.order_idx - b.order_idx)
@@ -123,11 +126,12 @@ export async function buildSyncBundleForDocument(docId: UUID): Promise<Uint8Arra
  * never left behind).
  *
  * Safety contract:
- * - The document row is updated (title, updated_at) but never deleted so
- *   IDB foreign-key-like references stay intact.
+ * - If the document row doesn't exist locally yet (first pull on a freshly
+ *   paired device), it is CREATED with sync_enabled=true so future edits
+ *   on this device push back into the circle.
  * - block_revisions are NOT touched — undo history is local-only.
  * - sync_enabled / last_sync_revision / last_synced_at are NOT overwritten
- *   — those are device-local sync metadata.
+ *   on existing rows — those are device-local sync metadata.
  */
 export async function applySyncBundleToDocument(
   docId: UUID,
@@ -136,6 +140,48 @@ export async function applySyncBundleToDocument(
   const bundle = parseFromSync(bytes);
 
   const idb = await getDb();
+
+  // ── 0. Document row first (so chapter/block FKs are valid even on first pull) ─
+  // Direct idb.put — going through saveDocument resets sync_enabled and the
+  // last_sync_* fields because documentToRow hardcodes those. We need to
+  // preserve them for existing rows and seed sync_enabled=true for new rows.
+  const existingRow = await idb.get('documents', docId);
+  const FALLBACK_SETTINGS = {
+    font_family: 'Georgia, serif',
+    font_size: 16,
+    line_height: 1.8,
+    editor_width: 680,
+    theme: 'light',
+  };
+  const newRow: DocumentRow = existingRow
+    ? {
+        ...existingRow,
+        title: bundle.document.title,
+        updated_at: bundle.document.updated_at,
+        author: bundle.document.author ?? existingRow.author,
+        synopsis: bundle.document.synopsis ?? existingRow.synopsis,
+        settings: bundle.document.settings ?? existingRow.settings,
+        pov_character_id:
+          bundle.document.pov_character_id !== undefined
+            ? bundle.document.pov_character_id
+            : existingRow.pov_character_id,
+      }
+    : {
+        id: docId,
+        title: bundle.document.title,
+        author: bundle.document.author ?? '',
+        synopsis: bundle.document.synopsis ?? '',
+        settings: bundle.document.settings ?? FALLBACK_SETTINGS,
+        pov_character_id: bundle.document.pov_character_id ?? null,
+        created_at: bundle.document.created_at,
+        updated_at: bundle.document.updated_at,
+        // Auto-enable on first pull: the user paired this device for sync,
+        // so any doc that arrives via sync should also push from here.
+        sync_enabled: true,
+        last_sync_revision: 0,
+        last_synced_at: null,
+      };
+  await idb.put('documents', newRow);
 
   // ── 1. Chapters: delete existing, insert from bundle ──────────────────────
   const existingChapters = await idb.getAllFromIndex('chapters', 'by_document', docId);
@@ -215,18 +261,6 @@ export async function applySyncBundleToDocument(
       source: r.source,
     };
     await saveSentiment(docId, entry);
-  }
-
-  // ── 5. Document row: patch title + updated_at, preserve sync metadata ─────
-  const existingRow = await idb.get('documents', docId);
-  if (existingRow) {
-    const doc: Document = rowToDocument(existingRow);
-    const updatedDoc: Document = {
-      ...doc,
-      title: bundle.document.title,
-      updated_at: bundle.document.updated_at,
-    };
-    await saveDocument(updatedDoc);
   }
 }
 

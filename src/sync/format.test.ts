@@ -35,6 +35,42 @@ describe('sync format', () => {
     expect(parsed).toEqual(rich);
   });
 
+  it('round-trips the extended document fields (author, synopsis, settings, pov)', () => {
+    const full: SyncBundle = {
+      payloadVersion: 1,
+      document: {
+        id: 'd1',
+        title: 'T',
+        created_at: 'a',
+        updated_at: 'b',
+        author: 'Author A',
+        synopsis: 'Short blurb.',
+        settings: { font_family: 'Georgia, serif', font_size: 16, theme: 'dark' },
+        pov_character_id: 'ch1',
+      },
+      chapters: [],
+      blocks: [],
+      characters: [],
+      sentiments: [],
+    };
+    expect(parseFromSync(serializeForSync(full))).toEqual(full);
+  });
+
+  it('parses legacy v1 bundles without the extended document fields', () => {
+    // Bundles produced before author/synopsis/settings/pov_character_id were
+    // added must still parse — those fields are typed as optional.
+    const legacy = JSON.stringify({
+      payloadVersion: 1,
+      document: { id: 'd1', title: 'T', created_at: 'a', updated_at: 'b' },
+      chapters: [], blocks: [], characters: [], sentiments: [],
+    });
+    const parsed = parseFromSync(new TextEncoder().encode(legacy));
+    expect(parsed.document.author).toBeUndefined();
+    expect(parsed.document.synopsis).toBeUndefined();
+    expect(parsed.document.settings).toBeUndefined();
+    expect(parsed.document.pov_character_id).toBeUndefined();
+  });
+
   it('rejects an unsupported payloadVersion', () => {
     const future = JSON.stringify({ payloadVersion: 2, document: { id: '', title: '', created_at: '', updated_at: '' }, chapters: [], blocks: [], characters: [], sentiments: [] });
     expect(() => parseFromSync(new TextEncoder().encode(future))).toThrow(/payloadVersion/);

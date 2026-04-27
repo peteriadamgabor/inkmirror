@@ -12,6 +12,13 @@ export interface SyncBundle {
     title: string;
     created_at: string;
     updated_at: string;
+    // Optional so v1 bundles produced before these fields existed still
+    // parse cleanly. Receivers fall back to safe defaults when absent —
+    // see `applySyncBundleToDocument`.
+    author?: string;
+    synopsis?: string;
+    settings?: Record<string, unknown>;
+    pov_character_id?: string | null;
   };
   chapters: Array<Record<string, unknown>>;
   blocks: Array<Record<string, unknown>>;
