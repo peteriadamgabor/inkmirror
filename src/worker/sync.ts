@@ -23,6 +23,12 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     return await postIssuePaircode(request, env, paircodeMatch[1]);
   }
 
+  // /sync/list/:syncId
+  const listMatch = path.match(/^\/sync\/list\/([A-Za-z0-9_-]+)$/);
+  if (listMatch && method === 'GET') {
+    return await getList(request, env, listMatch[1]);
+  }
+
   return new Response('Not Found', { status: 404 });
 }
 
@@ -121,6 +127,28 @@ async function postPairRedeem(request: Request, env: Env): Promise<Response> {
   const { salt } = JSON.parse(circleRaw) as { salt: string };
 
   return Response.json({ syncId, salt }, { status: 200 });
+}
+
+async function getList(request: Request, env: Env, syncId: string): Promise<Response> {
+  const a = await authenticateCircle(request, env, syncId);
+  if (!a.ok) return a.res;
+
+  const prefix = `meta:${syncId}:`;
+  const items: Array<{ docId: string; revision: number; updatedAt: string }> = [];
+  let cursor: string | undefined;
+  do {
+    const page = await env.INKMIRROR_SYNC_KV.list({ prefix, cursor });
+    for (const k of page.keys) {
+      const docId = k.name.slice(prefix.length);
+      const rawMeta = await env.INKMIRROR_SYNC_KV.get(k.name);
+      if (!rawMeta) continue;
+      const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
+      items.push({ docId, revision: meta.revision, updatedAt: meta.updatedAt });
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+
+  return Response.json(items, { status: 200 });
 }
 
 // --- helpers ---

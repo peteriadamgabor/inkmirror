@@ -25,8 +25,12 @@ function makeKVStub(): KVNamespace & { _store: Map<string, KVEntry> } {
     async delete(key: string) {
       _store.delete(key);
     },
-    async list() {
-      return { keys: [], list_complete: true, cacheStatus: null };
+    async list(opts?: { prefix?: string; cursor?: string }) {
+      const prefix = opts?.prefix ?? '';
+      const keys = Array.from(_store.keys())
+        .filter(k => k.startsWith(prefix))
+        .map(name => ({ name }));
+      return { keys, list_complete: true, cacheStatus: null };
     },
   } as unknown as KVNamespace & { _store: Map<string, KVEntry> };
 }
@@ -234,5 +238,48 @@ describe('POST /sync/pair/redeem', () => {
       env,
     );
     expect(res.status).toBe(410);
+  });
+});
+
+describe('GET /sync/list/:syncId', () => {
+  it('returns an empty list for a fresh circle', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await handleSync(
+      new Request(`http://x/sync/list/${syncId}`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it('returns the meta records for docs that have been put', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
+    // Pre-populate two meta records directly into the stub
+    kv._store.set(`meta:${syncId}:doc-1`, { value: JSON.stringify({ revision: 3, updatedAt: '2026-04-27T12:00:00Z' }) });
+    kv._store.set(`meta:${syncId}:doc-2`, { value: JSON.stringify({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' }) });
+
+    const res = await handleSync(
+      new Request(`http://x/sync/list/${syncId}`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const list = (await res.json()) as Array<{ docId: string; revision: number; updatedAt: string }>;
+    expect(list).toHaveLength(2);
+    expect(list.find(x => x.docId === 'doc-1')).toMatchObject({ revision: 3, updatedAt: '2026-04-27T12:00:00Z' });
+    expect(list.find(x => x.docId === 'doc-2')).toMatchObject({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' });
+  });
+
+  it('returns 401 without auth', async () => {
+    const env = makeEnv();
+    const { syncId } = await createCircle(env);
+    const res = await handleSync(new Request(`http://x/sync/list/${syncId}`), env);
+    expect(res.status).toBe(401);
   });
 });
