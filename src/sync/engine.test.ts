@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createEngine, type EngineDeps, DEBOUNCE_MS } from './engine';
+import { createEngine, type EngineDeps, DEBOUNCE_MS, HEARTBEAT_MS } from './engine';
 import { docStatusFor, setDocStatus } from './state';
 import type { SyncClient } from './client';
 import { SyncHttpError } from './client';
+import type { EncryptedBlob } from './crypto';
 
 // Stub that returns a structurally valid EncryptedBlob without real crypto.subtle I/O.
 // This keeps fake-timer promise chains drainable via vi.advanceTimersByTimeAsync.
@@ -187,5 +188,122 @@ describe('engine push errors', () => {
 
     expect(client.putDoc).toHaveBeenCalledTimes(1);
     expect(docStatusFor('doc-1').kind).toBe('error');
+  });
+});
+
+// helper to build a stub EncryptedBlob — synchronous-resolving like the encrypt stub
+function stubEncryptedBlob(): EncryptedBlob {
+  return { v: 1, iv: 'AAAAAAAAAAAAAAAA', ciphertext: 'BBBBBBBB' };
+}
+
+describe('engine heartbeat + pull', () => {
+  beforeEach(() => {
+    // Make sure offline-detection treats us as online by default
+    if (typeof navigator === 'undefined') {
+      vi.stubGlobal('navigator', { onLine: true });
+    }
+  });
+
+  it('idle doc pulls when server revision is higher', async () => {
+    client.list.mockResolvedValueOnce([{ docId: 'doc-1', revision: 9, updatedAt: '' }]);
+    client.getDoc.mockResolvedValueOnce({ ...stubEncryptedBlob(), revision: 9, updatedAt: '' });
+    deps.decrypt = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+    setDocStatus('doc-1', { kind: 'idle', lastSyncedAt: 0, revision: 4 });
+
+    const engine = createEngine(deps);
+    engine.start();
+    // Advance to fire the interval once; advanceTimersByTimeAsync drains microtasks inline.
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    // Stop the engine so runAllTimersAsync doesn't infinite-loop on the setInterval.
+    engine.stop();
+    await vi.runAllTimersAsync();
+
+    expect(client.getDoc).toHaveBeenCalledWith('sync-id-1', 'doc-1');
+    expect(deps.applyBundle).toHaveBeenCalledTimes(1);
+    expect(deps.setDocLastRevision).toHaveBeenCalledWith('doc-1', 9);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+
+  it('pending doc transitions to CONFLICT when server moved ahead', async () => {
+    client.list.mockResolvedValueOnce([{ docId: 'doc-1', revision: 9, updatedAt: '' }]);
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+    setDocStatus('doc-1', { kind: 'pending' });
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    engine.stop();
+    await vi.runAllTimersAsync();
+
+    const s = docStatusFor('doc-1');
+    expect(s.kind).toBe('conflict');
+    if (s.kind === 'conflict') {
+      expect(s.localRevision).toBe(4);
+      expect(s.serverRevision).toBe(9);
+    }
+    expect(client.getDoc).not.toHaveBeenCalled();
+  });
+
+  it('skips pull when local revision is already at server revision', async () => {
+    client.list.mockResolvedValueOnce([{ docId: 'doc-1', revision: 4, updatedAt: '' }]);
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+    setDocStatus('doc-1', { kind: 'idle', lastSyncedAt: 0, revision: 4 });
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    engine.stop();
+    await vi.runAllTimersAsync();
+
+    expect(client.getDoc).not.toHaveBeenCalled();
+  });
+
+  it('skips heartbeat when navigator.onLine is false', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    engine.stop();
+    await vi.runAllTimersAsync();
+
+    expect(client.list).not.toHaveBeenCalled();
+
+    vi.stubGlobal('navigator', { onLine: true });
+  });
+
+  it('stop() prevents future heartbeats from firing', async () => {
+    client.list.mockResolvedValue([]);
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    // Drain the first heartbeat's async work without running the interval again.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.list).toHaveBeenCalledTimes(1);
+
+    engine.stop();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 2);
+    await vi.runAllTimersAsync();
+    expect(client.list).toHaveBeenCalledTimes(1); // no new calls after stop
+  });
+});
+
+describe('engine syncNow', () => {
+  it('flushes pending debounce immediately and runs heartbeat', async () => {
+    client.list.mockResolvedValueOnce([]);
+    client.putDoc.mockResolvedValueOnce({ revision: 5, updatedAt: '2026-04-27T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    expect(docStatusFor('doc-1').kind).toBe('pending');
+
+    // Don't advance time — call syncNow immediately
+    await engine.syncNow();
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);   // pending push flushed
+    expect(client.list).toHaveBeenCalledTimes(1);     // heartbeat ran
   });
 });

@@ -1,7 +1,8 @@
 import { SyncHttpError } from './client';
 import type { SyncClient } from './client';
-import { encryptBundle } from './crypto';
-import { setDocStatus } from './state';
+import { encryptBundle, decryptBundle } from './crypto';
+import type { EncryptedBlob } from './crypto';
+import { setDocStatus, docStatusFor } from './state';
 
 export const DEBOUNCE_MS  = 10_000;
 export const HEARTBEAT_MS = 5 * 60 * 1000;
@@ -17,7 +18,9 @@ export interface EngineDeps {
   getDocLastRevision: (docId: string) => number;
   setDocLastRevision: (docId: string, revision: number) => void;
   /** Optional: override the encrypt step (useful in tests to avoid real crypto.subtle scheduling). */
-  encrypt?: (K_enc: Uint8Array, plaintext: Uint8Array, syncId: string, docId: string) => Promise<import('./crypto').EncryptedBlob>;
+  encrypt?: (K_enc: Uint8Array, plaintext: Uint8Array, syncId: string, docId: string) => Promise<EncryptedBlob>;
+  /** Optional: override the decrypt step (useful in tests to avoid real crypto.subtle scheduling). */
+  decrypt?: (K_enc: Uint8Array, blob: EncryptedBlob, syncId: string, docId: string) => Promise<Uint8Array>;
 }
 
 export interface Engine {
@@ -32,6 +35,7 @@ export function createEngine(deps: EngineDeps): Engine {
   // Incremented on stop(); async push operations check this to bail out early
   // and avoid writing stale state to the shared status store.
   let generation = 0;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   function markDirty(docId: string): void {
     setDocStatus(docId, { kind: 'pending' });
@@ -85,15 +89,72 @@ export function createEngine(deps: EngineDeps): Engine {
     }
   }
 
+  async function pullDoc(docId: string, _expectedServerRevision: number): Promise<void> {
+    setDocStatus(docId, { kind: 'syncing' });
+    const gen = generation;
+    try {
+      const blob = await deps.client.getDoc(deps.syncId, docId);
+      if (gen !== generation) return;
+      const decryptFn = deps.decrypt ?? decryptBundle;
+      const plaintext = await decryptFn(deps.K_enc, blob, deps.syncId, docId);
+      if (gen !== generation) return;
+      await deps.applyBundle(docId, plaintext);
+      if (gen !== generation) return;
+      deps.setDocLastRevision(docId, blob.revision);
+      setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: blob.revision });
+    } catch (err) {
+      if (gen !== generation) return;
+      setDocStatus(docId, { kind: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  async function heartbeat(): Promise<void> {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+    let serverList: Array<{ docId: string; revision: number; updatedAt: string }>;
+    try {
+      serverList = await deps.client.list(deps.syncId);
+    } catch {
+      return; // network errors silently skip; next heartbeat retries
+    }
+
+    for (const item of serverList) {
+      const localRev = deps.getDocLastRevision(item.docId);
+      if (item.revision <= localRev) continue;
+
+      const status = docStatusFor(item.docId);
+      if (status.kind === 'idle' || status.kind === 'off') {
+        await pullDoc(item.docId, item.revision);
+      } else if (status.kind === 'pending') {
+        setDocStatus(item.docId, {
+          kind: 'conflict',
+          localRevision: localRev,
+          serverRevision: item.revision,
+        });
+      }
+      // syncing: in-flight PUT will resolve via 409
+      // conflict / error: leave alone
+    }
+  }
+
   return {
     markDirty,
     syncNow: async () => {
-      // Placeholder — E5 wires this up properly.
+      // Flush all pending debounce timers — fire push immediately for each.
+      for (const [docId, t] of debounceTimers.entries()) {
+        clearTimeout(t);
+        debounceTimers.delete(docId);
+        void pushDoc(docId, generation, 0);
+      }
+      await heartbeat();
     },
     start: () => {
-      // Placeholder — E3 starts the heartbeat here.
+      if (heartbeatTimer) return;
+      heartbeatTimer = setInterval(() => { void heartbeat(); }, HEARTBEAT_MS);
     },
     stop: () => {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
       generation++;
       for (const t of debounceTimers.values()) clearTimeout(t);
       debounceTimers.clear();
