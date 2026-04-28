@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, lazy, onCleanup, Show, Suspense } from 'solid-js';
 import { t } from '@/i18n';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import {
@@ -10,8 +10,14 @@ import {
 import { SettingsAiTab } from './SettingsAiTab';
 import { SettingsHotkeysTab } from './SettingsHotkeysTab';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
-import { SettingsSyncTab } from './SettingsSyncTab';
 import { SYNC_FEATURE } from '@/sync';
+
+// Sync UI is opt-in and pulls in the pairing modals, passphrase
+// wordlist, and strength meter. Keep it out of the eagerly-loaded
+// main chunk — the user only pays for it when they open this tab.
+const SettingsSyncTab = lazy(() =>
+  import('./SettingsSyncTab').then((m) => ({ default: m.SettingsSyncTab })),
+);
 
 interface SidebarTab {
   id: SettingsModalTab;
@@ -155,7 +161,13 @@ export const SettingsModal = () => {
                 <SettingsLanguageTab />
               </Show>
               <Show when={activeTab() === 'sync'}>
-                <SettingsSyncTab />
+                <Suspense
+                  fallback={
+                    <div class="text-xs text-stone-400">{t('common.loading')}</div>
+                  }
+                >
+                  <SettingsSyncTab />
+                </Suspense>
               </Show>
             </section>
           </div>
