@@ -23,6 +23,13 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-04-28b',
+    title: 'v0.2.1 — Privacy page',
+    items: [
+      'New Privacy page (top nav → Privacy) — plain-language breakdown of what stays in your browser, what (encrypted) leaves it via sync, what we never see, the sub-processors involved, and how to reach us at privacy@inkmirror.cc / security@inkmirror.cc. Linked from the picker footer, the editor sidebar (overflow → Privacy), and Settings → Sync too.',
+    ],
+  },
+  {
     id: '2026-04-28',
     title: "v0.2.0 — What's new tabs, word-count filter",
     items: [
@@ -46,6 +53,13 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-04-28b',
+    title: 'v0.2.1 — Adatvédelem oldal',
+    items: [
+      'Új Adatvédelem oldal (felső menü → Adatvédelem) — közérthető összefoglaló arról, mi marad a böngésződben, mi (titkosítva) kerül a szerverre szinkronizáláson keresztül, mit nem látunk soha, kik az alvállalkozók, és milyen címen érsz el minket: privacy@inkmirror.cc / security@inkmirror.cc. A dokumentum-választó láblécéből, a szerkesztő oldalsávjából (… → Adatvédelem) és a Beállítások → Szinkronizálás fülről is elérhető.',
+    ],
+  },
   {
     id: '2026-04-28',
     title: 'v0.2.0 — Újdonságok-fülek, szószám-szűrő',

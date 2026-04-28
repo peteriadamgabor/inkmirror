@@ -471,6 +471,15 @@ export const DocumentPicker = (props: Props) => {
         <div class="mt-3 text-center text-[11px] text-stone-400 dark:text-stone-500">
           {t('picker.privacyTagline')}
           <span class="mx-1.5">·</span>
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener"
+            class="underline decoration-dotted underline-offset-2 hover:text-violet-500 transition-colors"
+          >
+            {t('nav.privacy')}
+          </a>
+          <span class="mx-1.5">·</span>
           <button
             type="button"
             onClick={openFeedback}

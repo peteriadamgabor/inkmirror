@@ -436,9 +436,10 @@ export const en = {
     footer: 'InkMirror · Offline-first novel writing · Built with Solid.js + Tailwind',
   },
   nav: {
-    // Shared top-nav (landing + roadmap). Tiny sans-serif, low-contrast.
+    // Shared top-nav (landing + roadmap + privacy). Tiny sans-serif, low-contrast.
     home: 'InkMirror',
     roadmap: 'Roadmap',
+    privacy: 'Privacy',
     feedback: 'Feedback',
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
@@ -913,6 +914,7 @@ export const en = {
     off: 'Sync is off',
     on: 'Sync is on',
     description: 'Sync your manuscripts across devices, end-to-end encrypted. The server cannot read your novels — only your devices can.',
+    privacyLink: 'How is my data protected? — Privacy',
     setUp: 'Set up sync',
     addDevice: 'Add another device',
     syncNow: 'Sync now',

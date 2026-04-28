@@ -5,7 +5,7 @@ import { t } from '@/i18n';
 
 interface Props {
   /** Pathname of the active page so the matching nav item lights up. */
-  current: '/landing' | '/roadmap';
+  current: '/landing' | '/roadmap' | '/privacy';
 }
 
 /**
@@ -61,6 +61,12 @@ export const SiteNav = (props: Props) => {
             >
               {t('nav.roadmap')}
             </a>
+            <a
+              href="/privacy"
+              class={`text-xs font-sans pb-0.5 transition-colors ${linkClass(isCurrent('/privacy'))}`}
+            >
+              {t('nav.privacy')}
+            </a>
             <button
               type="button"
               onClick={() => openFeedback()}
@@ -112,6 +118,16 @@ export const SiteNav = (props: Props) => {
             }`}
           >
             {t('nav.roadmap')}
+          </a>
+          <a
+            href="/privacy"
+            class={`text-lg font-serif pb-1 border-b ${
+              isCurrent('/privacy')
+                ? 'text-violet-400 border-violet-500/60'
+                : 'text-stone-200 border-stone-800'
+            }`}
+          >
+            {t('nav.privacy')}
           </a>
           <button
             type="button"

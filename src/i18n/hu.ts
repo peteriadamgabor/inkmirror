@@ -749,6 +749,7 @@ export const hu: Messages = {
   nav: {
     home: 'InkMirror',
     roadmap: 'Útiterv',
+    privacy: 'Adatvédelem',
     feedback: 'Visszajelzés',
     openMenu: 'Menü megnyitása',
     closeMenu: 'Menü bezárása',
@@ -906,6 +907,7 @@ export const hu: Messages = {
     off: 'A szinkronizálás ki van kapcsolva',
     on: 'A szinkronizálás be van kapcsolva',
     description: 'Szinkronizáld a kéziratokat eszközeid között, végpontok között titkosítva. A szerver nem tudja elolvasni a regényeidet — csak a saját eszközeid.',
+    privacyLink: 'Hogyan védjük az adatod? — Adatvédelem',
     setUp: 'Szinkronizálás beállítása',
     addDevice: 'Másik eszköz hozzáadása',
     syncNow: 'Szinkronizálás most',

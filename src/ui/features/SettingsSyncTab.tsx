@@ -85,6 +85,20 @@ export function SettingsSyncTab() {
       <Show when={redeemOpen()}>
         <PairRedeemModal onClose={() => setRedeemOpen(false)} />
       </Show>
+
+      {/* Always-visible link to the Privacy page — sync is the moment users
+          care most about what we can/can't see, so the contextual link
+          belongs here regardless of circle state. */}
+      <div class="mt-6 pt-4 border-t border-stone-200 dark:border-stone-700 text-[11px] text-stone-400 dark:text-stone-500">
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener"
+          class="underline decoration-dotted underline-offset-2 hover:text-violet-500 transition-colors"
+        >
+          {t('sync.privacyLink')}
+        </a>
+      </div>
     </div>
   );
 }

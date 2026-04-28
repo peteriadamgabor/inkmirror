@@ -28,6 +28,11 @@ export const Sidebar = () => {
       { label: t('sidebar.settings'), onSelect: toggleSettingsModal },
       { kind: 'divider' },
       { label: t('sidebar.sendFeedback'), onSelect: openFeedback },
+      {
+        label: t('nav.privacy'),
+        // New tab so the user doesn't lose their editor state.
+        onSelect: () => window.open('/privacy', '_blank', 'noopener'),
+      },
     ];
     openContextMenuAt(e.currentTarget as HTMLElement, items, { align: 'right' });
   };
