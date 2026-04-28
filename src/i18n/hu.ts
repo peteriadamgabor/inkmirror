@@ -294,6 +294,10 @@ export const hu: Messages = {
     dialoguePct: '{{n}}% párbeszéd',
     dialogueTotal: 'párbeszéd {{d}} · narráció {{n}}',
     sessionTitle: 'Ebben a munkamenetben írt szavak',
+    filterText: 'Szöveg',
+    filterDialogue: 'Párbeszéd',
+    filterScene: 'Jelenet',
+    filterTitle: 'Mely blokktípusok számítsanak',
   },
   rightPanel: {
     storyPulse: 'Történet pulzus',

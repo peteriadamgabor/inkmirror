@@ -598,6 +598,10 @@ export const en = {
     dialoguePct: '{{n}}% dial',
     dialogueTotal: 'dialogue {{d}} · narration {{n}}',
     sessionTitle: 'Words added this session',
+    filterText: 'Text',
+    filterDialogue: 'Dialogue',
+    filterScene: 'Scene',
+    filterTitle: 'Toggle which block types are counted',
   },
   rightPanel: {
     storyPulse: 'Story pulse',
