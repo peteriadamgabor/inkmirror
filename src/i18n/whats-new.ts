@@ -23,6 +23,15 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-04-28',
+    title: "v0.2.0 — What's new tabs, word-count filter",
+    items: [
+      "What's new panel is tabbed now: each version gets its own tab so older releases stay one click away instead of scrolling forever.",
+      'Word count has a block-type filter — toggle text / dialogue / scene to focus the totals on the kind of writing you care about.',
+      'Faster first paint when sync is off: the sync settings tab loads on demand instead of riding in the main bundle.',
+    ],
+  },
+  {
     id: '2026-04-27',
     title: 'v0.1.0 — Sync, unique titles, and this panel',
     items: [
@@ -37,6 +46,15 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-04-28',
+    title: 'v0.2.0 — Újdonságok-fülek, szószám-szűrő',
+    items: [
+      'Az Újdonságok panel mostantól füles: minden verzió saját fülre kerül, így a régebbi kiadások is egy kattintásra vannak — nem kell végiggörgetni a teljes listát.',
+      'A szószám-panelben blokktípus-szűrő is van — kapcsold be vagy ki a szöveg / párbeszéd / jelenet típust, hogy az aktuálisan érdekelt írásmódra koncentrálhass.',
+      'Gyorsabb első megjelenés szinkron nélkül: a szinkron-beállítások fül csak akkor töltődik be, amikor megnyitod, nem indít a fő bundle-lel.',
+    ],
+  },
   {
     id: '2026-04-27',
     title: 'v0.1.0 — szinkronizálás, egyedi címek és ez a panel',
