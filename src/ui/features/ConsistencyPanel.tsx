@@ -3,6 +3,15 @@ import { store, setInconsistencyFlagStatus } from '@/store/document';
 import { profile, runConsistencyScan } from '@/store/ai-facade';
 import { t } from '@/i18n';
 import type { InconsistencyFlag, UUID } from '@/types';
+import {
+  getContradictionThreshold,
+  isThresholdOverridden,
+} from '@/ai/dev-threshold';
+
+async function openDevMenuLazy(): Promise<void> {
+  const mod = await import('./DevMenu');
+  mod.openDevMenu();
+}
 
 interface GroupedFlags {
   character: { id: UUID; name: string; color: string } | null;
@@ -66,15 +75,29 @@ export const ConsistencyPanel = () => {
   return (
     <Show when={visible()}>
       <div class="flex flex-col gap-2" data-testid="consistency-panel">
-        <div class="flex items-center justify-between">
-          <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
-            {t('consistency.title')}
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <div class="text-[10px] font-medium text-stone-400 inkmirror-smallcaps">
+              {t('consistency.title')}
+            </div>
+            <Show when={isThresholdOverridden()}>
+              <button
+                type="button"
+                onClick={() => void openDevMenuLazy()}
+                title={t('dev.badge.overriddenTitle')}
+                class="px-1.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700/50 text-[9px] font-mono tabular-nums text-violet-600 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors"
+              >
+                {t('dev.badge.overridden', {
+                  value: getContradictionThreshold().toFixed(2),
+                })}
+              </button>
+            </Show>
           </div>
           <button
             type="button"
             disabled={isScanning() || store.characters.length === 0}
             onClick={onRun}
-            class="text-[10px] font-medium text-violet-500 hover:text-violet-600 disabled:text-stone-400 disabled:cursor-not-allowed inkmirror-smallcaps"
+            class="text-[10px] font-medium text-violet-500 hover:text-violet-600 disabled:text-stone-400 disabled:cursor-not-allowed inkmirror-smallcaps shrink-0"
           >
             {t('consistency.runNow')}
           </button>

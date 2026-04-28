@@ -12,6 +12,15 @@ import {
 } from '@/exporters/registry';
 import { store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
+import { isDevModeEnabled } from '@/ui/shared/dev-mode';
+
+async function openDevMenuLazy(): Promise<void> {
+  // Lazy-import keeps the dev-menu chunk out of the main bundle.
+  // The promise resolves once the chunk has been parsed; the modal
+  // surfaces itself via openDevMenu().
+  const mod = await import('./DevMenu');
+  mod.openDevMenu();
+}
 
 interface Command {
   id: string;
@@ -57,6 +66,13 @@ function buildCommands(): Command[] {
       label: t('misc.exportAs', { format: exp.label }),
       hint: exp.extension,
       run: () => void runExport(exp),
+    });
+  }
+  if (isDevModeEnabled()) {
+    cmds.push({
+      id: 'dev:menu',
+      label: t('dev.menu.title'),
+      run: () => void openDevMenuLazy(),
     });
   }
   return cmds;

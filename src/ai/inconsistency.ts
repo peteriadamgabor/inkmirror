@@ -21,13 +21,36 @@ import {
 import { allVisibleBlocks } from '@/store/selectors';
 import { lang as currentLang } from '@/i18n';
 import { extractSentences, candidatePairs } from '@/engine/claim-extraction';
-import { makeFlagId, type InconsistencyFlag } from '@/types';
+import {
+  makeFlagId,
+  type InconsistencyFlag,
+  type TriggerCategory,
+} from '@/types';
 import { contentHash } from '@/utils/hash';
 import { getAiClient } from './index';
 import { getStoredProfile } from './profile';
 import { logAiError } from './errors';
+import { getContradictionThreshold } from './dev-threshold';
 
-const CONTRADICTION_THRESHOLD = 0.75;
+/**
+ * Per-pair telemetry captured by the dev-mode instrumented scan.
+ *
+ * `nliForward` / `nliReverse` carry the two-class softmax shape the
+ * worker actually returns (`{ entailment, contradiction }` — the
+ * neutral class is dropped at the worker boundary). The dev-menu
+ * histogram + tables consume this directly; production code ignores
+ * the callback entirely.
+ */
+export interface PairScoreData {
+  characterId: string;
+  blockA: { id: string; sentenceIdx: number; sentence: string };
+  blockB: { id: string; sentenceIdx: number; sentence: string };
+  sharedCategories: TriggerCategory[];
+  nliForward: { entailment: number; contradiction: number } | null;
+  nliReverse: { entailment: number; contradiction: number } | null;
+  maxContradiction: number;
+  scoreMs: number;
+}
 
 export interface ScanOptions {
   /**
@@ -37,6 +60,21 @@ export interface ScanOptions {
   onPairComplete?: (pair: number, total: number) => void;
   /** Abort signal — cancels mid-scan when flipped. */
   signal?: AbortSignal;
+  /**
+   * Dev-mode hook — called with the full NLI breakdown for every
+   * scored pair, regardless of whether the score crosses the
+   * threshold. Production code never sets this; only the dev menu's
+   * `runInstrumentedScan` does.
+   */
+  onPairScored?: (data: PairScoreData) => void;
+  /**
+   * Dev-mode escape hatch — when true, the scan completes its work
+   * (and fires `onPairScored` for every pair) but skips the final
+   * `replaceInconsistencyFlags` / `setInconsistencyFlag` writes.
+   * Lets the dev menu run repeated scans for tuning without
+   * polluting the user's flag list.
+   */
+  dryRun?: boolean;
 }
 
 let scanInFlight: Promise<void> | null = null;
@@ -101,6 +139,10 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
   const sentences = extractSentences(blocks, mentions, lang);
   const pairs = candidatePairs(sentences);
 
+  // Snapshot the threshold once at scan start so a slider change
+  // during a running scan doesn't split results across two cuts.
+  const threshold = getContradictionThreshold();
+
   setConsistencyScanProgress({ processed: 0, total: pairs.length, running: true });
 
   const emitted: InconsistencyFlag[] = [];
@@ -110,9 +152,34 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
     for (const pair of pairs) {
       if (opts.signal?.aborted) return;
       if (!stillActive()) return; // doc switched mid-scan
-      const score = await scorePair(pair.a.text, pair.b.text);
-      if (!stillActive()) return; // re-check after the await
-      if (score >= CONTRADICTION_THRESHOLD) {
+
+      // Two paths: production fast path returns the max alone;
+      // instrumented runs need the full breakdown plus timing.
+      let score: number;
+      if (opts.onPairScored) {
+        const t0 = performance.now();
+        const detailed = await scorePairDetailed(pair.a.text, pair.b.text);
+        const scoreMs = performance.now() - t0;
+        score = detailed.maxContradiction;
+        if (!stillActive()) return; // re-check after the await
+        opts.onPairScored({
+          characterId: pair.characterId,
+          blockA: { id: pair.a.blockId, sentenceIdx: pair.a.sentenceIdx, sentence: pair.a.text },
+          blockB: { id: pair.b.blockId, sentenceIdx: pair.b.sentenceIdx, sentence: pair.b.text },
+          sharedCategories: Array.from(pair.a.categories).filter((c) =>
+            pair.b.categories.has(c),
+          ) as TriggerCategory[],
+          nliForward: detailed.forward,
+          nliReverse: detailed.reverse,
+          maxContradiction: score,
+          scoreMs,
+        });
+      } else {
+        score = await scorePair(pair.a.text, pair.b.text);
+        if (!stillActive()) return; // re-check after the await
+      }
+
+      if (score >= threshold) {
         const flag = buildFlag(documentId, pair, score);
         // Respect prior dismissal for the exact same block-hash combo.
         const prior = existingDismissals.get(flag.id);
@@ -136,10 +203,13 @@ async function doScan(documentId: string, opts: ScanOptions): Promise<void> {
     }
 
     // Final guard before any store mutation: only persist if the doc
-    // we scanned is still the active one.
+    // we scanned is still the active one. Dry-run path skips writes
+    // so dev tuning doesn't pollute the user's flag list.
     if (!stillActive()) return;
-    replaceInconsistencyFlags(emitted);
-    for (const flag of emitted) setInconsistencyFlag(flag);
+    if (!opts.dryRun) {
+      replaceInconsistencyFlags(emitted);
+      for (const flag of emitted) setInconsistencyFlag(flag);
+    }
   } catch (err) {
     logAiError('inconsistency.doScan', err);
   } finally {
@@ -159,6 +229,30 @@ async function scorePair(a: string, b: string): Promise<number> {
   if (one) best = Math.max(best, one.contradiction);
   if (two) best = Math.max(best, two.contradiction);
   return best;
+}
+
+/**
+ * Like `scorePair` but keeps both NLI directions intact. Used only
+ * by the dev-mode instrumented scan — production prefers the
+ * lighter `scorePair` since it does not allocate the breakdown.
+ */
+async function scorePairDetailed(
+  a: string,
+  b: string,
+): Promise<{
+  forward: { entailment: number; contradiction: number } | null;
+  reverse: { entailment: number; contradiction: number } | null;
+  maxContradiction: number;
+}> {
+  const client = getAiClient();
+  const [forward, reverse] = await Promise.all([
+    client.nliPair(a, b).catch(() => null),
+    client.nliPair(b, a).catch(() => null),
+  ]);
+  let best = 0;
+  if (forward) best = Math.max(best, forward.contradiction);
+  if (reverse) best = Math.max(best, reverse.contradiction);
+  return { forward, reverse, maxContradiction: best };
 }
 
 function buildFlag(

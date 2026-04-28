@@ -1,4 +1,4 @@
-import { Show } from 'solid-js';
+import { lazy, Show } from 'solid-js';
 import { Sidebar } from './layout/Sidebar';
 import { Editor } from './layout/Editor';
 import { RightPanel } from './layout/RightPanel';
@@ -18,6 +18,7 @@ import { ConfirmHost } from './shared/ConfirmHost';
 import { ContextMenuHost } from './shared/ContextMenuHost';
 import { FeedbackHost } from './shared/FeedbackHost';
 import { SlashMenuHost } from './shared/SlashMenuHost';
+import { isDevModeEnabled } from './shared/dev-mode';
 import {
   uiState,
   toggleFocusMode,
@@ -27,6 +28,10 @@ import {
 import { IconChevron } from './shared/icons';
 import { t } from '@/i18n';
 import type { JSX } from 'solid-js';
+
+// Dev-mode-only — lazy so the chunk stays out of production unless
+// the user enables dev mode at module load time.
+const DevMenu = lazy(() => import('./features/DevMenu'));
 
 export const App = (props: { children?: JSX.Element }) => (
   <div
@@ -128,6 +133,9 @@ export const App = (props: { children?: JSX.Element }) => (
     <SlashMenuHost />
     <FeedbackHost />
     <ToastHost />
+    <Show when={isDevModeEnabled()}>
+      <DevMenu />
+    </Show>
     {props.children}
   </div>
 );
