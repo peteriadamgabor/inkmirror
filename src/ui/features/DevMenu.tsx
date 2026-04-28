@@ -82,7 +82,7 @@ function buildCategoryCounts(pairs: readonly PairScoreData[]): CategoryCount[] {
     .sort((a, b) => b.count - a.count);
 }
 
-export const DevMenu = () => {
+const DevMenu = () => {
   const [closing, setClosing] = createSignal(false);
   const [result, setResult] = createSignal<InstrumentedScanResult | null>(null);
   const [running, setRunning] = createSignal(false);
