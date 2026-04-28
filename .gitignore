@@ -14,7 +14,6 @@ coverage
 
 # internal design docs — kept locally, not published
 /docs/
-/0[0-9]-*.md
 
 # Playwright (E2E + MCP)
 /test-results/

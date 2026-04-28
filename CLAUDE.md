@@ -5,7 +5,7 @@ AI-assisted novel writing webapp. **Two hearts, one soul** — the writer's and 
 Production: https://inkmirror.cc
 Repo: https://github.com/peteriadamgabor/inkmirror
 
-The numbered design docs (`01-…md` → `06-…md`) are **not tracked in git** (gitignored) — they live only on the original author's machine. This file plus the README are the source of truth for anyone cloning the repo.
+This file plus the README are the source of truth. Older numbered design docs (`01-...md` → `06-...md`) predate the SurrealDB pivot and the bulk of shipped work; if you find them in `docs/archive/` on a local clone, treat them as historical context only.
 
 ## Shipped state (current)
 
