@@ -167,10 +167,6 @@ export function pushEntry(entry: UndoEntry): void {
   updateSignals();
 }
 
-export function peekUndo(): UndoEntry | null {
-  return cursor >= 0 ? entries[cursor] : null;
-}
-
 export function popUndo(): UndoEntry | null {
   // Finalize any pending content batch first so the undo entry
   // includes the most recent text.

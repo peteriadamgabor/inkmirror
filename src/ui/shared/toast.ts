@@ -21,7 +21,7 @@ export { toasts, toastHistory };
 
 let nextId = 1;
 
-export function pushToast(
+function pushToast(
   message: string,
   opts: { kind?: ToastKind; duration?: number } = {},
 ): number {

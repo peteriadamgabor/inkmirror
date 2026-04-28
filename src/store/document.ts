@@ -197,7 +197,7 @@ export function cancelPendingContentWrite(blockId: UUID): void {
   }
 }
 
-export function rescanBlockMentions(blockId: UUID): void {
+function rescanBlockMentions(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!block) return;
   if (store.characters.length === 0 || !block.content.trim()) {

@@ -22,8 +22,9 @@ export { contextMenu };
 /**
  * Open a menu anchored at the given screen coordinates. Any currently-open
  * menu is replaced — only one context menu exists at a time globally.
+ * Internal — call sites use `openContextMenuAt` instead.
  */
-export function openContextMenu(state: ContextMenuState): void {
+function openContextMenu(state: ContextMenuState): void {
   setContextMenu(state);
 }
 
