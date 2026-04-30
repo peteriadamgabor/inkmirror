@@ -23,6 +23,39 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-01b',
+    title: 'v0.4.1: Pick any color for any character',
+    items: [
+      'Character profile page now has a color picker. Choose from a curated palette tuned to read on both light and dark, or click the rainbow swatch for a free-form custom color. The choice flows everywhere: speaker pill, dialogue tint, mention dot, and the character arcs chart.',
+    ],
+  },
+  {
+    id: '2026-05-01',
+    title: 'v0.4.0: Privacy tab, announcements channel, harder encryption keys',
+    items: [
+      'New Settings → Privacy tab. Plain-language summary of what InkMirror sees, who processes data on our behalf, and a slot for future opt-in features (error reporting, telemetry) — off by default when they ship.',
+      'Announcements channel. Anonymous, pull-only — InkMirror occasionally checks for breaking changes, planned downtime, or new-feature heads-ups. Critical notices block until acknowledged; routine ones land as toasts. No identifier is sent.',
+      'Sync encryption keys are now non-extractable in memory. A compromise of the page (XSS, malicious dependency) can no longer dump your encryption key out of memory to an attacker; it can only be used in place. Storage-side hardening (wrapping the bytes still in IndexedDB) is a separate follow-up.',
+    ],
+  },
+  {
+    id: '2026-04-30b',
+    title: 'v0.3.1: Storage durability — see your quota, harden against eviction',
+    items: [
+      "New Settings → Advanced tab. Shows how much room your manuscripts and history are taking in this browser, and whether the browser may evict your data under disk pressure.",
+      "InkMirror now asks the browser for eviction protection the first time you export — exporting is the moment you signal you care about durability. With protection on, eviction needs an explicit user action (clearing browsing data, uninstalling the PWA). Some browsers grant silently; Firefox asks once. If you missed the prompt, hit Request protection in Settings → Advanced.",
+    ],
+  },
+  {
+    id: '2026-04-30',
+    title: 'v0.3.0: Stale-tab nudge, crash diagnostics, honest sync deletion',
+    items: [
+      "When a new version of InkMirror ships, the open tab now nudges you with a Reload button instead of silently caching the old code forever. Click when it's convenient — your in-flight edits stay safe.",
+      "Crash screen got a Copy diagnostic info button. Pastes a sanitised summary (build, locale, error, last document id) — no manuscript content, no character names, no titles — straight to the clipboard for the feedback form.",
+      "Disabling sync while offline no longer silently leaves your encrypted backup on the server. The deletion is queued, retried automatically when you reconnect, and the Settings → Sync panel shows you where things stand. You can also force-clear locally if you ever want out, even when the server is unreachable.",
+    ],
+  },
+  {
     id: '2026-04-28b',
     title: 'v0.2.1: Privacy page',
     items: [
@@ -53,6 +86,39 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-01b',
+    title: 'v0.4.1: Bármilyen szín, bármelyik karakterhez',
+    items: [
+      'A karakterlapon mostantól van színválasztó. Választhatsz a világos és sötét háttérre is hangolt palettáról, vagy a szivárvány-mintázatra kattintva tetszőleges egyedi színt vehetsz fel. A választás mindenhova átfut: beszélő-jelvény, párbeszéd-árnyalat, említés-pont és karakter-ívek grafikon.',
+    ],
+  },
+  {
+    id: '2026-05-01',
+    title: 'v0.4.0: Adatvédelem fül, közlemények csatorna, erősebb titkosítási kulcsok',
+    items: [
+      'Új Beállítások → Adatvédelem fül. Közérthető összefoglaló arról, mit lát az InkMirror, kik dolgoznak fel adatot a nevünkben, és egy hely a jövőbeli választható funkcióknak (hibajelentés, telemetria) — ezek alapértelmezetten kikapcsolva érkeznek.',
+      'Közlemények csatorna. Névtelen, csak letöltés irányú — az InkMirror időnként ellenőrzi, hogy van-e törésszerű változás, tervezett leállás vagy új funkció bejelentése. A kritikus közlemények addig blokkolnak, amíg tudomásul nem veszed; a rutin közlemények toastként érkeznek. Semmilyen azonosítót nem küldünk.',
+      'A szinkron titkosítási kulcsai a memóriában már nem kiolvashatók. Ha az oldal kompromittálódna (XSS, rosszindulatú függőség), a támadó nem tudja kiolvasni a titkosítási kulcsodat a memóriából; csak helyben tudja felhasználni. A háttértár-szintű erősítés (a kulcs csomagolása az IndexedDB-ben is) külön jövőbeli feladat.',
+    ],
+  },
+  {
+    id: '2026-04-30b',
+    title: 'v0.3.1: Tárhely-tudatosság — keret, foglaltság és eltávolítás-védelem',
+    items: [
+      'Új Beállítások → Speciális fül. Megmutatja, mennyi helyet foglalnak a kéziratok és az előzmények ebben a böngészőben, és hogy lemeznyomás esetén a böngésző törölheti-e az adataidat.',
+      'Az InkMirror az első exportálás alkalmával eltávolítás-védelmet kér a böngészőtől — az exportálás az a pillanat, amikor jelzed, hogy számít a tartósság. A védelem bekapcsolásával az eltávolításhoz kifejezett felhasználói művelet (böngészőadatok törlése, PWA eltávolítása) szükséges. Egyes böngészők csendben adják meg, a Firefox egyszer rákérdez. Ha lemaradtál róla, kattints a Védelem kérése gombra a Beállítások → Speciális fülön.',
+    ],
+  },
+  {
+    id: '2026-04-30',
+    title: 'v0.3.0: Frissítési értesítés, hiba-diagnosztika, őszinte szinkron-letiltás',
+    items: [
+      'Ha új verzió érkezik, a nyitva tartó lap mostantól figyelmeztet egy Újratöltés gombbal, ahelyett hogy csendben a régi kódot futtatná tovább. Akkor kattints, amikor neked alkalmas — a folyamatban lévő szerkesztések biztonságban maradnak.',
+      'A hibaképernyőre került egy „Diagnosztikai adatok másolása” gomb. Egy szűrt összegzést másol (verzió, nyelv, hiba, utolsó dokumentum azonosítója) a vágólapra — kéziratszöveg, karakternevek, dokumentumcímek nélkül —, amit egyszerűen beilleszthetsz a visszajelzésbe.',
+      'Ha offline kapcsolod ki a szinkront, az nem hagyja többé csendben a szerveren a titkosított biztonsági mentésedet. A törlés várólistára kerül, és újrapróbálkozunk, amint újra elérhetők vagyunk; a Beállítások → Szinkronizálás fül mutatja az aktuális állapotot. Akár kényszertörléssel is leállíthatod helyileg, ha a szerver nem érhető el.',
+    ],
+  },
   {
     id: '2026-04-28b',
     title: 'v0.2.1: Adatvédelem oldal',
