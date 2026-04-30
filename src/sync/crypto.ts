@@ -83,21 +83,45 @@ export interface EncryptedBlob {
 const ENC_VERSION = 1 as const;
 
 /**
+ * Import K_enc raw bytes as a non-extractable AES-GCM CryptoKey.
+ *
+ * The whole point of I1: once this key is in memory, JS cannot read its
+ * raw bytes back out (`extractable: false`). XSS that compromises the
+ * heap can still call encrypt/decrypt as long as it can reach the
+ * CryptoKey reference, but it cannot dump the key for later use or
+ * exfiltrate it to an attacker-controlled server.
+ *
+ * The bytes still exist in IndexedDB — that's the L4 problem (storage-
+ * layer wrapping), out of scope for this defensive layer.
+ */
+export async function importEncKey(rawBytes: Uint8Array): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    'raw',
+    narrowBuffer(rawBytes),
+    'AES-GCM',
+    false, // extractable: false — non-negotiable, the whole point of I1
+    ['encrypt', 'decrypt'],
+  );
+}
+
+/**
  * Encrypt a plaintext bundle for storage. AAD is bound to (syncId, docId, v)
  * so an attacker with R2 write access cannot swap blob slots — decryption
  * fails the AES-GCM auth tag.
+ *
+ * Takes a `CryptoKey` (imported via `importEncKey`) rather than raw
+ * bytes — keeping the AES key non-extractable across every call site.
  */
 export async function encryptBundle(
-  K_enc: Uint8Array,
+  K_enc: CryptoKey,
   plaintext: Uint8Array,
   syncId: string,
   docId: string,
 ): Promise<EncryptedBlob> {
   const iv = narrowBuffer(crypto.getRandomValues(new Uint8Array(12)));
   const aad = new TextEncoder().encode(`${syncId}|${docId}|v${ENC_VERSION}`);
-  const key = await crypto.subtle.importKey('raw', narrowBuffer(K_enc), 'AES-GCM', false, ['encrypt']);
   const cipher = new Uint8Array(
-    await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, narrowBuffer(plaintext)),
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, K_enc, narrowBuffer(plaintext)),
   );
   return {
     v: ENC_VERSION,
@@ -107,7 +131,7 @@ export async function encryptBundle(
 }
 
 export async function decryptBundle(
-  K_enc: Uint8Array,
+  K_enc: CryptoKey,
   blob: EncryptedBlob,
   syncId: string,
   docId: string,
@@ -118,9 +142,8 @@ export async function decryptBundle(
   const iv = narrowBuffer(fromBase64Url(blob.iv));
   const cipher = narrowBuffer(fromBase64Url(blob.ciphertext));
   const aad = new TextEncoder().encode(`${syncId}|${docId}|v${blob.v}`);
-  const key = await crypto.subtle.importKey('raw', narrowBuffer(K_enc), 'AES-GCM', false, ['decrypt']);
   const plain = new Uint8Array(
-    await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, cipher),
+    await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, K_enc, cipher),
   );
   return plain;
 }

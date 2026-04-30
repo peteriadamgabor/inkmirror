@@ -7,7 +7,14 @@ export type CircleStatus =
   | { kind: 'pairing'; paircode: string; expiresAt: number }
   // Local keystore points at a syncId the server no longer recognises (401/404
   // on auth). Surfaces a re-pair CTA in the UI; engine stops heartbeating.
-  | { kind: 'orphaned'; syncId: string };
+  | { kind: 'orphaned'; syncId: string }
+  // User asked to disable sync but the server-side DELETE didn't succeed
+  // (offline, 5xx, auth drift). Local keys are deliberately KEPT so the
+  // retry can authenticate; the engine is stopped. A background scheduler
+  // retries on `online` events + an interval until the server confirms
+  // 200/204/404, at which point keys are wiped and we transition to
+  // `unconfigured`. Survives reload via localStorage marker.
+  | { kind: 'pending_deletion'; syncId: string; since: string };
 
 export type DocSyncStatus =
   | { kind: 'off' }

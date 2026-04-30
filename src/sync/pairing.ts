@@ -3,6 +3,12 @@ import { deriveKeys, toBase64Url, fromBase64Url } from './crypto';
 import { saveKeys, wipeKeys, loadKeys } from './keystore';
 import { createSyncClient } from './client';
 import { setCircleStatus } from './state';
+import {
+  attemptDeletion,
+  clearMarker,
+  saveMarker,
+  startPendingDeletionRetry,
+} from './pending-deletion';
 
 export interface InitCircleArgs {
   db: InkMirrorDb;
@@ -75,16 +81,50 @@ export interface DestroyCircleArgs {
   baseUrl: string;
   syncId: string;
   K_auth: Uint8Array;
+  /** Used by the retry scheduler to reopen IDB on each attempt — the
+   *  initial `db` handle may be closed by the time a retry fires. */
+  reopenDb?: () => Promise<InkMirrorDb>;
 }
 
-export async function destroyCircle(args: DestroyCircleArgs): Promise<void> {
-  const client = createSyncClient({ baseUrl: args.baseUrl, K_auth: args.K_auth });
-  // Best-effort server delete: the local keystore is always wiped regardless of
-  // whether the remote call succeeds. The caller can inspect the thrown error to
-  // show a warning, but the circle is considered destroyed locally either way.
-  await client.deleteCircle(args.syncId).catch(() => {
-    /* swallow — local wipe proceeds unconditionally */
+export type DestroyCircleResult = { kind: 'completed' } | { kind: 'pending'; reason: string };
+
+/**
+ * Disable sync. Two-phase: try server DELETE first; only wipe local
+ * keys when the server confirms 2xx or 404. On any other outcome
+ * (offline, 5xx, auth drift) we record a `pending_deletion` marker so
+ * the deletion can be retried in the background — including across
+ * reloads — and only finalise the local wipe once the server agrees.
+ *
+ * This closes a privacy-promise gap: previously, an offline disable
+ * would silently leave server-side blobs behind while the user
+ * believed they had deleted them.
+ */
+export async function destroyCircle(args: DestroyCircleArgs): Promise<DestroyCircleResult> {
+  const result = await attemptDeletion({
+    baseUrl: args.baseUrl,
+    syncId: args.syncId,
+    K_auth: args.K_auth,
   });
-  await wipeKeys(args.db);
-  setCircleStatus({ kind: 'unconfigured' });
+
+  if (result.kind === 'completed') {
+    await wipeKeys(args.db);
+    clearMarker();
+    setCircleStatus({ kind: 'unconfigured' });
+    return { kind: 'completed' };
+  }
+
+  // Server didn't confirm. Keep keys, record intent, surface to the UI,
+  // and start the background retry loop so the deletion completes when
+  // the network/server cooperates.
+  const since = new Date().toISOString();
+  saveMarker({ syncId: args.syncId, since });
+  setCircleStatus({ kind: 'pending_deletion', syncId: args.syncId, since });
+  if (args.reopenDb) {
+    startPendingDeletionRetry({
+      baseUrl: args.baseUrl,
+      reopenDb: args.reopenDb,
+    });
+  }
+  return result;
 }
+

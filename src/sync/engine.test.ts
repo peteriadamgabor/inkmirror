@@ -29,7 +29,10 @@ beforeEach(() => {
   deps = {
     syncId: 'sync-id-1',
     client: client as unknown as SyncClient,
-    K_enc: crypto.getRandomValues(new Uint8Array(32)),
+    // Encrypt is stubbed below — the engine never reaches the real
+    // crypto.subtle path, so a sentinel CryptoKey-shaped value is fine
+    // here. Cast keeps the test free of slow Web Crypto setup.
+    K_enc: { type: 'secret', extractable: false } as unknown as CryptoKey,
     buildBundle: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4])),
     applyBundle: vi.fn(),
     getDocLastRevision: vi.fn().mockReturnValue(4),

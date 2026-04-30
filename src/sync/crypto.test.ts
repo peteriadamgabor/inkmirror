@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll } from 'vitest';
-import { deriveKeys, encryptBundle, decryptBundle, generatePaircode, constantTimeEqualBytes } from './crypto';
+import { deriveKeys, encryptBundle, decryptBundle, generatePaircode, constantTimeEqualBytes, importEncKey } from './crypto';
 
 // Argon2id MODERATE is ~1 s; each test with two calls ≈ 2 s + headroom
 const TIMEOUT = 20_000;
@@ -64,10 +64,10 @@ describe('crypto.deriveKeys', () => {
 });
 
 describe('crypto.encryptBundle / decryptBundle', () => {
-  let K_enc: Uint8Array;
+  let K_enc: CryptoKey;
 
   beforeAll(async () => {
-    K_enc = crypto.getRandomValues(new Uint8Array(32));
+    K_enc = await importEncKey(crypto.getRandomValues(new Uint8Array(32)));
   });
 
   const PLAINTEXT = new TextEncoder().encode(JSON.stringify({ payloadVersion: 1, blocks: [] }));
@@ -100,8 +100,17 @@ describe('crypto.encryptBundle / decryptBundle', () => {
 
   it('rejects decryption with the wrong key', async () => {
     const blob = await encryptBundle(K_enc, PLAINTEXT, 'sync-id-A', 'doc-id-X');
-    const wrongKey = crypto.getRandomValues(new Uint8Array(32));
+    const wrongKey = await importEncKey(crypto.getRandomValues(new Uint8Array(32)));
     await expect(decryptBundle(wrongKey, blob, 'sync-id-A', 'doc-id-X')).rejects.toThrow();
+  });
+
+  it('imported encryption key is non-extractable (the whole point of I1)', async () => {
+    // The CryptoKey API exposes `extractable` as a public property.
+    // If anything regresses and turns it back on, this asserts loudly.
+    expect(K_enc.extractable).toBe(false);
+    expect(K_enc.type).toBe('secret');
+    // exportKey on a non-extractable key must reject.
+    await expect(crypto.subtle.exportKey('raw', K_enc)).rejects.toThrow();
   });
 });
 

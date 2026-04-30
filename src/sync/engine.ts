@@ -12,15 +12,21 @@ const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000, 32_000];
 export interface EngineDeps {
   syncId: string;
   client: SyncClient;
-  K_enc: Uint8Array;
+  /**
+   * Non-extractable AES-GCM CryptoKey — see `importEncKey` in
+   * `./crypto.ts` for the rationale. Only encrypt/decrypt operations
+   * can be performed with this handle; the raw bytes cannot be read
+   * back out of memory.
+   */
+  K_enc: CryptoKey;
   buildBundle: (docId: string) => Promise<Uint8Array>;
   applyBundle: (docId: string, plaintext: Uint8Array) => Promise<void>;
   getDocLastRevision: (docId: string) => number;
   setDocLastRevision: (docId: string, revision: number) => void;
   /** Optional: override the encrypt step (useful in tests to avoid real crypto.subtle scheduling). */
-  encrypt?: (K_enc: Uint8Array, plaintext: Uint8Array, syncId: string, docId: string) => Promise<EncryptedBlob>;
+  encrypt?: (K_enc: CryptoKey, plaintext: Uint8Array, syncId: string, docId: string) => Promise<EncryptedBlob>;
   /** Optional: override the decrypt step (useful in tests to avoid real crypto.subtle scheduling). */
-  decrypt?: (K_enc: Uint8Array, blob: EncryptedBlob, syncId: string, docId: string) => Promise<Uint8Array>;
+  decrypt?: (K_enc: CryptoKey, blob: EncryptedBlob, syncId: string, docId: string) => Promise<Uint8Array>;
 }
 
 export type ConflictResolution = 'keepLocal' | 'pullServer' | 'saveAsCopy' | 'decideLater';

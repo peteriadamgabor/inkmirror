@@ -21,7 +21,10 @@ export type {
   IssuePaircodeArgs,
   RedeemPaircodeArgs,
   DestroyCircleArgs,
+  DestroyCircleResult,
 } from './pairing';
+
+export { forceClearLocally } from './pending-deletion';
 
 export { circleStatus, docStatusFor } from './state';
 export type { CircleStatus, DocSyncStatus } from './state';

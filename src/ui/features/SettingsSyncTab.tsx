@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
-import { circleStatus, syncNow, destroyCircle } from '@/sync';
+import { circleStatus, syncNow, destroyCircle, forceClearLocally } from '@/sync';
 import { connectDB } from '@/db/connection';
 import { loadKeys } from '@/sync/keystore';
 import * as repo from '@/db/repository';
@@ -32,8 +32,24 @@ export function SettingsSyncTab() {
       const keys = await loadKeys(db);
       db.close();
       if (!keys) return;
-      await destroyCircle({ db: await connectDB(), baseUrl: '', syncId: keys.syncId, K_auth: keys.K_auth });
-      toast.success(t('sync.off'));
+      const result = await destroyCircle({
+        db: await connectDB(),
+        baseUrl: '',
+        syncId: keys.syncId,
+        K_auth: keys.K_auth,
+        // The retry scheduler outlives a single fetch, so it must reopen
+        // its own DB handle on each attempt. The handle we just used
+        // here may be closed by then.
+        reopenDb: () => connectDB(),
+      });
+      if (result.kind === 'completed') {
+        toast.success(t('sync.off'));
+      } else {
+        // Server didn't confirm; deletion is pending. The status pill
+        // and the pending-deletion panel cover the explanation — keep
+        // the toast lightweight.
+        toast.info(t('sync.pendingDeletion.queued'));
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -79,6 +95,10 @@ export function SettingsSyncTab() {
         <OrphanedSyncPanel />
       </Show>
 
+      <Show when={circleStatus().kind === 'pending_deletion'}>
+        <PendingDeletionPanel />
+      </Show>
+
       <Show when={setupOpen()}>
         <PairingSetupModal onClose={() => setSetupOpen(false)} />
       </Show>
@@ -98,6 +118,98 @@ export function SettingsSyncTab() {
         >
           {t('sync.privacyLink')}
         </a>
+      </div>
+    </div>
+  );
+}
+
+function PendingDeletionPanel() {
+  const status = () => circleStatus();
+  const since = () => {
+    const s = status();
+    return s.kind === 'pending_deletion' ? s.since : null;
+  };
+
+  async function handleRetry() {
+    try {
+      const db = await connectDB();
+      const keys = await loadKeys(db);
+      db.close();
+      if (!keys) return;
+      const result = await destroyCircle({
+        db: await connectDB(),
+        baseUrl: '',
+        syncId: keys.syncId,
+        K_auth: keys.K_auth,
+        reopenDb: () => connectDB(),
+      });
+      if (result.kind === 'completed') {
+        toast.success(t('sync.off'));
+      } else {
+        toast.info(t('sync.pendingDeletion.stillPending'));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleForceClear() {
+    const ok = await askConfirm({
+      title: t('sync.pendingDeletion.forceClearTitle'),
+      message: t('sync.pendingDeletion.forceClearWarning'),
+      confirmLabel: t('sync.pendingDeletion.forceClearConfirm'),
+      cancelLabel: t('common.cancel'),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const db = await connectDB();
+      try {
+        await forceClearLocally(db);
+      } finally {
+        db.close();
+      }
+      toast.success(t('sync.pendingDeletion.forceClearDone'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <div>
+      <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+        {t('sync.title')}
+      </h2>
+      <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-2">
+        {t('sync.pendingDeletion.heading')}
+      </p>
+      <p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+        {t('sync.pendingDeletion.body')}
+      </p>
+      <Show when={since()}>
+        {(s) => (
+          <p class="text-[11px] text-stone-400 dark:text-stone-500 mb-4 tabular-nums">
+            {t('sync.pendingDeletion.since', {
+              ago: formatEditedTimestamp(s()),
+            })}
+          </p>
+        )}
+      </Show>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => void handleRetry()}
+          class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          {t('sync.pendingDeletion.retryNow')}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleForceClear()}
+          class="px-4 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 text-red-500 hover:border-red-300 dark:hover:border-red-700 transition-colors"
+        >
+          {t('sync.pendingDeletion.forceClear')}
+        </button>
       </div>
     </div>
   );

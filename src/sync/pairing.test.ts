@@ -8,10 +8,34 @@ import { hasKeys } from './keystore';
 import { circleStatus, setCircleStatus } from './state';
 import { SyncHttpError } from './client';
 import { toBase64Url } from './crypto';
+import { loadMarker, stopPendingDeletionRetry } from './pending-deletion';
 
 const TEST_DB = 'inkmirror-pairing-test';
 
+// Node test environment has no localStorage; pending-deletion.ts wraps
+// reads/writes in try/catch so production code degrades gracefully, but
+// the tests want to assert the marker actually persisted. Provide a
+// minimal in-memory shim so loadMarker / saveMarker work.
+function installLocalStorageShim() {
+  if (typeof globalThis.localStorage === 'undefined') {
+    const mem = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (mem.has(k) ? mem.get(k)! : null),
+      setItem: (k: string, v: string) => { mem.set(k, v); },
+      removeItem: (k: string) => { mem.delete(k); },
+      clear: () => { mem.clear(); },
+      key: (i: number) => Array.from(mem.keys())[i] ?? null,
+      get length() { return mem.size; },
+    });
+  } else {
+    try { globalThis.localStorage.removeItem('inkmirror.sync.pendingDeletion'); } catch { /* ignore */ }
+  }
+}
+
 beforeEach(async () => {
+  installLocalStorageShim();
+  stopPendingDeletionRetry();
+  try { localStorage.removeItem('inkmirror.sync.pendingDeletion'); } catch { /* ignore */ }
   await deleteDB(TEST_DB);
   setCircleStatus({ kind: 'unconfigured' });
 });
@@ -116,12 +140,11 @@ describe('redeemPaircode', () => {
 });
 
 describe('destroyCircle', () => {
-  it('deletes the circle, wipes keys, marks unconfigured', async () => {
+  it('204 → completed: wipes keys, marks unconfigured', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const db = await connectDB(TEST_DB);
-    // Pre-seed keys so we can verify they get wiped
     const { saveKeys } = await import('./keystore');
     await saveKeys(db, {
       syncId: 'sync-id-X',
@@ -131,10 +154,108 @@ describe('destroyCircle', () => {
     });
     setCircleStatus({ kind: 'active', syncId: 'sync-id-X' });
 
-    await destroyCircle({ db, baseUrl: 'http://x', syncId: 'sync-id-X', K_auth: new Uint8Array(32) });
+    const result = await destroyCircle({ db, baseUrl: 'http://x', syncId: 'sync-id-X', K_auth: new Uint8Array(32) });
 
+    expect(result.kind).toBe('completed');
     expect(await hasKeys(db)).toBe(false);
     expect(circleStatus().kind).toBe('unconfigured');
+    db.close();
+  });
+
+  it('404 → completed: server says no such circle, still wipes keys (idempotent retry)', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'not_found' }), {
+        status: 404, headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const db = await connectDB(TEST_DB);
+    const { saveKeys } = await import('./keystore');
+    await saveKeys(db, {
+      syncId: 'sync-id-X',
+      K_enc:  crypto.getRandomValues(new Uint8Array(32)),
+      K_auth: crypto.getRandomValues(new Uint8Array(32)),
+      salt:   crypto.getRandomValues(new Uint8Array(16)),
+    });
+
+    const result = await destroyCircle({ db, baseUrl: 'http://x', syncId: 'sync-id-X', K_auth: new Uint8Array(32) });
+
+    expect(result.kind).toBe('completed');
+    expect(await hasKeys(db)).toBe(false);
+    expect(circleStatus().kind).toBe('unconfigured');
+    db.close();
+  });
+
+  it('network failure → pending: keys SURVIVE, status flips to pending_deletion, marker persisted', async () => {
+    // The whole point of U1: don't wipe keys before the server confirms.
+    // Otherwise the user has lost the ability to ever authenticate the
+    // deletion if they were offline at click time.
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('NetworkError'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const db = await connectDB(TEST_DB);
+    const { saveKeys } = await import('./keystore');
+    await saveKeys(db, {
+      syncId: 'sync-id-OFFLINE',
+      K_enc:  crypto.getRandomValues(new Uint8Array(32)),
+      K_auth: crypto.getRandomValues(new Uint8Array(32)),
+      salt:   crypto.getRandomValues(new Uint8Array(16)),
+    });
+    setCircleStatus({ kind: 'active', syncId: 'sync-id-OFFLINE' });
+
+    // Note: no `reopenDb` — we test destroyCircle's contract here, not
+    // the background scheduler. The scheduler has its own tests that
+    // can manage its lifecycle without racing fake-indexeddb's deleteDB.
+    const result = await destroyCircle({
+      db,
+      baseUrl: 'http://x',
+      syncId: 'sync-id-OFFLINE',
+      K_auth: new Uint8Array(32),
+    });
+
+    expect(result.kind).toBe('pending');
+    // Keys MUST still be present so the retry can authenticate later.
+    expect(await hasKeys(db)).toBe(true);
+    // Status reflects the in-progress deletion.
+    const status = circleStatus();
+    expect(status.kind).toBe('pending_deletion');
+    if (status.kind === 'pending_deletion') {
+      expect(status.syncId).toBe('sync-id-OFFLINE');
+    }
+    // Marker persisted so the deletion survives a reload.
+    const marker = loadMarker();
+    expect(marker?.syncId).toBe('sync-id-OFFLINE');
+    db.close();
+  });
+
+  it('5xx → pending: same protective behavior as a network failure', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'oops' }), {
+        status: 503, headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const db = await connectDB(TEST_DB);
+    const { saveKeys } = await import('./keystore');
+    await saveKeys(db, {
+      syncId: 'sync-id-503',
+      K_enc:  crypto.getRandomValues(new Uint8Array(32)),
+      K_auth: crypto.getRandomValues(new Uint8Array(32)),
+      salt:   crypto.getRandomValues(new Uint8Array(16)),
+    });
+
+    const result = await destroyCircle({
+      db,
+      baseUrl: 'http://x',
+      syncId: 'sync-id-503',
+      K_auth: new Uint8Array(32),
+    });
+
+    expect(result.kind).toBe('pending');
+    expect(await hasKeys(db)).toBe(true);
+    expect(circleStatus().kind).toBe('pending_deletion');
     db.close();
   });
 });

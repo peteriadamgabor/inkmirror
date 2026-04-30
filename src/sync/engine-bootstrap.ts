@@ -8,6 +8,11 @@ import { loadKeys } from './keystore';
 import { createSyncClient } from './client';
 import { createEngine, type Engine, type ConflictResolution } from './engine';
 import { setCircleStatus } from './state';
+import {
+  clearMarker,
+  loadMarker,
+  startPendingDeletionRetry,
+} from './pending-deletion';
 
 /**
  * Compile-time kill-switch. Set to `false` to disable all sync UI and engine
@@ -38,7 +43,32 @@ export async function startSync(opts: StartSyncOptions): Promise<void> {
   const db = await connectDB();
   const keys = await loadKeys(db);
   db.close();
-  if (!keys) return;
+  if (!keys) {
+    // No keys: ensure any stale pending-deletion marker doesn't outlive
+    // a force-clear in another tab. Marker without keys is meaningless.
+    if (loadMarker()) clearMarker();
+    return;
+  }
+
+  // Pending deletion: keys still exist but the user already asked to
+  // disable. Don't start the engine — re-arm the retry loop instead so
+  // the deletion eventually completes once the server is reachable.
+  const marker = loadMarker();
+  if (marker && marker.syncId === keys.syncId) {
+    setCircleStatus({
+      kind: 'pending_deletion',
+      syncId: marker.syncId,
+      since: marker.since,
+    });
+    startPendingDeletionRetry({
+      baseUrl: opts.baseUrl,
+      reopenDb: () => connectDB(),
+    });
+    return;
+  }
+  // If the marker references a different syncId (stale from a previous
+  // pairing), drop it — keys win.
+  if (marker) clearMarker();
 
   setCircleStatus({ kind: 'active', syncId: keys.syncId });
 
