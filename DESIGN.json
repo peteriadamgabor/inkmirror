@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-29T00:00:00.000Z",
+  "title": "Design System: InkMirror",
+  "extensions": {
+    "colorMeta": {
+      "writer-violet": {
+        "role": "primary",
+        "displayName": "Writer Violet",
+        "canonical": "#7F77DD",
+        "tonalRamp": ["#0e0a2a", "#1c1547", "#2c2566", "#4a4194", "#7269ce", "#9d96e8", "#bdb8f0", "#dbd8f7"]
+      },
+      "story-orange": {
+        "role": "secondary",
+        "displayName": "Story Orange",
+        "canonical": "#D85A30",
+        "tonalRamp": ["#3a1206", "#5d1f0d", "#852f17", "#ab3e1e", "#cc4e26", "#e57250", "#ed9376", "#f4baa4"]
+      },
+      "dialogue-teal": {
+        "role": "tertiary",
+        "displayName": "Dialogue Teal",
+        "canonical": "#14b8a6",
+        "tonalRamp": ["#04211c", "#08362f", "#0d5046", "#117662", "#149f86", "#3fcdb6", "#7be0cd", "#bdf1e6"]
+      },
+      "vellum-page": {
+        "role": "neutral",
+        "displayName": "Vellum Page",
+        "canonical": "#f5f0e8",
+        "tonalRamp": ["#1c1813", "#2e281e", "#473e2d", "#6a5e44", "#8e8167", "#aea38a", "#c8c0ad", "#dfd8c8"]
+      },
+      "vellum-surface": {
+        "role": "neutral",
+        "displayName": "Vellum Surface",
+        "canonical": "#faf6f0",
+        "tonalRamp": ["#1d1a14", "#312c21", "#4a4131", "#6e6149", "#92846b", "#b2a78f", "#cbc4b1", "#e1dccc"]
+      },
+      "indigo-lamplight": {
+        "role": "neutral",
+        "displayName": "Indigo Lamplight",
+        "canonical": "#1a1723",
+        "tonalRamp": ["#1a1723", "#26222f", "#3a3447", "#4f4860", "#665d7a", "#7d7393", "#958ba9", "#aea4bf"]
+      },
+      "indigo-lamplight-surface": {
+        "role": "neutral",
+        "displayName": "Indigo Lamplight Surface",
+        "canonical": "#26222f",
+        "tonalRamp": ["#1a1723", "#26222f", "#3a3447", "#4f4860", "#665d7a", "#7d7393", "#958ba9", "#aea4bf"]
+      },
+      "note-stone": {
+        "role": "neutral",
+        "displayName": "Note Stone",
+        "canonical": "#78716c",
+        "tonalRamp": ["#1c1917", "#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1", "#e7e5e4"]
+      },
+      "ink-prose-light": {
+        "role": "neutral",
+        "displayName": "Ink Prose (Light)",
+        "canonical": "#1c1917",
+        "tonalRamp": ["#0c0a09", "#1c1917", "#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1"]
+      },
+      "ink-prose-dark": {
+        "role": "neutral",
+        "displayName": "Ink Prose (Dark)",
+        "canonical": "#fafaf9",
+        "tonalRamp": ["#1c1917", "#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1", "#fafaf9"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing hero, 404 hero, marketing section openers." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, document picker title, settings page titles." },
+      "title": { "displayName": "Title", "purpose": "Modal headers, dialog titles, panel headings." },
+      "prose": { "displayName": "Prose", "purpose": "Editor body. Old-style numerals, kerning, ligatures. The most precious type setting in the app." },
+      "body": { "displayName": "Body", "purpose": "UI sans for buttons, menus, secondary text, panel chrome." },
+      "label": { "displayName": "Label", "purpose": "Real OpenType small-caps via .inkmirror-smallcaps. Column headings, badge text, sidebar group labels." },
+      "mono": { "displayName": "Mono", "purpose": "Tabular numerals on counters, build identity, code." }
+    },
+    "shadows": [
+      { "name": "elev-1", "value": "0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.06)", "purpose": "Barest hint of lift. Sidebar hover, inline-card hover, tooltips." },
+      { "name": "elev-2", "value": "0 2px 6px rgba(28, 25, 23, 0.06), 0 4px 12px rgba(28, 25, 23, 0.08)", "purpose": "Default for floating chrome — popovers, dropdowns, command palette." },
+      { "name": "elev-3", "value": "0 12px 24px rgba(28, 25, 23, 0.12), 0 24px 48px rgba(28, 25, 23, 0.14)", "purpose": "Full floating-island lift on modals. Reads as a separate plane." },
+      { "name": "elev-1-dark", "value": "0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35)", "purpose": "Dark-mode equivalent of elev-1." },
+      { "name": "elev-2-dark", "value": "0 2px 6px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.45)", "purpose": "Dark-mode equivalent of elev-2." },
+      { "name": "elev-3-dark", "value": "0 12px 24px rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.55)", "purpose": "Dark-mode equivalent of elev-3." },
+      { "name": "violet-glow-cta", "value": "0 10px 15px -3px rgba(127, 119, 221, 0.25), 0 4px 6px -4px rgba(127, 119, 221, 0.25)", "purpose": "Colored shadow under primary CTAs (writer-violet @ 25%). The only place colored shadows are used." }
+    ],
+    "motion": [
+      { "name": "ease-block-enter", "value": "cubic-bezier(0.25, 0.8, 0.25, 1)", "purpose": "Block-enter (180ms). Fresh blocks ease in with a 4px upward slide." },
+      { "name": "ease-modal-panel", "value": "cubic-bezier(0.2, 0.9, 0.3, 1)", "purpose": "Modal panel enter (180ms). Scale 0.96 → 1.0, opacity 0 → 1." },
+      { "name": "ease-modal-exit", "value": "cubic-bezier(0.4, 0, 0.8, 0.4)", "purpose": "Modal panel exit (160ms). Mirror of enter." },
+      { "name": "ease-out", "value": "ease-out", "purpose": "Default for fades and flashes (modal backdrop 140ms, block-move-flash 350ms, search-flash 1100ms)." },
+      { "name": "ease-mirror-breath", "value": "ease-in-out", "purpose": "Mirror-breath (6s infinite). Subliminal scale + opacity oscillation on landing reflection." },
+      { "name": "duration-fast", "value": "140ms", "purpose": "Modal backdrop fade, block chrome opacity transition." },
+      { "name": "duration-base", "value": "180ms", "purpose": "Block enter, modal panel enter — the canonical mid-duration." },
+      { "name": "duration-ecg", "value": "600ms", "purpose": "ECG draw-in left-to-right mask sweep on first render." },
+      { "name": "duration-flash", "value": "350ms", "purpose": "Block-move and chapter-switch acknowledgment flash." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary CTA",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The hero CTA on the landing page and document picker. Violet-fill, colored shadow, the one decisive 'yes' per surface.",
+      "html": "<a href=\"#\" class=\"ds-cta-primary\">Open InkMirror</a>",
+      "css": ".ds-cta-primary { display: inline-block; padding: 12px 32px; background: #7F77DD; color: #ffffff; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 1.125rem; font-weight: 500; line-height: 1.4; text-decoration: none; border: none; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(127,119,221,0.25), 0 4px 6px -4px rgba(127,119,221,0.25); transition: background 200ms ease-out; cursor: pointer; } .ds-cta-primary:hover { background: #9d96e8; } .ds-cta-primary:focus-visible { outline: 2px solid rgba(127,119,221,0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "The default for non-primary actions. Stone-neutral border + text, violet on hover. Reach for this 90% of the time before considering the primary fill.",
+      "html": "<button class=\"ds-btn-ghost\">Settings</button>",
+      "css": ".ds-btn-ghost { padding: 4px 12px; background: transparent; color: #78716c; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 400; line-height: 1.5; border: 1px solid rgba(120,113,108,0.18); border-radius: 8px; transition: color 150ms ease-out, border-color 150ms ease-out; cursor: pointer; } .ds-btn-ghost:hover { color: #7F77DD; border-color: #7F77DD; } .ds-btn-ghost:focus-visible { outline: 2px solid rgba(127,119,221,0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Modal Panel",
+      "kind": "card",
+      "refersTo": "modal-panel",
+      "description": "A floating-island slab. Vellum surface, rounded-2xl corners, soft 3-tier shadow, paired enter/exit animation.",
+      "html": "<div class=\"ds-modal-panel\"><header class=\"ds-modal-header\"><h2>Settings</h2><button class=\"ds-modal-close\" aria-label=\"Close\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M18 6L6 18M6 6l12 12\"/></svg></button></header><div class=\"ds-modal-body\">Modal content sits here.</div></div>",
+      "css": ".ds-modal-panel { width: 480px; max-width: 92vw; background: #faf6f0; color: #1c1917; border: 1px solid rgba(120,113,108,0.22); border-radius: 16px; box-shadow: 0 12px 24px rgba(28,25,23,0.12), 0 24px 48px rgba(28,25,23,0.14); overflow: hidden; } .ds-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid rgba(120,113,108,0.18); } .ds-modal-header h2 { margin: 0; font-family: ui-serif, Georgia, serif; font-size: 1.125rem; font-weight: 400; line-height: 1.4; } .ds-modal-close { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: #a8a29e; border: none; border-radius: 6px; transition: color 150ms ease-out, background 150ms ease-out; cursor: pointer; } .ds-modal-close:hover { color: #1c1917; background: rgba(120,113,108,0.1); } .ds-modal-body { padding: 24px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.5; }"
+    },
+    {
+      "name": "Block Container",
+      "kind": "custom",
+      "refersTo": "block-container",
+      "description": "The signature editor block. Quiet chrome dims to 25% at rest and resolves on hover. Prose stays full-opacity always.",
+      "html": "<article class=\"ds-block\" tabindex=\"0\"><header class=\"ds-block-chrome\"><span class=\"ds-block-label\">Text</span></header><p class=\"ds-block-prose\" contenteditable=\"true\" suppresshydrationwarning>The room held its breath, as if the walls themselves were listening.</p></article>",
+      "css": ".ds-block { padding: 6px 0; } .ds-block-chrome { padding: 0 14px 4px; opacity: 0.25; transition: opacity 150ms ease-out; } .ds-block:hover .ds-block-chrome, .ds-block:focus-within .ds-block-chrome { opacity: 1; } .ds-block-label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; color: #7F77DD; font-variant-caps: all-small-caps; font-feature-settings: 'smcp' 1, 'c2sc' 1; text-transform: uppercase; letter-spacing: 0.08em; } .ds-block-prose { margin: 0; padding: 10px 14px; background: transparent; color: #1c1917; font-family: ui-serif, Georgia, Cambria, serif; font-size: 1rem; line-height: 1.65; font-feature-settings: 'kern' 1, 'liga' 1, 'onum' 1; border-radius: 12px; outline: none; } .ds-block-prose:focus-visible { outline: 2px solid rgba(127,119,221,0.6); outline-offset: 1px; }"
+    },
+    {
+      "name": "Scene Block (signature)",
+      "kind": "custom",
+      "refersTo": "block-container",
+      "description": "Scene-block variant — the one place a side-stripe accent is allowed in the system. Story Orange marker at 40% opacity flags the block-taxonomy distinction without shouting.",
+      "html": "<article class=\"ds-block-scene\" tabindex=\"0\"><header class=\"ds-block-chrome\"><span class=\"ds-block-label-scene\">Scene</span><span class=\"ds-scene-meta\">Library &middot; Dusk &middot; Mara, James</span></header><p class=\"ds-scene-prose\" contenteditable=\"true\" suppresshydrationwarning>A long oak table, lit only by the lamp Mara had switched on without thinking.</p></article>",
+      "css": ".ds-block-scene { padding: 6px 0; } .ds-block-scene .ds-block-chrome { display: flex; gap: 12px; align-items: baseline; padding: 0 14px 4px; opacity: 0.25; transition: opacity 150ms ease-out; } .ds-block-scene:hover .ds-block-chrome, .ds-block-scene:focus-within .ds-block-chrome { opacity: 1; } .ds-block-label-scene { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; color: #D85A30; font-variant-caps: all-small-caps; font-feature-settings: 'smcp' 1, 'c2sc' 1; text-transform: uppercase; letter-spacing: 0.08em; } .ds-scene-meta { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.6875rem; color: #78716c; font-variant-caps: all-small-caps; font-feature-settings: 'smcp' 1, 'c2sc' 1; text-transform: uppercase; letter-spacing: 0.06em; } .ds-scene-prose { margin: 0; padding: 10px 14px; padding-left: 14px; background: transparent; color: #1c1917; font-family: ui-serif, Georgia, Cambria, serif; font-size: 1rem; line-height: 1.65; font-feature-settings: 'kern' 1, 'liga' 1, 'onum' 1; border-left: 2px solid rgba(216,90,48,0.4); border-radius: 0; outline: none; } .ds-scene-prose:focus-visible { outline: 2px solid rgba(127,119,221,0.6); outline-offset: 1px; }"
+    },
+    {
+      "name": "Inline Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Almost no chrome. Bottom border only, serif text, comes to life under the focus ring.",
+      "html": "<label class=\"ds-input-row\"><span class=\"ds-input-label\">Document title</span><input type=\"text\" class=\"ds-input-text\" placeholder=\"Untitled manuscript\" /></label>",
+      "css": ".ds-input-row { display: flex; flex-direction: column; gap: 6px; } .ds-input-label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; color: #78716c; font-variant-caps: all-small-caps; font-feature-settings: 'smcp' 1, 'c2sc' 1; text-transform: uppercase; letter-spacing: 0.08em; } .ds-input-text { padding: 4px 0; background: transparent; color: #1c1917; font-family: ui-serif, Georgia, Cambria, serif; font-size: 1rem; line-height: 1.4; border: none; border-bottom: 1px solid rgba(127,119,221,0.4); border-radius: 0; outline: none; transition: border-color 150ms ease-out; } .ds-input-text:focus { border-bottom-color: #7F77DD; } .ds-input-text:focus-visible { outline: 2px solid rgba(127,119,221,0.6); outline-offset: 1px; border-radius: 6px; }"
+    },
+    {
+      "name": "Settings Tab (active)",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Sidebar tab in the settings modal. Resting state is silent; active state uses the violet tint that's the universal 'selected' cue across the app.",
+      "html": "<nav class=\"ds-settings-nav\"><button class=\"ds-settings-tab ds-settings-tab--active\">Typeface</button><button class=\"ds-settings-tab\">AI Profile</button><button class=\"ds-settings-tab\">Sync</button><button class=\"ds-settings-tab\">Hotkeys</button></nav>",
+      "css": ".ds-settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 12px; background: #f5f0e8; border-right: 1px solid rgba(120,113,108,0.18); } .ds-settings-tab { padding: 8px 12px; background: transparent; color: #44403c; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; line-height: 1.4; text-align: left; border: none; border-radius: 8px; transition: background 150ms ease-out, color 150ms ease-out; cursor: pointer; } .ds-settings-tab:hover { background: rgba(120,113,108,0.08); } .ds-settings-tab--active { background: rgba(127,119,221,0.1); color: #4a4194; font-weight: 600; } .ds-settings-tab:focus-visible { outline: 2px solid rgba(127,119,221,0.7); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Two-Heart Mirror",
+    "overview": "InkMirror is built on a single image: two hearts and a mirror. The writer's heart is violet (#7F77DD). The story's heart is orange (#D85A30). The surface between them — paper, screen, glass, prose — is the mirror, and the app's job is to hold that mirror steady. Every visible decision serves this metaphor: the warm cream pages let the violet feel like ink-on-vellum, the dark mode reads as a desk lamp at midnight (not a terminal), and the only literal animation in the marketing surface is a serif word breathing in its own reflection. The visual register is two surfaces, one soul: the editor (light vellum, calm, almost no chrome) and the public landing (deep Indigo Lamplight, dramatic serif, mirror reflection). They are register-different but soul-identical.",
+    "keyCharacteristics": [
+      "Editorial serif everywhere prose appears; system sans only for chrome.",
+      "Two hot colors in the entire system — violet (writer) and orange (story) — used only when the writer↔story connection is what the surface is about.",
+      "Warm-shifted neutrals: Vellum (cream) light, Indigo Lamplight (warm violet-stone) dark. No #fff, no #000.",
+      "Three-tier soft elevation that never goes opaque-black, even in dark mode.",
+      "Quiet by default: block chrome resolves to 25% opacity until hover/focus.",
+      "Real OpenType small-caps and old-style numerals in prose; tabular numerals on every counter.",
+      "Motion is small, fast (140-180ms), and exponential — except mirror-breath, which is 6s and meant to be subliminal."
+    ],
+    "rules": [
+      { "name": "The Two Hot Colors Rule", "body": "Writer Violet and Story Orange are the only two saturated colors in the entire chrome. If you find yourself reaching for a third (red for danger, green for success, blue for info), use a stone-toned neutral plus an icon or copy first. Add a third hot color only with explicit justification.", "section": "colors" },
+      { "name": "The Warm Neutral Rule", "body": "No #fff, no #000, no raw Tailwind stone-* on a top-level surface in light or dark mode. The CSS layer in src/index.css rewrites bg-stone-100 / bg-white / bg-stone-900 / bg-stone-800 to the Vellum and Indigo Lamplight values.", "section": "colors" },
+      { "name": "The Feature-Color-At-Feature-Surface Rule", "body": "A color appears at the surface that owns the feature, not as decoration elsewhere. Story Orange marks scene blocks because scenes ARE story. Writer Violet marks focus and selection because focus IS the writer's attention.", "section": "colors" },
+      { "name": "The Old-Style-In-Prose Rule", "body": "Numerals inside [data-editable] (the prose surface) use old-style proportional figures ('onum' 1). Numerals on counters and dashboards use tabular figures ('tnum' 1). Never mix the two on the same surface.", "section": "typography" },
+      { "name": "The Real-Small-Caps Rule", "body": "Use .inkmirror-smallcaps instead of CSS text-transform: uppercase for any label that reads as a heading or category. The class falls back to synthetic uppercase on faces without 'smcp', but where the face supports it, you get real small-caps.", "section": "typography" },
+      { "name": "The Serif-For-Prose-Sans-For-Chrome Rule", "body": "If text is something the user wrote (or the AI is reflecting back about something the user wrote), it's serif. If text is interface (buttons, menus, settings labels), it's sans. The contrast is the system.", "section": "typography" },
+      { "name": "The Stone-Tinted-Shadows Rule", "body": "Every shadow value is rgba(28, 25, 23, ...) in light mode (warm stone tint, never neutral grey) and rgba(0, 0, 0, ...) in dark mode (true black, higher opacity).", "section": "elevation" },
+      { "name": "The Earned-Elevation Rule", "body": "A surface earns elevation only if it floats above the page in a real spatial sense — modal, dropdown, command palette, popover. Do not put --elev-2 on an inline card to 'make it pop.' Inline surfaces use border + background tone, not shadow.", "section": "elevation" },
+      { "name": "The Functional-Marker Exception", "body": "Scene blocks have a 2px Story Orange left border at 40% opacity. This sits close to the absolute-ban side-stripe accent pattern, but is deliberately exempt because it is a block-taxonomy marker (not a card-accent decoration), uses the second hot color at the surface that owns scene-ness, and is quiet enough to scan past. Do not extend this pattern to other components.", "section": "components" }
+    ],
+    "dos": [
+      "Do route every neutral background through Vellum / Indigo Lamplight. The CSS layer in src/index.css already rewrites bg-stone-100, bg-white, bg-stone-900, bg-stone-800 — trust that, don't bypass with hardcoded #fff.",
+      "Do use .inkmirror-smallcaps for category labels and badge text. Real OpenType small-caps with letter-spacing 0.08em, weight 500. Never raw text-transform: uppercase.",
+      "Do put tabular-nums on every counter (word count, reading time, character count, build identity footer). Old-style numerals (onum) only inside [data-editable].",
+      "Do use Writer Violet for focus, selection, drag-targets, primary CTAs, search-match. Use Story Orange for scene markers and the heatmap warm pole. That is the entire authorized palette outside neutrals.",
+      "Do pair @keyframes with a prefers-reduced-motion: reduce 'animation: none !important' override. Every single one. No exceptions.",
+      "Do use rounded-2xl (16px) for floating-island surfaces (modals, document picker, feature cards), rounded-md/rounded-lg (8-12px) for inline buttons and inputs.",
+      "Do lead with a ghost button (border + stone text → violet hover) for any non-primary action. Reserve the violet-fill primary for the one decisive CTA per surface.",
+      "Do start every motion at 140-180ms and let it ease out exponentially. Mirror-breath at 6s is the only long-duration exception."
+    ],
+    "donts": [
+      "Don't use indigo-to-purple gradients, hero-metric cards, glassmorphism, 'Built with [logo] [logo]' trust strips, or any other AI-startup-landing-page cliché. InkMirror's anti-references include Linear/Vercel-style aesthetics by name.",
+      "Don't add 'Continue writing', 'Generate', 'Improve', or any other generative-AI button into the editor surface. The AI reads, never writes. Every Sudowrite/Novelcrafter pattern is forbidden.",
+      "Don't introduce a third hot color. Red for danger, green for success, blue for info — use stone neutrals plus an icon or copy first.",
+      "Don't use side-stripe border-left/border-right greater than 1px as a colored card accent. The one exception: scene blocks (see The Functional-Marker Exception). Do not extend the pattern to other components.",
+      "Don't use gradient text (background-clip: text + gradient bg). Decorative, never meaningful.",
+      "Don't use glassmorphism as decoration. Backdrop blur is allowed only as a modal scrim; never on inline cards or popovers.",
+      "Don't put --elev-2 or deeper on an inline card to 'make it pop.' If a surface doesn't float, it doesn't get a shadow.",
+      "Don't hardcode English in JSX. Every user-facing string routes through t() from src/i18n.",
+      "Don't apply .inkmirror-mirror-breath to readable text. The class includes scaleY(-1). Reflections only.",
+      "Don't open modals as a first thought. Inline editing, popovers, slide-in panels first.",
+      "Don't nest cards. A card inside a card is always wrong in this system."
+    ]
+  }
+}

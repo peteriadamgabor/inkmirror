@@ -175,3 +175,12 @@ The build identity (`__APP_COMMIT__`, `__APP_BUILT_AT__`) updates automatically 
 ## If you get stuck
 
 Ask, don't guess — code written on wrong assumptions is more expensive than a clarifying question.
+
+## Design context (PRODUCT.md / DESIGN.md)
+
+Two project-root files carry the design contract for AI agents and the [`impeccable`](https://github.com/pbakaus/impeccable) skill:
+
+- **`PRODUCT.md`** — strategic: register (`product`), users, purpose, brand personality (*intimate, literary, observant*), anti-references, design principles (mirror not pen, two hearts one soul, quiet by default, premium craft, novel-stays-local), accessibility (WCAG AA + colorblind-safe + reduced-motion).
+- **`DESIGN.md`** — visual system: tokens, typography, elevation, components, do's/don'ts. Generated from `src/index.css` + Tailwind config. Refresh via `/impeccable document` when the visual system drifts.
+
+These supplement, never replace, the rules above. If they conflict, this file wins.

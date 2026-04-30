@@ -61,6 +61,8 @@ export const MoodHeatmap = () => {
                   type="button"
                   onClick={() => setActiveChapter(s.id)}
                   title={tooltip()}
+                  aria-label={tooltip()}
+                  aria-current={isActive() ? 'true' : undefined}
                   style={{
                     width: `${widthPct}%`,
                     'background-color': s.color,

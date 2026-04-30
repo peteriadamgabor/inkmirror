@@ -88,7 +88,7 @@ export const StoryPulseEcg = () => {
       when={bars().length > 0}
       fallback={
         <div
-          class="inkmirror-ecg px-4 py-2 text-[10px] uppercase tracking-wider text-stone-400 border-b border-stone-200 dark:border-stone-700"
+          class="inkmirror-ecg px-4 py-2 text-[10px] inkmirror-smallcaps text-stone-400 border-b border-stone-200 dark:border-stone-700"
           style={{ height: `${STRIP_HEIGHT}px` }}
         >
           story pulse
@@ -100,7 +100,7 @@ export const StoryPulseEcg = () => {
         classList={{ 'inkmirror-ecg-drawing': drawing() }}
         style={{ height: `${STRIP_HEIGHT}px` }}
       >
-        <div class="text-[9px] uppercase tracking-wider text-stone-400 shrink-0 select-none">
+        <div class="text-[9px] inkmirror-smallcaps text-stone-400 shrink-0 select-none">
           pulse
         </div>
         <svg

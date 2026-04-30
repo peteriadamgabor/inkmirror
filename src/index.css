@@ -13,6 +13,11 @@ html, body, #root {
  * land instead of each author inventing their own.
  * =========================================================== */
 :root {
+  /* The two hot colors. Use these from JS/TS instead of typing #7F77DD or
+     #D85A30 inline. Matches DESIGN.md Two Hot Colors Rule. */
+  --writer-violet: #7F77DD;
+  --story-orange: #D85A30;
+
   /* Elevation: 3-tier soft-shadow scale. */
   --elev-1: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.06);
   --elev-2: 0 2px 6px rgba(28, 25, 23, 0.06), 0 4px 12px rgba(28, 25, 23, 0.08);
@@ -379,7 +384,7 @@ select:focus-visible {
   left: 0;
   right: 0;
   height: 2px;
-  background: #7F77DD;
+  background: var(--writer-violet);
   border-radius: 1px;
   pointer-events: none;
 }

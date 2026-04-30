@@ -5,19 +5,22 @@ import { t } from '@/i18n';
 
 interface KindDoc {
   keyPrefix: 'standard' | 'cover' | 'dedication' | 'epigraph' | 'acknowledgments' | 'afterword';
-  accent: string;
+  /** Just the text color. Border is the shared neutral so the cards
+   *  stop reading as a six-color palette in chrome. The glyph + name
+   *  keep their hue so the taxonomy is still visually distinct. */
+  glyphColor: string;
   glyph: string;
   useForCount: number;
   noteCount: number;
 }
 
 const DOCS: KindDoc[] = [
-  { keyPrefix: 'standard',        accent: 'text-violet-500 border-violet-500/30',  glyph: '§', useForCount: 3, noteCount: 3 },
-  { keyPrefix: 'cover',           accent: 'text-orange-600 border-orange-500/30',  glyph: '◆', useForCount: 3, noteCount: 4 },
-  { keyPrefix: 'dedication',      accent: 'text-rose-500 border-rose-500/30',      glyph: '♡', useForCount: 3, noteCount: 4 },
-  { keyPrefix: 'epigraph',        accent: 'text-teal-600 border-teal-500/30',      glyph: '“', useForCount: 3, noteCount: 4 },
-  { keyPrefix: 'acknowledgments', accent: 'text-emerald-500 border-emerald-500/30', glyph: '✦', useForCount: 3, noteCount: 3 },
-  { keyPrefix: 'afterword',       accent: 'text-sky-500 border-sky-500/30',        glyph: '·', useForCount: 3, noteCount: 3 },
+  { keyPrefix: 'standard',        glyphColor: 'text-violet-500',  glyph: '§', useForCount: 3, noteCount: 3 },
+  { keyPrefix: 'cover',           glyphColor: 'text-orange-600',  glyph: '◆', useForCount: 3, noteCount: 4 },
+  { keyPrefix: 'dedication',      glyphColor: 'text-rose-500',    glyph: '♡', useForCount: 3, noteCount: 4 },
+  { keyPrefix: 'epigraph',        glyphColor: 'text-teal-600',    glyph: '“', useForCount: 3, noteCount: 4 },
+  { keyPrefix: 'acknowledgments', glyphColor: 'text-emerald-500', glyph: '✦', useForCount: 3, noteCount: 3 },
+  { keyPrefix: 'afterword',       glyphColor: 'text-sky-500',     glyph: '·', useForCount: 3, noteCount: 3 },
 ];
 
 // Sentinel tokens we inject into the translated intro so we can split
@@ -67,9 +70,9 @@ export const ChapterTypesHelp = () => (
             <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
               {t('chapterTypesHelp.header')}
             </div>
-            <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
+            <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">
               {t('chapterTypesHelp.title')}
-            </div>
+            </h2>
           </div>
           <button
             type="button"
@@ -103,11 +106,11 @@ export const ChapterTypesHelp = () => (
 
           <For each={DOCS}>
             {(doc) => (
-              <div class={`rounded-xl border p-4 ${doc.accent}`}>
+              <div class="rounded-xl border border-stone-200 dark:border-stone-700 p-4">
                 <div class="flex items-baseline gap-3 mb-2">
-                  <span class="font-serif text-2xl">{doc.glyph}</span>
+                  <span class={`font-serif text-2xl ${doc.glyphColor}`}>{doc.glyph}</span>
                   <div>
-                    <div class="text-[10px] tracking-wider font-medium inkmirror-smallcaps">
+                    <div class={`text-[10px] tracking-wider font-medium inkmirror-smallcaps ${doc.glyphColor}`}>
                       {t(`chapterTypesHelp.${doc.keyPrefix}.name`)}
                     </div>
                     <div class="font-serif text-base text-stone-800 dark:text-stone-100">

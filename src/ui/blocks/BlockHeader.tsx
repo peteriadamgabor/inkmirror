@@ -32,7 +32,7 @@ const TYPE_META: Record<Block['type'], { labelKey: string; className: string; hi
   text:     { labelKey: 'block.types.text',     className: 'text-violet-500', hintKey: 'block.hints.text' },
   dialogue: { labelKey: 'block.types.dialogue', className: 'text-teal-600',   hintKey: 'block.hints.dialogue' },
   scene:    { labelKey: 'block.types.scene',    className: 'text-orange-600', hintKey: 'block.hints.scene' },
-  note:     { labelKey: 'block.types.note',     className: 'text-stone-400',  hintKey: 'block.hints.note' },
+  note:     { labelKey: 'block.types.note',     className: 'text-stone-400 dark:text-stone-300',  hintKey: 'block.hints.note' },
 };
 
 interface Props {
@@ -226,7 +226,7 @@ export const BlockHeader = (props: Props) => {
       <button
         type="button"
         onClick={openTypeQuickMenu}
-        class={`text-[10px] uppercase tracking-wider font-medium cursor-pointer hover:underline ${meta().className}`}
+        class={`text-[10px] inkmirror-smallcaps cursor-pointer hover:underline ${meta().className}`}
         title={`${meta().hint} (${t('block.changeType')})`}
       >
         {meta().label}
@@ -264,13 +264,14 @@ export const BlockHeader = (props: Props) => {
           onInput={(e) => updateDialogueParenthetical(props.block.id, e.currentTarget.value)}
           onMouseDown={(e) => e.stopPropagation()}
           placeholder={`(${t('block.parenthetical')})`}
+          aria-label={t('block.parenthetical')}
           class="bg-transparent outline-none text-[10px] italic text-stone-500 dark:text-stone-400 placeholder-stone-300 dark:placeholder-stone-600 border-b border-transparent focus:border-teal-500 w-[110px] py-0.5"
           title={t('misc.parentheticalHelp')}
         />
       </Show>
       <Show when={sentiment()}>
         <span
-          class={`text-[10px] uppercase tracking-wider font-medium ${
+          class={`text-[10px] inkmirror-smallcaps ${
             SENTIMENT_COLORS[sentiment()!.label] ?? 'text-stone-400'
           }`}
         >
@@ -292,16 +293,18 @@ export const BlockHeader = (props: Props) => {
                 '--tw-ring-color': c.color,
               }}
               title={c.name}
+              aria-label={c.name}
               data-mention-character-id={c.id}
             />
           ))}
         </span>
       </Show>
-      <span class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
+      <span class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 focus-within:opacity-100 transition-opacity">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); const id = createBlockAfter(props.block.id, 'text'); focusBlock(id, 'start'); }}
           title={t('block.insertBelow')}
+          aria-label={t('block.insertBelow')}
           class="text-stone-400 hover:text-violet-500 px-0.5 leading-none"
         >
           <IconPlus size={13} />
@@ -321,6 +324,7 @@ export const BlockHeader = (props: Props) => {
             })();
           }}
           title={t('block.deleteBlock')}
+          aria-label={t('block.deleteBlock')}
           class="text-stone-400 hover:text-red-500 px-0.5 leading-none"
         >
           <IconTrash size={13} />

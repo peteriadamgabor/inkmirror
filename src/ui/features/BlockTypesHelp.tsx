@@ -5,17 +5,19 @@ import { t } from '@/i18n';
 
 interface TypeDoc {
   keyPrefix: 'text' | 'dialogue' | 'scene' | 'note';
-  accent: string;
+  /** Color sits on the glyph + name only. Card border is the shared
+   *  neutral so the help-card grid stops reading as four-color chrome. */
+  iconColor: string;
   icon: string;
   useForCount: number;
   noteCount: number;
 }
 
 const DOCS: TypeDoc[] = [
-  { keyPrefix: 'text',     accent: 'text-violet-500 border-violet-500/30', icon: '¶',  useForCount: 3, noteCount: 3 },
-  { keyPrefix: 'dialogue', accent: 'text-teal-600 border-teal-500/30',     icon: '“”', useForCount: 2, noteCount: 5 },
-  { keyPrefix: 'scene',    accent: 'text-orange-600 border-orange-500/30', icon: '◇',  useForCount: 3, noteCount: 4 },
-  { keyPrefix: 'note',     accent: 'text-stone-400 border-stone-400/30',   icon: '★',  useForCount: 4, noteCount: 4 },
+  { keyPrefix: 'text',     iconColor: 'text-violet-500', icon: '¶',  useForCount: 3, noteCount: 3 },
+  { keyPrefix: 'dialogue', iconColor: 'text-teal-600',   icon: '“”', useForCount: 2, noteCount: 5 },
+  { keyPrefix: 'scene',    iconColor: 'text-orange-600', icon: '◇',  useForCount: 3, noteCount: 4 },
+  { keyPrefix: 'note',     iconColor: 'text-stone-400',  icon: '★',  useForCount: 4, noteCount: 4 },
 ];
 
 // Sentinel used to splice the animated/styled <code> element back into
@@ -31,12 +33,12 @@ export const BlockTypesHelp = () => (
       >
         <div class="flex items-center justify-between px-5 py-3 border-b border-stone-200 dark:border-stone-700">
           <div>
-            <div class="text-[10px] uppercase tracking-wider text-stone-400">
+            <div class="text-[10px] inkmirror-smallcaps text-stone-400">
               {t('blockTypesHelp.header')}
             </div>
-            <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
+            <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">
               {t('blockTypesHelp.title')}
-            </div>
+            </h2>
           </div>
           <button
             type="button"
@@ -72,11 +74,11 @@ export const BlockTypesHelp = () => (
                 t(`blockTypesHelp.${doc.keyPrefix}.note${i + 1}`),
               );
               return (
-                <div class={`rounded-xl border p-4 ${doc.accent}`}>
+                <div class="rounded-xl border border-stone-200 dark:border-stone-700 p-4">
                   <div class="flex items-baseline gap-3 mb-2">
-                    <span class="font-serif text-2xl">{doc.icon}</span>
+                    <span class={`font-serif text-2xl ${doc.iconColor}`}>{doc.icon}</span>
                     <div>
-                      <div class="text-[10px] uppercase tracking-wider font-medium">
+                      <div class={`text-[10px] inkmirror-smallcaps ${doc.iconColor}`}>
                         {t(`blockTypesHelp.${doc.keyPrefix}.name`)}
                       </div>
                       <div class="font-serif text-base text-stone-800 dark:text-stone-100">
@@ -85,7 +87,7 @@ export const BlockTypesHelp = () => (
                     </div>
                   </div>
                   <div class="mt-3">
-                    <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">
+                    <div class="text-[10px] inkmirror-smallcaps text-stone-400 mb-1">
                       {t('blockTypesHelp.useForLabel')}
                     </div>
                     <ul class="text-xs text-stone-700 dark:text-stone-300 list-disc pl-5 space-y-0.5">
@@ -93,7 +95,7 @@ export const BlockTypesHelp = () => (
                     </ul>
                   </div>
                   <div class="mt-3">
-                    <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">
+                    <div class="text-[10px] inkmirror-smallcaps text-stone-400 mb-1">
                       {t('blockTypesHelp.howItBehavesLabel')}
                     </div>
                     <ul class="text-xs text-stone-600 dark:text-stone-400 list-disc pl-5 space-y-0.5">

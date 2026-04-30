@@ -11,21 +11,39 @@ interface Props {
 /**
  * Shared top bar for the public surface of the app (landing + roadmap).
  * Transparent until the user scrolls past the hero, then picks up a
- * subtle backdrop-blur and a faint violet mirror-line under it.
+ * solid translucent stone wash and a faint violet mirror-line under it.
  *
- * Why shared: landing and roadmap should feel like one product — the
+ * Why shared: landing and roadmap should feel like one product. The
  * nav is the thread that holds them together visually.
+ *
+ * Why no backdrop-blur: DESIGN.md restricts glassmorphism to the modal
+ * scrim only. The scrolled state uses a high-opacity solid wash instead
+ * so the chrome stays out of the AI-startup-aesthetic lane.
  */
 export const SiteNav = (props: Props) => {
   const [scrolled, setScrolled] = createSignal(false);
   const [mobileOpen, setMobileOpen] = createSignal(false);
 
-  const onScroll = () => setScrolled(window.scrollY > 40);
+  // RAF-throttled scroll handler so the signal write fires at most once
+  // per frame regardless of scroll-event rate. Without this, every
+  // scroll tick walks the Solid reactivity graph; the visible glass
+  // bar transition only needs to update at frame rate anyway.
+  let rafId: number | null = null;
+  const onScroll = () => {
+    if (rafId !== null) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      setScrolled(window.scrollY > 40);
+    });
+  };
   onMount(() => {
     window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    setScrolled(window.scrollY > 40);
   });
-  onCleanup(() => window.removeEventListener('scroll', onScroll));
+  onCleanup(() => {
+    window.removeEventListener('scroll', onScroll);
+    if (rafId !== null) cancelAnimationFrame(rafId);
+  });
 
   const isCurrent = (path: Props['current']) => props.current === path;
 
@@ -38,9 +56,9 @@ export const SiteNav = (props: Props) => {
     <>
       <nav
         aria-label={t('aria.site')}
-        class="fixed top-0 left-0 right-0 z-50 transition-[background,backdrop-filter,border-color] duration-300"
+        class="fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color] duration-300"
         classList={{
-          'bg-stone-950/70 backdrop-blur-md border-b border-stone-800/60': scrolled(),
+          'bg-stone-950/92 border-b border-stone-800/60': scrolled(),
           'bg-transparent border-b border-transparent': !scrolled(),
         }}
       >
@@ -54,7 +72,7 @@ export const SiteNav = (props: Props) => {
           </a>
 
           {/* Right: nav + controls (desktop) */}
-          <div class="hidden sm:flex items-center gap-5">
+          <div class="hidden sm:flex items-center gap-4">
             <a
               href="/roadmap"
               class={`text-xs font-sans pb-0.5 transition-colors ${linkClass(isCurrent('/roadmap'))}`}
@@ -106,7 +124,7 @@ export const SiteNav = (props: Props) => {
       {/* Mobile sheet */}
       <Show when={mobileOpen()}>
         <div
-          class="sm:hidden fixed inset-0 z-40 bg-stone-950/95 backdrop-blur-md pt-16 px-6 flex flex-col gap-4"
+          class="sm:hidden fixed inset-0 z-40 bg-stone-950 pt-16 px-6 flex flex-col gap-4"
           onClick={() => setMobileOpen(false)}
         >
           <a

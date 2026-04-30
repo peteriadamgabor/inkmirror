@@ -33,7 +33,7 @@ export const ToastHost = () => {
       <For each={toasts()}>
         {(item) => (
           <div
-            class={`pointer-events-auto px-4 py-2.5 rounded-xl border bg-white/95 dark:bg-stone-800/95 backdrop-blur-sm shadow-lg min-w-[220px] max-w-[360px] text-sm flex items-start gap-2 ${KIND_STYLES[item.kind]}`}
+            class={`pointer-events-auto px-4 py-2.5 rounded-xl border bg-white dark:bg-stone-800 shadow-lg min-w-[220px] max-w-[360px] text-sm flex items-start gap-2 ${KIND_STYLES[item.kind]}`}
             role={item.kind === 'error' ? 'alert' : 'status'}
           >
             <span class="mt-0.5 opacity-80 shrink-0 inline-flex">{KIND_ICON[item.kind]()}</span>
@@ -55,7 +55,7 @@ export const ToastHost = () => {
         <button
           type="button"
           onClick={() => setHistoryOpen((v) => !v)}
-          class="pointer-events-auto w-8 h-8 rounded-full bg-white/80 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-sm flex items-center justify-center text-stone-400 hover:text-violet-500 transition-colors"
+          class="pointer-events-auto w-8 h-8 rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-sm flex items-center justify-center text-stone-400 hover:text-violet-500 transition-colors"
           title={t('misc.recentActivity')}
           aria-label={t('misc.recentActivity')}
         >
@@ -67,7 +67,7 @@ export const ToastHost = () => {
       <Show when={historyOpen()}>
         <div class="pointer-events-auto w-[300px] max-h-[280px] overflow-auto rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xl p-2">
           <div class="flex items-center justify-between px-2 pb-1">
-            <span class="text-[10px] uppercase tracking-wider text-stone-400">
+            <span class="text-[10px] inkmirror-smallcaps text-stone-400">
               Recent activity
             </span>
             <button

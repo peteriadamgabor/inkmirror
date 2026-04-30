@@ -115,9 +115,9 @@ export const SettingsModal = () => {
               <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
                 {t('settings.title')}
               </div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
+              <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">
                 {tabs().find((tb) => tb.id === activeTab())?.label}
-              </div>
+              </h2>
             </div>
             <button
               type="button"

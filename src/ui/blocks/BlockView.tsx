@@ -467,6 +467,9 @@ export const BlockView = (props: { block: Block }) => {
         ref={el}
         data-editable
         contentEditable
+        role="textbox"
+        aria-multiline="true"
+        aria-label={`${t(`block.types.${props.block.type}`)}: ${t(`block.hints.${props.block.type}`)}`}
         spellcheck={uiState.spellcheck}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -510,14 +513,15 @@ export const BlockView = (props: { block: Block }) => {
           const pov = isPovSpeaker();
           if (!color && !pov) return undefined;
           // POV with an uncolored speaker falls back to the brand
-          // accent so the cue still reads.
-          const accent = color ?? '#7F77DD';
-          const bgPct = color ? 12 : 6;
-          const style: Record<string, string> = {
+          // accent so the cue still reads. POV is encoded purely via
+          // a deeper tint (no left stripe) — DESIGN.md restricts
+          // border-left accents to scene blocks only.
+          const accent = color ?? 'var(--writer-violet)';
+          const colored = color != null;
+          const bgPct = colored ? (pov ? 22 : 12) : (pov ? 14 : 6);
+          return {
             background: `color-mix(in srgb, ${accent} ${bgPct}%, transparent)`,
           };
-          if (pov) style['border-left'] = `3px solid ${accent}`;
-          return style;
         })()}
       />
       <BlockTimestamp createdAt={props.block.created_at} updatedAt={props.block.updated_at} />

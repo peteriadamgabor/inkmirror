@@ -125,7 +125,7 @@ export const ContextMenuHost = () => {
               }
               if (kind === 'header') {
                 return (
-                  <div class="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-stone-400">
+                  <div class="px-2 pt-2 pb-1 text-[10px] inkmirror-smallcaps text-stone-400">
                     {item.label}
                   </div>
                 );
@@ -140,7 +140,7 @@ export const ContextMenuHost = () => {
                     item.onSelect?.();
                     closeContextMenu();
                   }}
-                  class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-md text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   classList={{
                     'bg-stone-100 dark:bg-stone-700': focusedIdx() === i() && !item.disabled,
                     'text-red-500 hover:text-red-600': item.danger === true,

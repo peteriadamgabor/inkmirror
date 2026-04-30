@@ -120,9 +120,9 @@ export const WhatsNewModal = () => {
               <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
                 {t('whatsNew.title')}
               </div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100 truncate">
+              <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100 truncate">
                 {activeEntry()?.title ?? `v${__APP_VERSION__}`}
-              </div>
+              </h2>
             </div>
             <button
               type="button"

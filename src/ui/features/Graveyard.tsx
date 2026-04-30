@@ -35,7 +35,7 @@ export const Graveyard = () => {
               <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
                 {t('graveyard.subtitle').slice(0, 24)}…
               </div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">{t('graveyard.title')}</div>
+              <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">{t('graveyard.title')}</h2>
             </div>
             <button
               type="button"

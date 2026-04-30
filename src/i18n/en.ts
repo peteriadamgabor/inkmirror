@@ -29,7 +29,7 @@ export const en = {
   },
   language: {
     label: 'Language',
-    help: "Changes the app's interface language. Your manuscript content is untouched.",
+    help: "Changes the app's interface language. Your document content is untouched.",
   },
   sidebar: {
     focus: 'Focus',
@@ -68,7 +68,7 @@ export const en = {
       changeType: 'Change type',
       delete: 'Delete chapter',
       deleteTitle: 'Delete "{{title}}"?',
-      deleteBody: "Every block in this chapter moves to the Dead Text Graveyard — nothing is truly lost. You can restore it later.",
+      deleteBody: "Every block in this chapter moves to the Dead Text Graveyard. Nothing is truly lost. You can restore it later.",
       deleteConfirm: 'Delete chapter',
     },
     characterNew: 'New character',
@@ -83,12 +83,12 @@ export const en = {
     characterPovDescription: "Right-align this character's dialogue bubbles",
     characterDeleteBody:
       'All their dialogue lines will become unassigned. The text stays.',
-    characterDeletedToast: '{{name}} — deleted',
+    characterDeletedToast: '{{name}}: deleted',
     characterAliasesPlaceholder: 'Other names, comma-separated',
     characterNotesPlaceholder: 'Anything about them you want to remember',
   },
   picker: {
-    tagline: "Two hearts, one soul — the writer's and the story's pulse.",
+    tagline: "Two hearts, one soul: the writer's and the story's pulse.",
     yourDocuments: 'Your documents',
     newDocument: '+ New document',
     importButton: 'Import…',
@@ -131,7 +131,7 @@ export const en = {
     exportedToast: 'Exported "{{title}}"',
     restoreAdded: 'Added {{n}}',
     restoreSkipped: 'skipped {{n}} already present',
-    restoreComplete: 'Restore complete — {{detail}}',
+    restoreComplete: 'Restore complete: {{detail}}',
   },
   docSettings: {
     metadata: 'Metadata',
@@ -139,13 +139,13 @@ export const en = {
     title: 'Title',
     titleHelp: 'Used as the filename for every export and the first line of cover exports.',
     titleTaken: 'Another document already uses this name.',
-    titleTakenReverted: 'Reverted — another document already uses that name.',
+    titleTakenReverted: 'Reverted. Another document already uses that name.',
     author: 'Author',
     synopsis: 'Synopsis',
     synopsisPlaceholder: 'A short summary of the story, for your own reference.',
     synopsisHelp: 'Appears as a blockquote in Markdown exports and as the description in DOCX / EPUB metadata.',
     typeface: 'Typeface',
-    typefaceHelp: "System fonts only — no downloads. Falls back to Georgia if your platform doesn't have the primary face.",
+    typefaceHelp: "System fonts only, no downloads. Falls back to Georgia if your platform doesn't have the primary face.",
     typefaceSample: 'She read the line twice, weighing it.',
     dialogueStyle: 'Dialogue style',
     dialogueStyleHelp:
@@ -170,20 +170,20 @@ export const en = {
     autosaveNote: 'Changes save automatically',
   },
   bootSplash: {
-    loading: 'opening the manuscript…',
+    loading: 'opening the document…',
     errorTitle: "The app couldn't open your library.",
   },
   feedback: {
     title: 'Send feedback',
-    subtitle: 'Bug, idea, or just a hello — it all lands in my inbox. Your manuscript content is never included.',
+    subtitle: 'Bug, idea, or just a hello. It all lands in my inbox. Your document content is never included.',
     placeholder: "What's on your mind?",
-    contactPlaceholder: 'Your email (optional — only if you want a reply)',
-    sent: 'Thanks — feedback sent.',
+    contactPlaceholder: 'Your email (optional, only if you want a reply)',
+    sent: 'Thanks, feedback sent.',
     failed: "Couldn't send feedback: {{error}}",
   },
   notFound: {
-    headline: "This page isn't in the manuscript.",
-    body: "The URL you followed doesn't match any page InkMirror knows about. No work was lost — your manuscripts are safe in this browser.",
+    headline: "This page isn't in the document.",
+    body: "The URL you followed doesn't match any page InkMirror knows about. No work was lost; your documents are safe in this browser.",
     landing: 'Landing page',
     open: 'Open InkMirror',
   },
@@ -204,14 +204,14 @@ export const en = {
     chapterActions: 'Chapter actions',
     characterActions: 'Character actions',
     revisionHistory: 'Block revision history',
-    parentheticalHelp: 'Parenthetical — e.g. (whispering), (to Peter)',
+    parentheticalHelp: 'Parenthetical, e.g. (whispering), (to Peter)',
     resetSession: 'Reset session',
     recentActivity: 'Recent activity',
     downloadAs: 'Download as {{format}}',
     exportAs: 'Export as {{format}}',
   },
   aria: {
-    storyPulse: 'Story pulse — sentiment across blocks',
+    storyPulse: 'Story pulse: sentiment across blocks',
     toggleTheme: 'Toggle theme',
     site: 'Site',
     dragHandle: 'Drag handle',
@@ -228,7 +228,7 @@ export const en = {
     title: 'Block types',
     closeLabel: 'Close help',
     intro:
-      "InkMirror is a block-based editor. Every block has a type that tells the app what to do with it — how to render it, whether to count its words, whether to include it in exports. Change a block's type any time from its {{menu}} menu.",
+      "InkMirror is a block-based editor. Every block has a type that tells the app what to do with it: how to render it, whether to count its words, whether to include it in exports. Change a block's type any time from its {{menu}} menu.",
     useForLabel: 'Use it for',
     howItBehavesLabel: 'How it behaves',
     tip: 'Tip: you can convert between types at any time without losing content.',
@@ -246,10 +246,10 @@ export const en = {
       name: 'Dialogue',
       tagline: 'Character speech, rendered as a chat bubble.',
       useFor1: 'Anything a character says out loud',
-      useFor2: "Interleaved turns in a conversation — press Enter to start the next speaker's line",
+      useFor2: "Interleaved turns in a conversation. Press Enter to start the next speaker's line",
       note1: 'Click the speaker chip in the block header to pick a character, or type "Name: Hello" and the prefix auto-strips + assigns.',
       note2: 'When the block sits after a Scene with a defined cast, the picker lists that cast first.',
-      note3: 'Each speaker has their own color — the bubble background and left border come from the character card.',
+      note3: 'Each speaker has their own color. The bubble background and left border come from the character card.',
       note4: 'Rename a character and every dialogue block they own updates automatically. Delete them and their blocks become "unassigned" without losing the text.',
       note5: 'Exported with speaker name in Markdown, DOCX, EPUB; uppercase speaker cue in Fountain.',
     },
@@ -257,11 +257,11 @@ export const en = {
       name: 'Scene',
       tagline: 'Structural marker with location, time, mood, and cast.',
       useFor1: 'Starting a new scene in your story',
-      useFor2: 'Tagging which characters are present — downstream dialogue blocks narrow their speaker picker to this cast',
+      useFor2: 'Tagging which characters are present. Downstream dialogue blocks narrow their speaker picker to this cast',
       useFor3: 'Marking time of day or emotional register for the Plot Timeline',
       note1: 'The inline metadata editor below the block header lets you fill in location / time / mood and toggle the cast chips.',
-      note2: 'Feeds the Plot Timeline view (sidebar → Plot timeline) — every scene shows up chronologically grouped by chapter.',
-      note3: 'The cast selection is what makes the Dialogue speaker picker show "Speaker (scene cast)" — put scenes above your dialogue for the shortcut to work.',
+      note2: 'Feeds the Plot Timeline view (sidebar, Plot timeline). Every scene shows up chronologically grouped by chapter.',
+      note3: 'The cast selection is what makes the Dialogue speaker picker show "Speaker (scene cast)". Put scenes above your dialogue for the shortcut to work.',
       note4: 'Exported with an italic heading in Markdown/DOCX/EPUB and a full INT./EXT. line in Fountain.',
     },
     note: {
@@ -271,7 +271,7 @@ export const en = {
       useFor2: 'Research snippets or URL stubs',
       useFor3: 'Questions to yourself',
       useFor4: "Anything you'd want pinned in the draft but NOT in the finished book",
-      note1: 'Never included in any export — EPUB, DOCX, PDF, Markdown, JSON, Fountain all skip note blocks.',
+      note1: 'Never included in any export. EPUB, DOCX, PDF, Markdown, JSON, Fountain all skip note blocks.',
       note2: 'Not counted in the word count.',
       note3: 'Not analyzed for sentiment or character mentions.',
       note4: 'For your eyes only.',
@@ -282,7 +282,7 @@ export const en = {
     title: 'Chapter types',
     closeLabel: 'Close help',
     intro:
-      "A novel isn't only chapters — it's also the cover, the dedication, the epigraph, the back matter. InkMirror treats each of those as a chapter with its own type, so exports put the pieces in the right order and the editor renders each one the way a reader will eventually see it. Pick a type from the {{plus}} menu in the sidebar; change it later from the chapter's {{menu}} menu.",
+      "A novel isn't only chapters. It's also the cover, the dedication, the epigraph, the back matter. InkMirror treats each of those as a chapter with its own type, so exports put the pieces in the right order and the editor renders each one the way a reader will eventually see it. Pick a type from the {{plus}} menu in the sidebar; change it later from the chapter's {{menu}} menu.",
     useForLabel: 'Use it for',
     howItBehavesLabel: 'How it behaves',
     tip: 'Tip: the order of chapters in the sidebar is the order they appear in every export.',
@@ -291,20 +291,20 @@ export const en = {
       tagline: 'A regular storytelling chapter.',
       useFor1: 'Narrative chapters with scenes, dialogue, and prose',
       useFor2: 'Anything numbered "Chapter 1", "Chapter 2", etc.',
-      useFor3: 'The default type — you almost always want this',
+      useFor3: 'The default type. You almost always want this',
       note1: 'Full block chrome is shown. All block types (text, dialogue, scene, note) are available.',
       note2: 'Counted in word count, feeds the Plot Timeline and Story Pulse ECG.',
       note3: 'Exported with its title as a heading in every format.',
     },
     cover: {
       name: 'Cover',
-      tagline: "The title page — your novel's first breath.",
+      tagline: "The title page. Your novel's first breath.",
       useFor1: 'Book title + author line',
       useFor2: 'Series name, subtitle, or a short attribution',
       useFor3: 'Anything that should appear before Chapter 1',
       note1: 'Text is centered and enlarged (1.6em). Block chrome is hidden so nothing distracts from the wordmark.',
-      note2: 'Typically just one or two blocks — the title, and the author line.',
-      note3: 'Not counted in the manuscript word count.',
+      note2: 'Typically just one or two blocks: the title, and the author line.',
+      note3: 'Not counted in the document word count.',
       note4: 'Exported as the first page in EPUB / DOCX / PDF front matter.',
     },
     dedication: {
@@ -314,7 +314,7 @@ export const en = {
       useFor2: '"To Réka, who was patient."',
       useFor3: 'Any single-line dedication',
       note1: 'Italic, centered, with generous top padding so it sits on the page like a dedication plaque.',
-      note2: 'Block chrome hidden — no drag handles or type labels.',
+      note2: 'Block chrome hidden. No drag handles or type labels.',
       note3: 'Not counted in word count.',
       note4: 'Exported in front matter, between Cover and Chapter 1.',
     },
@@ -322,10 +322,10 @@ export const en = {
       name: 'Epigraph',
       tagline: 'A borrowed line to set the key.',
       useFor1: 'An opening quote from another work',
-      useFor2: 'A thematic inscription — the lens through which the book should be read',
+      useFor2: 'A thematic inscription, the lens through which the book should be read',
       useFor3: 'Source attribution on the next line',
       note1: 'Italic, centered, with top padding matching the dedication.',
-      note2: 'Traditionally two blocks: the quote itself, then a short "— Author, Work" line below it.',
+      note2: 'Traditionally two blocks: the quote itself, then a short "Author, Work" line below it.',
       note3: 'Block chrome hidden; not counted in word count.',
       note4: 'Exported in front matter, typically between Dedication and Chapter 1.',
     },
@@ -336,7 +336,7 @@ export const en = {
       useFor2: 'Family, friends, partner',
       useFor3: 'The coffee shop where you wrote it',
       note1: 'Centered, block chrome hidden, same reading treatment as the other non-standard kinds.',
-      note2: 'Goes at the end — exported as back matter after the final regular chapter.',
+      note2: 'Goes at the end: exported as back matter after the final regular chapter.',
       note3: 'Not counted in word count.',
     },
     afterword: {
@@ -346,16 +346,16 @@ export const en = {
       useFor2: 'Why you wrote the book, or what the story meant to you',
       useFor3: 'A postscript, addendum, or "further reading" pointer',
       note1: 'Centered, no block chrome.',
-      note2: 'Sits after the story and the Acknowledgments — the reader hears your voice here last.',
+      note2: 'Sits after the story and the Acknowledgments. The reader hears your voice here last.',
       note3: 'Not counted in word count.',
     },
   },
   landing: {
     hero: {
-      title1: 'Two hearts, one soul —',
+      title1: 'Two hearts, one soul,',
       title2: "the writer's and the story's pulse.",
       subtitle:
-        "An AI-assisted novel writing app that runs entirely in your browser. Offline-first, privacy-first. The AI doesn't write for you — it holds a mirror up to you.",
+        "An AI-assisted novel writing app that runs entirely in your browser. Offline-first, privacy-first. The AI doesn't write for you. It holds a mirror up to you.",
       cta: 'Start writing',
       smallPrint: 'Free. No account. No install. Works in any modern browser.',
     },
@@ -371,33 +371,33 @@ export const en = {
         "AI-powered sentiment analysis runs locally in your browser. See your story's emotional arc in a real-time ECG, mood heatmap, and per-character mood tracker.",
       f3Title: '6 export formats',
       f3Desc:
-        "Markdown, JSON, Fountain, EPUB, DOCX, PDF — one click each. Bold and italic carry through. Fountain gets CONT'D markers automatically.",
+        "Markdown, JSON, Fountain, EPUB, DOCX, PDF, one click each. Bold and italic carry through. Fountain gets CONT'D markers automatically.",
       f4Title: 'Nothing is lost',
       f4Desc:
         'Every deleted block goes to the Dead Text Graveyard. Every edit is tracked in a per-block revision history. Undo with Ctrl+Z across block deletions and type changes.',
       f5Title: 'Offline & private',
       f5Desc:
-        'Your novel never leaves your browser. No server, no account, no telemetry. Installable as a PWA. AI runs locally via Transformers.js — not even the sentiment model phones home.',
+        'Your novel never leaves your browser. No server, no account, no telemetry. Installable as a PWA. AI runs locally via Transformers.js. Not even the sentiment model phones home.',
       f6Title: 'Built for focus',
       f6Desc:
-        "Focus mode hides everything but the writing and anchors the active block to the centre of the screen — typewriter style. Zen mode strips even the block chrome. Ambient sonification maps your chapter's mood to a generative chord.",
+        "Focus mode hides everything but the writing and anchors the active block to the centre of the screen, typewriter style. Zen mode strips even the block chrome. Ambient sonification maps your chapter's mood to a generative chord.",
     },
     philosophy: {
       heading: "\"AI doesn't write for you\"",
       p1:
-        "InkMirror will never generate text, autocomplete your sentences, or suggest plot twists. That's your job — and the world doesn't need another tool that does it worse than you.",
+        "InkMirror will never generate text, autocomplete your sentences, or suggest plot twists. That's your job, and the world doesn't need another tool that does it worse than you.",
       p2Before: 'Instead, the AI ',
       p2Analyzes: 'analyzes',
       p2Middle: '. It reads your prose and tells you how it ',
       p2Feels: 'feels',
       p2After:
-        " — the sentiment, the pacing, the tension curve. It tracks your characters across scenes and flags when their descriptions contradict. It measures your writing rhythm and shows you when you're in flow.",
+        ": the sentiment, the pacing, the tension curve. It tracks your characters across scenes and flags when their descriptions contradict. It measures your writing rhythm and shows you when you're in flow.",
       closing: 'Two hearts, one soul. The writer creates. The story speaks back.',
     },
     privacy: {
       heading: 'Your novel never leaves your browser',
       body:
-        "Everything runs locally. Your text is stored in IndexedDB — not on a server, not in the cloud, not anywhere that isn't your machine. The AI model downloads once and runs in a Web Worker. The app is installable as a PWA and works fully offline.",
+        "Everything runs locally. Your text is stored in IndexedDB, not on a server, not in the cloud, not anywhere that isn't your machine. The AI model downloads once and runs in a Web Worker. The app is installable as a PWA and works fully offline.",
       cardTelemetryTitle: 'Zero telemetry',
       cardTelemetryBody: 'No analytics, no tracking, no server calls',
       cardOfflineTitle: 'Works offline',
@@ -424,9 +424,9 @@ export const en = {
       item15: 'Warm sepia light theme and full dark mode',
       item16: 'Debug telemetry overlay for development',
       item17: 'In-app search + replace (Ctrl+F) with violet match-paint via the CSS Custom Highlight API',
-      item18: 'Auto-typography while you type: -- → —, ... → …, optional smart curly quotes',
-      item19: 'Session word counter — a small +N chip beside the document total, resets on reload',
-      item20: 'Character profile pages — click a mention dot or a sidebar name to see the description, mentions, dialogue, and POV',
+      item18: 'Auto-typography while you type: double-hyphen becomes em dash, ... becomes …, optional smart curly quotes',
+      item19: 'Session word counter: a small +N chip beside the document total, resets on reload',
+      item20: 'Character profile pages: click a mention dot or a sidebar name to see the description, mentions, dialogue, and POV',
     },
     cta: {
       heading: 'Ready to write?',
@@ -445,25 +445,25 @@ export const en = {
     closeMenu: 'Close menu',
   },
   demo: {
-    // Controls + prose for the "Try the demo" feature. Labels only —
+    // Controls + prose for the "Try the demo" feature. Labels only;
     // the story's actual content lives in src/backup/demo-prose-en.ts.
     ctaLanding: 'Try the demo',
-    ctaLandingHelp: 'A short story by Chekhov — edit it, explore the features.',
+    ctaLandingHelp: 'A short story by Chekhov. Edit it, explore the features.',
     ctaPickerHeader: 'Try the demo',
     ctaPickerBody:
-      "A short story by Chekhov — edit it, explore the features, delete it when you're done.",
-    banner: "This is a sample document. Edit it, rearrange, delete — it's yours now.",
+      "A short story by Chekhov. Edit it, explore the features, delete it when you're done.",
+    banner: "This is a sample document. Edit it, rearrange, delete. It's yours now.",
     bannerDismiss: 'Dismiss',
     collisionTitle: 'The demo is already in your library',
     collisionBody:
       "You've already imported the demo. Keep your current copy (it may have your edits), or replace it with the original version?",
     collisionReplace: 'Replace',
     collisionKeepBoth: 'Keep both',
-    openedToast: 'Demo opened — enjoy.',
+    openedToast: 'Demo opened. Enjoy.',
     openFailed: "Couldn't open the demo: {{error}}",
   },
   roadmap: {
-    pageTitle: 'Roadmap — InkMirror',
+    pageTitle: 'Roadmap: InkMirror',
     // Section header + prose. Each paragraph is its own key so the
     // translator can rework the rhythm instead of fighting a
     // pre-broken English sentence.
@@ -476,56 +476,56 @@ export const en = {
     opening: {
       header: 'A quiet beginning.',
       body:
-        "InkMirror is a writing tool that holds a mirror up to the story. It lives inside your browser, never phones home, and grows slowly, on purpose. This page is an honest note from the work — where it has been, where it is now, and where it is quietly heading.",
+        "InkMirror is a writing tool that holds a mirror up to the story. It lives inside your browser, never phones home, and grows slowly, on purpose. This page is an honest note from the work: where it has been, where it is now, and where it is quietly heading.",
     },
     shipped: {
       header: "What's here now.",
       intro: 'The foundation is set. The app already does what it was built to do, and a few things its early sketches never dared.',
       p1:
-        "The editor is block-based. Prose, dialogue, scenes, and private notes each carry a shape; each shape reaches every export format correctly. Paste a multi-paragraph passage and it splits into blocks automatically. Delete one and it lands in the Dead Text Graveyard — nothing is ever truly lost.",
+        "The editor is block-based. Prose, dialogue, scenes, and private notes each carry a shape; each shape reaches every export format correctly. Paste a multi-paragraph passage and it splits into blocks automatically. Delete one and it lands in the Dead Text Graveyard. Nothing is ever truly lost.",
       p2:
         "A small multilingual sentiment model runs inside a Web Worker. Each block becomes a heartbeat on the Story Pulse ECG and a band on the mood heatmap. The AI never writes. It only listens back.",
       p3:
         "Six export formats ship today: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Every document can leave as an .inkmirror.json bundle that carries its chapters, characters, graveyard, and sentiments along with it. Full-database backup with collision handling is there too.",
       p4:
-        'The UI speaks English and Magyar today, and a third or fifth language will cost less than a megabyte each to add. A premium motion pack gives blocks their enter, the ECG its draw, and the mirror its breath — while respecting prefers-reduced-motion without asking.',
+        'The UI speaks English and Magyar today, and a third or fifth language will cost less than a megabyte each to add. A premium motion pack gives blocks their enter, the ECG its draw, and the mirror its breath, while respecting prefers-reduced-motion without asking.',
       p5:
-        "A quieter wave of polish keeps arriving. Focus mode now centers the active block in the viewport — typewriter style — and remembers itself across reloads. Ctrl+F intercepts the browser's Find so the virtualizer-hidden blocks are reachable; the bar carries a counter, navigation, replace one or replace all, and paints the active match in violet without touching the DOM. While you type, double-dashes become em-dashes and triple-dots become ellipses; straight quotes curl when the document opts in. A small +N chip beside the word count tracks what you've added this session. Mention dots in the prose and names in the sidebar both open a character profile page with description, mention list, dialogue list, and a POV toggle.",
+        "A quieter wave of polish keeps arriving. Focus mode now centers the active block in the viewport (typewriter style) and remembers itself across reloads. Ctrl+F intercepts the browser's Find so the virtualizer-hidden blocks are reachable; the bar carries a counter, navigation, replace one or replace all, and paints the active match in violet without touching the DOM. While you type, double-dashes become em-dashes and triple-dots become ellipses; straight quotes curl when the document opts in. A small +N chip beside the word count tracks what you've added this session. Mention dots in the prose and names in the sidebar both open a character profile page with description, mention list, dialogue list, and a POV toggle.",
     },
     inProgress: {
       header: "What's being made now.",
       intro: 'The next cycle is underway. Two features at once, because they share a model.',
       p1:
-        'Rich moods. The current sentiment pipeline knows only positive, neutral, and negative — the wrong vocabulary for fiction. A multilingual zero-shot model is replacing it so the ECG can speak in tender, dread, longing, awe, grief, wonder, and the full palette a novel actually uses.',
+        'Rich moods. The current sentiment pipeline knows only positive, neutral, and negative: the wrong vocabulary for fiction. A multilingual zero-shot model is replacing it so the ECG can speak in tender, dread, longing, awe, grief, wonder, and the full palette a novel actually uses.',
       p2:
-        'Inconsistency detection. The same model pairs claims across chapters and flags contradictions — eye color, kinship, who knew what and when. Every flag is dismissible. The writer is still in charge; the AI is only the mirror.',
+        'Inconsistency detection. The same model pairs claims across chapters and flags contradictions: eye color, kinship, who knew what and when. Every flag is dismissible. The writer is still in charge; the AI is only the mirror.',
       p3:
-        'AI profile settings. The lightweight model stays the default. Richer features will be opt-in — a single choice in settings that starts the larger download. The app will never grow heavier than you asked it to.',
+        'AI profile settings. The lightweight model stays the default. Richer features will be opt-in: a single choice in settings that starts the larger download. The app will never grow heavier than you asked it to.',
     },
     planned: {
       header: "What's being imagined.",
       intro: "Further out. Written down because the intent matters, not because the date is fixed.",
-      // Each item is one short paragraph. Some carry a MAYBE tag —
-      // use the array `maybeItems` set below to decide which.
+      // Each item is one short paragraph. Some carry a MAYBE tag.
+      // Use the array `maybeItems` set below to decide which.
       i1:
-        'Outline view. Scene cards as a second navigation axis — the corkboard alongside the manuscript, so you can see structure and text at the same time.',
+        'Outline view. Scene cards as a second navigation axis: the corkboard alongside the document, so you can see structure and text at the same time.',
       i2:
         'Mobile polish. The editor already installs as a PWA on any device; the touch UX deserves its own sprint before it feels native on a phone.',
       i3:
         "Scrivener and Manuskript import. Writers moving from other tools shouldn't have to start from a blank page.",
       i4:
-        'Bring-your-own local LLM. The app itself will never ship generation — but an opt-in Ollama or LM Studio endpoint would let advanced writers plug in their own model for analysis.',
+        'Bring-your-own local LLM. The app itself will never ship generation, but an opt-in Ollama or LM Studio endpoint would let advanced writers plug in their own model for analysis.',
       i5:
         'Inline footnotes and margin comments. Writer-to-self notes inside the flow of the text, not outside it.',
       i6:
         'Character relationship graph. Who knows whom, who wronged whom, where the threads cross.',
       i7:
-        'Accessibility pass. Full screen reader support, keyboard-only navigation, focus trap discipline — not an afterthought.',
+        'Accessibility pass. Full screen reader support, keyboard-only navigation, focus trap discipline. Not an afterthought.',
     },
     closing: {
       header: 'A letter, if you have one.',
       body:
-        'If any of this matters to you — if something feels right, or wrong, or worth asking for — write me. The form below goes to a private channel I actually read.',
+        'If any of this matters to you, if something feels right, or wrong, or worth asking for, write me. The form below goes to a private channel I actually read.',
       cta: 'Send feedback',
     },
   },
@@ -537,7 +537,7 @@ export const en = {
       note: 'NOTE',
     },
     hints: {
-      text: 'Plain prose — narration, description, action.',
+      text: 'Plain prose: narration, description, action.',
       dialogue: 'Character speech. Pick a speaker or type "Name: Hi" to auto-assign.',
       scene: 'Scene heading with location / time / mood / cast. Feeds the Plot Timeline.',
       note: 'Private notes. Not exported, not counted in word count.',
@@ -557,7 +557,7 @@ export const en = {
     convertTo: 'Convert to',
     copyContent: 'Copy contents',
     historyTitle: 'History',
-    historyEmpty: 'No earlier versions yet — this is the first draft of this block.',
+    historyEmpty: 'No earlier versions yet. This is the first draft of this block.',
     historyRestore: 'Restore this version',
     historyDiscard: 'Discard history',
     historyRestored: 'Restored earlier version',
@@ -617,7 +617,7 @@ export const en = {
     noChapters: 'no chapters',
     chapterCount: '{{n}} chapters',
     analyzedRatio: '{{analyzed}}/{{total}} analyzed',
-    tooltip: '{{title}} — {{label}} ({{analyzed}}/{{total}})',
+    tooltip: '{{title}}: {{label}} ({{analyzed}}/{{total}})',
   },
   pulse: {
     title: 'Pulse',
@@ -641,13 +641,13 @@ export const en = {
   },
   sessionNotes: {
     title: 'Session notes',
-    placeholder: 'Thoughts, reminders, ideas — stays with this document.',
+    placeholder: 'Thoughts, reminders, ideas. Stays with this document.',
     savedHint: 'Auto-saved',
   },
   characterPage: {
     closeLabel: 'Close character page',
     descriptionLabel: 'Description',
-    descriptionPlaceholder: 'A sentence or two — who they are, what matters to them.',
+    descriptionPlaceholder: 'A sentence or two: who they are, what matters to them.',
     statsLabel: 'Presence',
     statMentions: '{{n}} mentions',
     statMentionsSingular: '1 mention',
@@ -655,7 +655,7 @@ export const en = {
     statDialogueSingular: '1 dialogue line',
     statRange: 'Ch {{from}} – Ch {{to}}',
     statRangeSingle: 'Ch {{only}}',
-    statNone: 'Not in the manuscript yet',
+    statNone: 'Not in the document yet',
     mentionsHeader: 'Mentioned in',
     dialogueHeader: 'Dialogue',
     mentionsEmpty: 'No mentions yet.',
@@ -670,7 +670,7 @@ export const en = {
     empty: {
       noCharacters: 'Add characters to the sidebar to start checking for contradictions.',
       noFlags: 'No inconsistencies found. Your story checks out.',
-      notYetRun: 'Run a check to scan the manuscript for character contradictions.',
+      notYetRun: 'Run a check to scan the document for character contradictions.',
     },
     flag: {
       score: 'score {{score}}',
@@ -707,7 +707,7 @@ export const en = {
   graveyard: {
     title: 'Dead Text Graveyard',
     subtitle: 'Nothing is ever truly lost. Every deleted block rests here.',
-    empty: "The graveyard is empty. Every block you've ever written is still in the manuscript.",
+    empty: "The graveyard is empty. Every block you've ever written is still in the document.",
     restore: 'Restore',
     restoreToast: 'Restored to "{{chapter}}"',
     deletedFrom: 'deleted from "{{chapter}}"',
@@ -725,7 +725,7 @@ export const en = {
     reset: 'Reset to defaults',
     pressKey: 'press key…',
     blockTitle: 'Block editing',
-    blockSubtitle: "These work while editing a block. They're fixed — not rebindable.",
+    blockSubtitle: "These work while editing a block. They're fixed, not rebindable.",
     sections: {
       movement: 'Movement',
       formatting: 'Formatting',
@@ -780,7 +780,7 @@ export const en = {
       hotkeys: 'Open the hotkey settings modal',
       blockTypesHelp: 'What text / dialogue / scene / note do',
       focusMode: 'Hide side panels, dim other blocks',
-      zenMode: 'Strip block chrome — just prose',
+      zenMode: 'Strip block chrome, just prose',
       graveyard: 'Review and restore deleted blocks',
       plotTimeline: 'Scene timeline grouped by chapter',
       newChapter: 'Create a standard chapter',
@@ -788,7 +788,7 @@ export const en = {
       documentSettings: 'Edit title, author, synopsis',
       undo: 'Undo the last action',
       redo: 'Redo the last undone action',
-      search: 'Find text across the manuscript',
+      search: 'Find text across the document',
       debugPanel: 'Toggle developer telemetry overlay',
     },
   },
@@ -802,7 +802,7 @@ export const en = {
     },
   },
   search: {
-    placeholder: 'Search the manuscript…',
+    placeholder: 'Search the document…',
     counter: '{{current}} / {{total}}',
     empty: 'No matches',
     next: 'Next match (Enter)',
@@ -822,9 +822,9 @@ export const en = {
     backupFailed: 'Backup failed: {{error}}',
     backupSuccess: 'Backup exported ({{n}} {{unit}})',
     importFailed: 'Import failed: {{error}}',
-    saveFailed: 'Save failed — your work is still in memory. Export it before closing the tab.',
+    saveFailed: 'Save failed. Your work is still in memory. Export it before closing the tab.',
     lastExportNever: 'Tip: export your work regularly. Everything lives in this browser only.',
-    lastExportStale: "You haven't exported in {{n}} days. Consider downloading a backup (Sidebar → Export).",
+    lastExportStale: "You haven't exported in {{n}} days. Consider downloading a backup (Sidebar, Export).",
     createDocumentFailed: 'Failed to create document: {{error}}',
     deleteFailed: 'Delete failed: {{error}}',
     chapterTitleEmpty: 'Chapter title cannot be empty',
@@ -859,7 +859,7 @@ export const en = {
         basic: {
           title: 'Basic',
           description:
-            'Sentiment in three tones — positive, neutral, negative. About 60 MB, loaded on first use.',
+            'Sentiment in three tones: positive, neutral, negative. About 60 MB, loaded on first use.',
         },
         rich: {
           title: 'Rich',
@@ -873,7 +873,7 @@ export const en = {
         confirm: {
           title: 'Download the Rich model?',
           body:
-            'One-time ~80 MB download. Unlocks the full mood palette and inconsistency checking. The model stays cached in your browser — nothing is ever uploaded.',
+            'One-time ~80 MB download. Unlocks the full mood palette and inconsistency checking. The model stays cached in your browser; nothing is ever uploaded.',
           cta: 'Download and enable',
           cancel: 'Not yet',
         },
@@ -913,8 +913,8 @@ export const en = {
     title: 'Sync',
     off: 'Sync is off',
     on: 'Sync is on',
-    description: 'Sync your manuscripts across devices, end-to-end encrypted. The server cannot read your novels — only your devices can.',
-    privacyLink: 'How is my data protected? — Privacy',
+    description: 'Sync your documents across devices, end-to-end encrypted. The server cannot read them, only your devices can.',
+    privacyLink: 'How is my data protected? (Privacy)',
     setUp: 'Set up sync',
     addDevice: 'Add another device',
     syncNow: 'Sync now',
@@ -926,7 +926,7 @@ export const en = {
 
     passphrase: {
       title: 'Choose a passphrase',
-      explanation: 'Your passphrase encrypts your manuscripts before they leave this device. We cannot recover it if you forget it.',
+      explanation: 'Your passphrase encrypts your documents before they leave this device. We cannot recover it if you forget it.',
       label: 'Passphrase',
       confirm: 'Confirm',
       generate: 'Generate strong passphrase',
@@ -935,7 +935,7 @@ export const en = {
       strengthStrong: 'strong',
       tooWeak: 'Pick a stronger passphrase or use Generate.',
       mismatch: "The two passphrases don't match.",
-      deriving: 'Encrypting your manuscripts…',
+      deriving: 'Encrypting your documents…',
       show: 'Show passphrase',
       hide: 'Hide passphrase',
     },
@@ -946,7 +946,7 @@ export const en = {
       step2: '2. Settings → Sync → Add this device',
       step3: '3. Enter this code and your passphrase',
       expires: 'Code expires in {{time}}',
-      expired: 'Code expired — generate a new one?',
+      expired: 'Code expired. Generate a new one?',
       generateNew: 'Generate new code',
     },
 
@@ -956,7 +956,7 @@ export const en = {
       passphraseLabel: 'Passphrase',
       submit: 'Connect',
       wrongPassphrase: "Passphrase doesn't match. Try again.",
-      paircodeExpired: 'Code expired — ask the other device for a new one.',
+      paircodeExpired: 'Code expired. Ask the other device for a new one.',
       connected: 'Connected · {{n}} documents synced',
     },
 
@@ -995,7 +995,7 @@ export const en = {
 
     orphan: {
       title: 'Sync needs to be re-paired',
-      explanation: "The server no longer recognises this device's sync circle. This usually means the circle was wiped on the server side, or this device paired before the production sync storage was active. Your manuscripts are safe on this device — only the server-side encrypted copy is gone.",
+      explanation: "The server no longer recognises this device's sync circle. This usually means the circle was wiped on the server side, or this device paired before the production sync storage was active. Your documents are safe on this device; only the server-side encrypted copy is gone.",
       reset: 'Reset and re-pair',
       resetConfirm: 'Clear local sync state and disconnect from the (missing) server circle? Your documents stay on this device. You can pair fresh after.',
       resetDone: 'Local sync state cleared. Set up sync again to start syncing.',
@@ -1036,11 +1036,11 @@ export const en = {
         slowestMs: 'slowest pair',
         detectedLang: 'language',
       },
-      noPairs: 'No candidate pairs — scan the manuscript first.',
+      noPairs: 'No candidate pairs. Scan the document first.',
     },
     badge: {
       overridden: 'override {{value}}',
-      overriddenTitle: 'Threshold override active — click to open dev menu',
+      overriddenTitle: 'Threshold override active. Click to open dev menu',
     },
   },
 } as const;

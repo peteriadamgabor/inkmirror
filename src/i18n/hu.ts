@@ -30,7 +30,7 @@ export const hu: Messages = {
   },
   language: {
     label: 'Nyelv',
-    help: 'Az alkalmazás felületének nyelvét állítja. A kéziratod tartalma érintetlen marad.',
+    help: 'Az alkalmazás felületének nyelvét állítja. A dokumentumod tartalma érintetlen marad.',
   },
   sidebar: {
     focus: 'Fókusz',
@@ -69,7 +69,7 @@ export const hu: Messages = {
       changeType: 'Típus módosítása',
       delete: 'Fejezet törlése',
       deleteTitle: '"{{title}}" törlése?',
-      deleteBody: 'A fejezet minden blokkja a Halott Szöveg Temetőbe kerül — semmi sem vész el igazán. Később bármikor visszaállíthatod.',
+      deleteBody: 'A fejezet minden blokkja a Halott Szöveg Temetőbe kerül. Semmi sem vész el igazán. Később bármikor visszaállíthatod.',
       deleteConfirm: 'Fejezet törlése',
     },
     characterNew: 'Új karakter',
@@ -84,12 +84,12 @@ export const hu: Messages = {
     characterPovDescription: 'Jobbra igazítja a karakter párbeszéd-buborékjait',
     characterDeleteBody:
       'Minden párbeszéd-soruk hozzárendelés nélkülivé válik. A szöveg megmarad.',
-    characterDeletedToast: '{{name}} — törölve',
+    characterDeletedToast: '{{name}}: törölve',
     characterAliasesPlaceholder: 'Egyéb nevek, vesszővel elválasztva',
     characterNotesPlaceholder: 'Bármi, amit emlékezni akarsz róla',
   },
   picker: {
-    tagline: 'Két szív, egy lélek — az íróé és a történeté.',
+    tagline: 'Két szív, egy lélek: az íróé és a történeté.',
     yourDocuments: 'A dokumentumaid',
     newDocument: '+ Új dokumentum',
     importButton: 'Import…',
@@ -132,7 +132,7 @@ export const hu: Messages = {
     exportedToast: '"{{title}}" exportálva',
     restoreAdded: '{{n}} hozzáadva',
     restoreSkipped: '{{n}} már meglévő kihagyva',
-    restoreComplete: 'Visszaállítás kész — {{detail}}',
+    restoreComplete: 'Visszaállítás kész: {{detail}}',
   },
   docSettings: {
     metadata: 'Metaadatok',
@@ -140,13 +140,13 @@ export const hu: Messages = {
     title: 'Cím',
     titleHelp: 'Ezt használjuk minden export fájlnevének és a borító export első sorának.',
     titleTaken: 'Már egy másik dokumentum használja ezt a nevet.',
-    titleTakenReverted: 'Visszaállítva — másik dokumentum használja ezt a nevet.',
+    titleTakenReverted: 'Visszaállítva. Másik dokumentum használja ezt a nevet.',
     author: 'Szerző',
     synopsis: 'Tartalmi összefoglaló',
     synopsisPlaceholder: 'Rövid összefoglaló a történetről, saját emlékeztetőként.',
     synopsisHelp: 'Idézetblokként jelenik meg a Markdown exportban, és leírásként a DOCX / EPUB metaadatokban.',
     typeface: 'Betűtípus',
-    typefaceHelp: 'Csak rendszer betűtípusok — nincs letöltés. Georgia-ra esik vissza, ha az elsődleges betű nincs a gépeden.',
+    typefaceHelp: 'Csak rendszer betűtípusok, nincs letöltés. Georgia-ra esik vissza, ha az elsődleges betű nincs a gépeden.',
     typefaceSample: 'Kétszer olvasta át a mondatot, megfontolva.',
     dialogueStyle: 'Párbeszéd stílus',
     dialogueStyleHelp:
@@ -171,20 +171,20 @@ export const hu: Messages = {
     autosaveNote: 'A változások automatikusan mentődnek',
   },
   bootSplash: {
-    loading: 'a kézirat megnyitása…',
+    loading: 'a dokumentum megnyitása…',
     errorTitle: 'Az alkalmazás nem tudta megnyitni a könyvtáradat.',
   },
   feedback: {
     title: 'Visszajelzés küldése',
-    subtitle: 'Hiba, ötlet, vagy csak egy szia — minden hozzám érkezik. A kéziratod tartalma sosem kerül bele.',
+    subtitle: 'Hiba, ötlet, vagy csak egy szia. Minden hozzám érkezik. A dokumentumod tartalma sosem kerül bele.',
     placeholder: 'Mi jár a fejedben?',
-    contactPlaceholder: 'Email (nem kötelező — csak ha választ szeretnél)',
-    sent: 'Köszönöm — visszajelzés elküldve.',
+    contactPlaceholder: 'Email (nem kötelező, csak ha választ szeretnél)',
+    sent: 'Köszönöm, visszajelzés elküldve.',
     failed: 'Nem sikerült elküldeni: {{error}}',
   },
   notFound: {
-    headline: 'Ez az oldal nem része a kéziratnak.',
-    body: 'A követett URL nem tartozik egyetlen ismert oldalhoz sem. Nem veszett el semmi — a kéziratod biztonságban van ebben a böngészőben.',
+    headline: 'Ez az oldal nem része a dokumentumnak.',
+    body: 'A követett URL nem tartozik egyetlen ismert oldalhoz sem. Nem veszett el semmi; a dokumentumod biztonságban van ebben a böngészőben.',
     landing: 'Nyitóoldal',
     open: 'InkMirror megnyitása',
   },
@@ -205,14 +205,14 @@ export const hu: Messages = {
     chapterActions: 'Fejezet műveletek',
     characterActions: 'Karakter műveletek',
     revisionHistory: 'Blokk verzió előzmények',
-    parentheticalHelp: 'Közbevetés — pl. (suttogva), (Péternek)',
+    parentheticalHelp: 'Közbevetés, pl. (suttogva), (Péternek)',
     resetSession: 'Munkamenet alaphelyzetbe',
     recentActivity: 'Friss tevékenység',
     downloadAs: 'Letöltés {{format}} formátumban',
     exportAs: 'Exportálás {{format}} formátumban',
   },
   aria: {
-    storyPulse: 'Történet pulzus — hangulat blokkonként',
+    storyPulse: 'Történet pulzus: hangulat blokkonként',
     toggleTheme: 'Téma váltása',
     site: 'Oldal',
     dragHandle: 'Húzó fogantyú',
@@ -232,7 +232,7 @@ export const hu: Messages = {
       note: 'JEGYZET',
     },
     hints: {
-      text: 'Sima próza — narráció, leírás, cselekmény.',
+      text: 'Sima próza: narráció, leírás, cselekmény.',
       dialogue: 'Karakter beszéde. Válassz beszélőt, vagy írd be "Név: Szia" formában automatikus kiosztáshoz.',
       scene: 'Jelenet fejléc helyszínnel / idővel / hangulattal / szereplőkkel. A Cselekmény idővonalat táplálja.',
       note: 'Saját jegyzetek. Nem kerül exportálásra, nem számít a szószámba.',
@@ -252,7 +252,7 @@ export const hu: Messages = {
     convertTo: 'Átalakítás',
     copyContent: 'Tartalom másolása',
     historyTitle: 'Előzmények',
-    historyEmpty: 'Még nincsenek korábbi verziók — ez a blokk első változata.',
+    historyEmpty: 'Még nincsenek korábbi verziók. Ez a blokk első változata.',
     historyRestore: 'Ennek a verziónak a visszaállítása',
     historyDiscard: 'Előzmények elvetése',
     historyRestored: 'Korábbi verzió visszaállítva',
@@ -269,7 +269,7 @@ export const hu: Messages = {
     moveDown: 'Mozgatás le',
     deleteConfirmTitle: 'Törlöd a blokkot?',
     deleteConfirmBody:
-      'A blokk a Halott Szöveg Temetőbe kerül — később bármikor visszaállíthatod.',
+      'A blokk a Halott Szöveg Temetőbe kerül. Később bármikor visszaállíthatod.',
     deleteConfirmBodyShort: 'A blokk a Halott Szöveg Temetőbe kerül.',
     menuAllCharacters: 'Minden karakter',
     menuBlockType: 'Blokk típusa',
@@ -312,7 +312,7 @@ export const hu: Messages = {
     noChapters: 'nincs fejezet',
     chapterCount: '{{n}} fejezet',
     analyzedRatio: '{{analyzed}}/{{total}} elemezve',
-    tooltip: '{{title}} — {{label}} ({{analyzed}}/{{total}})',
+    tooltip: '{{title}}: {{label}} ({{analyzed}}/{{total}})',
   },
   pulse: {
     title: 'Pulzus',
@@ -336,13 +336,13 @@ export const hu: Messages = {
   },
   sessionNotes: {
     title: 'Munkamenet-jegyzetek',
-    placeholder: 'Gondolatok, emlékeztetők, ötletek — ezzel a dokumentummal marad.',
+    placeholder: 'Gondolatok, emlékeztetők, ötletek. Ezzel a dokumentummal marad.',
     savedHint: 'Automatikusan mentve',
   },
   characterPage: {
     closeLabel: 'Karakterlap bezárása',
     descriptionLabel: 'Leírás',
-    descriptionPlaceholder: 'Egy-két mondat — ki ő, és mi a fontos számára.',
+    descriptionPlaceholder: 'Egy-két mondat: ki ő, és mi a fontos számára.',
     statsLabel: 'Jelenlét',
     statMentions: '{{n}} említés',
     statMentionsSingular: '1 említés',
@@ -350,7 +350,7 @@ export const hu: Messages = {
     statDialogueSingular: '1 párbeszéd-sor',
     statRange: '{{from}}. – {{to}}. fejezet',
     statRangeSingle: '{{only}}. fejezet',
-    statNone: 'Még nem szerepel a kéziratban',
+    statNone: 'Még nem szerepel a dokumentumban',
     mentionsHeader: 'Említve itt',
     dialogueHeader: 'Párbeszéd',
     mentionsEmpty: 'Még nincs említés.',
@@ -365,7 +365,7 @@ export const hu: Messages = {
     empty: {
       noCharacters: 'Adj hozzá szereplőket az oldalsávban, hogy ellenőrizhessem az ellentmondásokat.',
       noFlags: 'Nem találtam ellentmondást. A történeted rendben van.',
-      notYetRun: 'Futtasd le az ellenőrzést, hogy átnézzem a kéziratot a karakterek közti ellentmondásokért.',
+      notYetRun: 'Futtasd le az ellenőrzést, hogy átnézzem a dokumentumot a karakterek közti ellentmondásokért.',
     },
     flag: {
       score: 'biztonság {{score}}',
@@ -402,7 +402,7 @@ export const hu: Messages = {
   graveyard: {
     title: 'Halott Szöveg Temető',
     subtitle: 'Semmi sem vész el igazán. Minden törölt blokk itt nyugszik.',
-    empty: 'A temető üres. Minden blokk, amit valaha írtál, még a kéziratban van.',
+    empty: 'A temető üres. Minden blokk, amit valaha írtál, még a dokumentumban van.',
     restore: 'Visszaállítás',
     restoreToast: 'Visszaállítva ide: "{{chapter}}"',
     deletedFrom: 'innen törölve: "{{chapter}}"',
@@ -420,7 +420,7 @@ export const hu: Messages = {
     reset: 'Alapértelmezettek visszaállítása',
     pressKey: 'nyomj meg egy billentyűt…',
     blockTitle: 'Blokk-szerkesztés',
-    blockSubtitle: 'Ezek blokkon belül működnek. Rögzítettek — nem átállíthatók.',
+    blockSubtitle: 'Ezek blokkon belül működnek. Rögzítettek, nem átállíthatók.',
     sections: {
       movement: 'Mozgás',
       formatting: 'Formázás',
@@ -475,7 +475,7 @@ export const hu: Messages = {
       hotkeys: 'Gyorsbillentyű beállítások megnyitása',
       blockTypesHelp: 'Mi a szöveg / párbeszéd / jelenet / jegyzet szerepe',
       focusMode: 'Oldalpanelek elrejtése, a többi blokk elhalványítása',
-      zenMode: 'Blokk-keret levétele — csak a próza',
+      zenMode: 'Blokk-keret levétele, csak a próza',
       graveyard: 'Törölt blokkok áttekintése és visszaállítása',
       plotTimeline: 'Jelenet-idővonal fejezetenként csoportosítva',
       newChapter: 'Új szabványos fejezet létrehozása',
@@ -483,7 +483,7 @@ export const hu: Messages = {
       documentSettings: 'Cím, szerző, tartalmi összefoglaló szerkesztése',
       undo: 'Az utolsó művelet visszavonása',
       redo: 'A legutóbb visszavont művelet megismétlése',
-      search: 'Szöveg keresése a kéziratban',
+      search: 'Szöveg keresése a dokumentumban',
       debugPanel: 'Fejlesztői telemetria panel ki/be kapcsolása',
     },
   },
@@ -497,7 +497,7 @@ export const hu: Messages = {
     },
   },
   search: {
-    placeholder: 'Keresés a kéziratban…',
+    placeholder: 'Keresés a dokumentumban…',
     counter: '{{current}} / {{total}}',
     empty: 'Nincs találat',
     next: 'Következő találat (Enter)',
@@ -517,7 +517,7 @@ export const hu: Messages = {
     backupFailed: 'Mentés hiba: {{error}}',
     backupSuccess: 'Mentés exportálva ({{n}} {{unit}})',
     importFailed: 'Import hiba: {{error}}',
-    saveFailed: 'Mentés sikertelen — a munkád még a memóriában van. Exportáld a fül bezárása előtt.',
+    saveFailed: 'Mentés sikertelen. A munkád még a memóriában van. Exportáld a fül bezárása előtt.',
     lastExportNever: 'Tipp: exportáld rendszeresen a munkád. Minden csak ebben a böngészőben él.',
     lastExportStale: '{{n}} napja nem exportáltál. Fontolj meg egy mentést (Oldalsáv → Export).',
     createDocumentFailed: 'Dokumentum létrehozása sikertelen: {{error}}',
@@ -530,7 +530,7 @@ export const hu: Messages = {
     chapterDeletedUnitSingular: 'blokk',
     chapterDeletedUnitPlural: 'blokk',
     chapterDeleteBody:
-      '{{n}} {{unit}} a temetőbe kerül — mindegyik külön-külön visszaállítható.',
+      '{{n}} {{unit}} a temetőbe kerül. Mindegyik külön-külön visszaállítható.',
     chapterDeleteBodyUnitSingular: 'blokk',
     chapterDeleteBodyUnitPlural: 'blokk',
   },
@@ -539,7 +539,7 @@ export const hu: Messages = {
     title: 'Blokk típusok',
     closeLabel: 'Súgó bezárása',
     intro:
-      'Az InkMirror egy blokk alapú szerkesztő. Minden blokknak van egy típusa, ami megmondja az alkalmazásnak, mit kezdjen vele — hogyan jelenítse meg, számítson-e a szószámba, bekerüljön-e az exportba. Bármikor megváltoztathatod egy blokk típusát a {{menu}} menüjéből.',
+      'Az InkMirror egy blokk alapú szerkesztő. Minden blokknak van egy típusa, ami megmondja az alkalmazásnak, mit kezdjen vele: hogyan jelenítse meg, számítson-e a szószámba, bekerüljön-e az exportba. Bármikor megváltoztathatod egy blokk típusát a {{menu}} menüjéből.',
     useForLabel: 'Használd erre',
     howItBehavesLabel: 'Hogyan viselkedik',
     tip: 'Tipp: bármikor átválthatsz típusok között, a tartalom nem vész el.',
@@ -557,10 +557,10 @@ export const hu: Messages = {
       name: 'Párbeszéd',
       tagline: 'Karakter beszéde, chat buborékként megjelenítve.',
       useFor1: 'Bármit, amit egy karakter hangosan mond',
-      useFor2: 'Beszélgetés váltott sorai — Enter-rel indítod a következő beszélő sorát',
+      useFor2: 'Beszélgetés váltott sorai. Enter-rel indítod a következő beszélő sorát',
       note1: 'Kattints a beszélő csipjére a blokk fejlécében a karakter kiválasztásához, vagy írd be "Név: Szia" formában, és az előtag automatikusan lekerül és hozzárendelődik.',
       note2: 'Ha a blokk egy Jelenet után áll megadott szereplőgárdával, a választó először ezeket a szereplőket listázza.',
-      note3: 'Minden beszélőnek saját színe van — a buborék háttere és bal oldali szegélye a karakterkártyáról jön.',
+      note3: 'Minden beszélőnek saját színe van. A buborék háttere és bal oldali szegélye a karakterkártyáról jön.',
       note4: 'Átnevezel egy karaktert, és minden hozzátartozó párbeszéd blokk automatikusan frissül. Ha törlöd, a blokkok "hozzárendelés nélkülivé" válnak, de a szöveg megmarad.',
       note5: 'A beszélő nevével együtt exportálódik Markdownba, DOCX-be, EPUB-ba; Fountain-ben nagybetűs beszélő-jelzésként.',
     },
@@ -568,11 +568,11 @@ export const hu: Messages = {
       name: 'Jelenet',
       tagline: 'Szerkezeti jelölő helyszínnel, idővel, hangulattal és szereplőkkel.',
       useFor1: 'Új jelenet kezdete a történetben',
-      useFor2: 'Jelöld, mely karakterek vannak jelen — az ezt követő párbeszéd blokkok ehhez a szereplőgárdához szűkítik a beszélő-választót',
+      useFor2: 'Jelöld, mely karakterek vannak jelen. Az ezt követő párbeszéd blokkok ehhez a szereplőgárdához szűkítik a beszélő-választót',
       useFor3: 'Napszak vagy érzelmi regiszter jelölése a Cselekmény idővonalhoz',
       note1: 'A blokk fejléce alatti inline metaadat-szerkesztőben töltheted ki a helyszínt / időt / hangulatot és kapcsolhatod a szereplő-csipeket.',
-      note2: 'A Cselekmény idővonal nézetet táplálja (oldalsáv → Cselekmény idővonal) — minden jelenet időrendben, fejezetenként csoportosítva jelenik meg.',
-      note3: 'A szereplő-választás adja a "Beszélő (jelenet szereplői)" gyorsválasztót — a jelenet blokkokat a párbeszéd elé tedd, hogy a gyorshivatkozás működjön.',
+      note2: 'A Cselekmény idővonal nézetet táplálja (oldalsáv, Cselekmény idővonal). Minden jelenet időrendben, fejezetenként csoportosítva jelenik meg.',
+      note3: 'A szereplő-választás adja a "Beszélő (jelenet szereplői)" gyorsválasztót. A jelenet blokkokat a párbeszéd elé tedd, hogy a gyorshivatkozás működjön.',
       note4: 'Dőlt fejlécként exportálódik Markdown/DOCX/EPUB formátumba, és teljes INT./EXT. sorral Fountainben.',
     },
     note: {
@@ -582,7 +582,7 @@ export const hu: Messages = {
       useFor2: 'Kutatási részletek vagy URL töredékek',
       useFor3: 'Kérdések magadnak',
       useFor4: 'Bármi, amit a vázlatban tartani akarsz, de NEM a kész könyvben',
-      note1: 'Soha nem kerül exportba — EPUB, DOCX, PDF, Markdown, JSON, Fountain mind kihagyja a jegyzet blokkokat.',
+      note1: 'Soha nem kerül exportba. EPUB, DOCX, PDF, Markdown, JSON, Fountain mind kihagyja a jegyzet blokkokat.',
       note2: 'Nem számít a szószámba.',
       note3: 'Nem kerül sentiment elemzésre vagy karakter-említés keresésre.',
       note4: 'Csak a te szemednek.',
@@ -593,7 +593,7 @@ export const hu: Messages = {
     title: 'Fejezet típusok',
     closeLabel: 'Súgó bezárása',
     intro:
-      'Egy regény nem csak fejezetekből áll — ott van még a borító, az ajánlás, a mottó, az utószavak. Az InkMirror mindezeket saját típusú fejezetként kezeli, így az exportok a megfelelő sorrendben helyezik el a részeket, és a szerkesztő úgy jeleníti meg mindegyiket, ahogy az olvasó végül látni fogja. Válassz típust az oldalsáv {{plus}} menüjéből; később a fejezet {{menu}} menüjéből módosíthatod.',
+      'Egy regény nem csak fejezetekből áll. Ott van még a borító, az ajánlás, a mottó, az utószavak. Az InkMirror mindezeket saját típusú fejezetként kezeli, így az exportok a megfelelő sorrendben helyezik el a részeket, és a szerkesztő úgy jeleníti meg mindegyiket, ahogy az olvasó végül látni fogja. Válassz típust az oldalsáv {{plus}} menüjéből; később a fejezet {{menu}} menüjéből módosíthatod.',
     useForLabel: 'Használd erre',
     howItBehavesLabel: 'Hogyan viselkedik',
     tip: 'Tipp: a fejezetek sorrendje az oldalsávon megegyezik az exportban megjelenő sorrendjükkel.',
@@ -602,20 +602,20 @@ export const hu: Messages = {
       tagline: 'Hagyományos történetmesélő fejezet.',
       useFor1: 'Narratív fejezetek jelenetekkel, párbeszéddel és prózával',
       useFor2: 'Bármi "1. fejezet", "2. fejezet" stb. számozású',
-      useFor3: 'Az alapértelmezett típus — majdnem mindig ezt akarod',
+      useFor3: 'Az alapértelmezett típus. Majdnem mindig ezt akarod',
       note1: 'A teljes blokk-keret látszódik. Minden blokk típus (szöveg, párbeszéd, jelenet, jegyzet) elérhető.',
       note2: 'Számít a szószámba, táplálja a Cselekmény idővonalat és a Történet Pulzus EKG-t.',
       note3: 'A címével együtt, fejlécként exportálódik minden formátumban.',
     },
     cover: {
       name: 'Borító',
-      tagline: 'A címlap — a regényed első lélegzete.',
+      tagline: 'A címlap. A regényed első lélegzete.',
       useFor1: 'Könyv címe + szerző sora',
       useFor2: 'Sorozat neve, alcím vagy rövid ajánlás',
       useFor3: 'Bármi, aminek az 1. fejezet előtt kell megjelennie',
       note1: 'A szöveg középre igazított és megnövelt méretű (1.6em). A blokk-keret el van rejtve, semmi nem vonja el a figyelmet a címtől.',
-      note2: 'Általában csak egy-két blokk — a cím és a szerző sora.',
-      note3: 'Nem számít a kézirat szószámába.',
+      note2: 'Általában csak egy-két blokk: a cím és a szerző sora.',
+      note3: 'Nem számít a dokumentum szószámába.',
       note4: 'Az első oldalként exportálódik az EPUB / DOCX / PDF elején.',
     },
     dedication: {
@@ -625,7 +625,7 @@ export const hu: Messages = {
       useFor2: '"Rékának, aki türelmes volt."',
       useFor3: 'Bármilyen egysoros ajánlás',
       note1: 'Dőlt, középre igazított, bőséges felső behúzással, hogy az oldalon ajánlás-tábla hatást keltsen.',
-      note2: 'Blokk-keret elrejtve — nincs húzó-fogantyú vagy típus címke.',
+      note2: 'Blokk-keret elrejtve. Nincs húzó-fogantyú vagy típus címke.',
       note3: 'Nem számít a szószámba.',
       note4: 'Az élő anyagban exportálódik, a Borító és az 1. fejezet között.',
     },
@@ -633,10 +633,10 @@ export const hu: Messages = {
       name: 'Mottó',
       tagline: 'Kölcsönzött sor, ami megadja a hangnemet.',
       useFor1: 'Nyitó idézet egy másik műből',
-      useFor2: 'Tematikus felirat — a lencse, amin keresztül a könyvet olvasni kell',
+      useFor2: 'Tematikus felirat, a lencse, amin keresztül a könyvet olvasni kell',
       useFor3: 'Forrás hivatkozása a következő sorban',
       note1: 'Dőlt, középre igazított, az ajánláshoz hasonló felső behúzással.',
-      note2: 'Hagyományosan két blokk: maga az idézet, majd egy rövid "— Szerző, Mű" sor alatta.',
+      note2: 'Hagyományosan két blokk: maga az idézet, majd egy rövid "Szerző, Mű" sor alatta.',
       note3: 'Blokk-keret elrejtve; nem számít a szószámba.',
       note4: 'Az élő anyagban exportálódik, jellemzően az Ajánlás és az 1. fejezet között.',
     },
@@ -647,7 +647,7 @@ export const hu: Messages = {
       useFor2: 'Család, barátok, társ',
       useFor3: 'A kávézó, ahol írtad',
       note1: 'Középre igazított, blokk-keret elrejtve, ugyanaz az olvasási kezelés, mint a többi nem szabványos típusnál.',
-      note2: 'A végére kerül — a holt anyagba exportálódik, az utolsó szabványos fejezet után.',
+      note2: 'A végére kerül: a holt anyagba exportálódik, az utolsó szabványos fejezet után.',
       note3: 'Nem számít a szószámba.',
     },
     afterword: {
@@ -657,16 +657,16 @@ export const hu: Messages = {
       useFor2: 'Miért írtad a könyvet, vagy mit jelentett neked a történet',
       useFor3: 'Utóirat, függelék vagy "további olvasmányok" mutató',
       note1: 'Középre igazított, blokk-keret nélkül.',
-      note2: 'A történet és a Köszönetnyilvánítás után áll — az olvasó utoljára itt hallja a hangodat.',
+      note2: 'A történet és a Köszönetnyilvánítás után áll. Az olvasó utoljára itt hallja a hangodat.',
       note3: 'Nem számít a szószámba.',
     },
   },
   landing: {
     hero: {
-      title1: 'Két szív, egy lélek —',
+      title1: 'Két szív, egy lélek,',
       title2: 'az íróé és a történeté.',
       subtitle:
-        'Egy AI-asszisztált regényíró alkalmazás, ami teljes egészében a böngésződben fut. Offline-első, adatvédelem-első. Az AI nem ír helyetted — tükröt tart eléd.',
+        'Egy AI-asszisztált regényíró alkalmazás, ami teljes egészében a böngésződben fut. Offline-első, adatvédelem-első. Az AI nem ír helyetted. Tükröt tart eléd.',
       cta: 'Kezdj írni',
       smallPrint: 'Ingyenes. Nincs fiók. Nincs telepítés. Bármilyen modern böngészőben működik.',
     },
@@ -682,33 +682,33 @@ export const hu: Messages = {
         'AI-alapú sentiment elemzés helyben fut a böngésződben. Lásd a történeted érzelmi ívét valós idejű EKG-n, hangulat-hőtérképen és karakterenkénti hangulat-követőn.',
       f3Title: '6 export formátum',
       f3Desc:
-        "Markdown, JSON, Fountain, EPUB, DOCX, PDF — egy kattintás mindegyik. A félkövér és dőlt formázás átmegy. Fountain automatikusan kap CONT'D jelzőket.",
+        "Markdown, JSON, Fountain, EPUB, DOCX, PDF, egy kattintás mindegyik. A félkövér és dőlt formázás átmegy. Fountain automatikusan kap CONT'D jelzőket.",
       f4Title: 'Semmi nem vész el',
       f4Desc:
         'Minden törölt blokk a Halott Szöveg Temetőbe kerül. Minden szerkesztést a blokkonkénti verziótörténet követ. Ctrl+Z-vel visszavonhatsz blokk-törléseket és típusváltásokat is.',
       f5Title: 'Offline és privát',
       f5Desc:
-        'A regényed soha nem hagyja el a böngésződet. Nincs szerver, nincs fiók, nincs telemetria. PWA-ként telepíthető. Az AI helyben fut Transformers.js-en keresztül — még a sentiment modell sem kommunikál a szerverrel.',
+        'A regényed soha nem hagyja el a böngésződet. Nincs szerver, nincs fiók, nincs telemetria. PWA-ként telepíthető. Az AI helyben fut Transformers.js-en keresztül. Még a sentiment modell sem kommunikál a szerverrel.',
       f6Title: 'Fókuszra építve',
       f6Desc:
-        'A Fókusz mód mindent elrejt az íráson kívül, és az aktív blokkot a képernyő közepére rögzíti — írógép-érzet. A Zen mód még a blokk-keretet is leveti. A háttérhang a fejezeted hangulatát generatív akkorddá fordítja.',
+        'A Fókusz mód mindent elrejt az íráson kívül, és az aktív blokkot a képernyő közepére rögzíti (írógép-érzet). A Zen mód még a blokk-keretet is leveti. A háttérhang a fejezeted hangulatát generatív akkorddá fordítja.',
     },
     philosophy: {
       heading: '"Az AI nem ír helyetted"',
       p1:
-        'Az InkMirror soha nem fog szöveget generálni, befejezni a mondataidat, vagy cselekmény-fordulatokat javasolni. Az a te dolgod — és a világnak nincs szüksége még egy eszközre, ami rosszabbul csinálja, mint te.',
+        'Az InkMirror soha nem fog szöveget generálni, befejezni a mondataidat, vagy cselekmény-fordulatokat javasolni. Az a te dolgod, és a világnak nincs szüksége még egy eszközre, ami rosszabbul csinálja, mint te.',
       p2Before: 'Ehelyett az AI ',
       p2Analyzes: 'elemez',
       p2Middle: '. Olvassa a prózádat, és elmondja, milyen ',
       p2Feels: 'érzés',
       p2After:
-        ' — a hangulat, a tempó, a feszültség íve. Követi a karaktereidet a jeleneteken át, és jelzi, ha a leírásuk ellentmondásba kerül. Méri az írói ritmusodat, és megmutatja, mikor vagy flow-ban.',
+        ': a hangulat, a tempó, a feszültség íve. Követi a karaktereidet a jeleneteken át, és jelzi, ha a leírásuk ellentmondásba kerül. Méri az írói ritmusodat, és megmutatja, mikor vagy flow-ban.',
       closing: 'Két szív, egy lélek. Az író alkot. A történet visszaszól.',
     },
     privacy: {
       heading: 'A regényed soha nem hagyja el a böngésződet',
       body:
-        'Minden helyben fut. A szöveged az IndexedDB-ben van tárolva — nem szerveren, nem a felhőben, sehol, ami nem a gépeden van. Az AI modell egyszer töltődik le, és egy Web Workerben fut. Az alkalmazás PWA-ként telepíthető, és teljes mértékben működik offline.',
+        'Minden helyben fut. A szöveged az IndexedDB-ben van tárolva, nem szerveren, nem a felhőben, sehol, ami nem a gépeden van. Az AI modell egyszer töltődik le, és egy Web Workerben fut. Az alkalmazás PWA-ként telepíthető, és teljes mértékben működik offline.',
       cardTelemetryTitle: 'Zéró telemetria',
       cardTelemetryBody: 'Nincs analitika, nincs követés, nincs szerverhívás',
       cardOfflineTitle: 'Működik offline',
@@ -735,9 +735,9 @@ export const hu: Messages = {
       item15: 'Meleg szépia világos téma és teljes sötét mód',
       item16: 'Hibakereső telemetria réteg fejlesztéshez',
       item17: 'Beépített keresés + csere (Ctrl+F) ibolyaszín találat-festéssel a CSS Custom Highlight API-n keresztül',
-      item18: 'Automatikus tipográfia gépelés közben: -- → —, ... → …, opcionálisan göndör idézőjelek',
-      item19: 'Munkamenet-szószám — kis +N chip a dokumentum összesen mellett, újratöltéskor nullázódik',
-      item20: 'Karakter profil oldalak — kattints egy említés-pontra vagy oldalsávi névre a leírás, említések, párbeszédek és POV megnyitásához',
+      item18: 'Automatikus tipográfia gépelés közben: dupla kötőjelből gondolatjel, ... helyett …, opcionálisan göndör idézőjelek',
+      item19: 'Munkamenet-szószám: kis +N chip a dokumentum összesen mellett, újratöltéskor nullázódik',
+      item20: 'Karakter profil oldalak: kattints egy említés-pontra vagy oldalsávi névre a leírás, említések, párbeszédek és POV megnyitásához',
     },
     cta: {
       heading: 'Készen állsz az írásra?',
@@ -756,22 +756,22 @@ export const hu: Messages = {
   },
   demo: {
     ctaLanding: 'Próbáld ki a demót',
-    ctaLandingHelp: 'Egy rövid Csehov-novella — szerkeszd, fedezd fel a funkciókat.',
+    ctaLandingHelp: 'Egy rövid Csehov-novella. Szerkeszd, fedezd fel a funkciókat.',
     ctaPickerHeader: 'Próbáld ki a demót',
     ctaPickerBody:
-      'Egy rövid Csehov-novella — szerkeszd, fedezd fel a funkciókat, és töröld, amikor végeztél.',
-    banner: 'Ez egy mintadokumentum. Szerkesztheted, átrendezheted, törölheted — már a tiéd.',
+      'Egy rövid Csehov-novella. Szerkeszd, fedezd fel a funkciókat, és töröld, amikor végeztél.',
+    banner: 'Ez egy mintadokumentum. Szerkesztheted, átrendezheted, törölheted. Már a tiéd.',
     bannerDismiss: 'Elrejt',
     collisionTitle: 'A demo már a könyvtáradban van',
     collisionBody:
       'Már importáltad a demót. Megtartod a meglévő példányt (amiben lehet, hogy a te módosításaid vannak), vagy lecseréled az eredeti változatra?',
     collisionReplace: 'Csere',
     collisionKeepBoth: 'Mindkettő marad',
-    openedToast: 'Demo megnyitva — jó olvasást.',
+    openedToast: 'Demo megnyitva. Jó olvasást.',
     openFailed: 'Nem sikerült megnyitni a demót: {{error}}',
   },
   roadmap: {
-    pageTitle: 'Útiterv — InkMirror',
+    pageTitle: 'Útiterv: InkMirror',
     status: {
       shipped: 'KÉSZ',
       inProgress: 'FOLYAMATBAN',
@@ -781,54 +781,54 @@ export const hu: Messages = {
     opening: {
       header: 'Csendes kezdés.',
       body:
-        'Az InkMirror egy írói eszköz, amely tükröt tart a történet elé. A böngésződben él, sehova nem jelent, és lassan — szándékosan lassan — nő. Ez az oldal egy őszinte feljegyzés a munkából: hol volt, hol van most, és merre tart halkan.',
+        'Az InkMirror egy írói eszköz, amely tükröt tart a történet elé. A böngésződben él, sehova nem jelent, és lassan (szándékosan lassan) nő. Ez az oldal egy őszinte feljegyzés a munkából: hol volt, hol van most, és merre tart halkan.',
     },
     shipped: {
       header: 'Ami már itt van.',
       intro: 'Az alap elkészült. Az app már teszi azt, amire szánták, és néhány olyat is, amit az első vázlatok még nem mertek.',
       p1:
-        'A szerkesztő blokkalapú. A próza, a párbeszéd, a jelenetek és a privát jegyzetek külön formát kapnak; mindegyik a saját alakjában érkezik meg minden exportba. Több bekezdést beillesztve a szöveg magától blokkokra szakad. Egy blokk törlése a Halott szöveg temetőjébe kerül — semmi nem vész el igazán.',
+        'A szerkesztő blokkalapú. A próza, a párbeszéd, a jelenetek és a privát jegyzetek külön formát kapnak; mindegyik a saját alakjában érkezik meg minden exportba. Több bekezdést beillesztve a szöveg magától blokkokra szakad. Egy blokk törlése a Halott szöveg temetőjébe kerül. Semmi nem vész el igazán.',
       p2:
         'Egy kis többnyelvű érzelmi modell fut egy Web Workerben. Minden blokk egy dobbanás lesz a Story Pulse EKG-n és egy sáv a hangulattérképen. Az AI nem ír. Csak visszahallgat.',
       p3:
         'Hat export-formátum érhető el már most: Markdown, JSON, Fountain, EPUB, DOCX, PDF. Minden dokumentum .inkmirror.json csomagként távozhat, a fejezeteivel, karaktereivel, temetőjével és érzelmi adataival együtt. Teljes adatbázis-mentés ütközéskezeléssel szintén megvan.',
       p4:
-        'A felület ma angolul és magyarul beszél, és egy harmadik vagy ötödik nyelv alig egy megabájt többletbe kerül. A premium mozgáskészlet megadja a blokkoknak a belépést, az EKG-nek a rajzolódást, a tükörnek a lélegzetét — miközben kérés nélkül tiszteletben tartja a prefers-reduced-motion beállítást.',
+        'A felület ma angolul és magyarul beszél, és egy harmadik vagy ötödik nyelv alig egy megabájt többletbe kerül. A premium mozgáskészlet megadja a blokkoknak a belépést, az EKG-nek a rajzolódást, a tükörnek a lélegzetét, miközben kérés nélkül tiszteletben tartja a prefers-reduced-motion beállítást.',
       p5:
-        'Egy csendesebb csiszolási hullám folyamatosan érkezik. A Fókusz mód most a képernyő közepére rögzíti az aktív blokkot — írógép-érzet —, és újratöltések között is megjegyzi magát. A Ctrl+F elfogja a böngésző saját keresését, hogy a virtualizáció által rejtett blokkok is elérhetők legyenek; a sáv találat-számlálót, navigációt, egy- vagy összes-cserét hordoz, és ibolyaszínre festi az aktív találatot anélkül, hogy a DOM-hoz nyúlna. Gépelés közben a kettős kötőjelből gondolatjel, a hármas pontból három pont lesz; az egyenes idézőjelek pedig göndörré válnak, ha a dokumentum erre van állítva. A szószám mellett egy kis +N chip mutatja, mit írtál ebben a munkamenetben. A próza említés-pontjai és az oldalsáv nevei egyaránt megnyitják a karakter profil oldalt — leírással, említésekkel, párbeszédekkel és POV-kapcsolóval.',
+        'Egy csendesebb csiszolási hullám folyamatosan érkezik. A Fókusz mód most a képernyő közepére rögzíti az aktív blokkot (írógép-érzet), és újratöltések között is megjegyzi magát. A Ctrl+F elfogja a böngésző saját keresését, hogy a virtualizáció által rejtett blokkok is elérhetők legyenek; a sáv találat-számlálót, navigációt, egy- vagy összes-cserét hordoz, és ibolyaszínre festi az aktív találatot anélkül, hogy a DOM-hoz nyúlna. Gépelés közben a kettős kötőjelből gondolatjel, a hármas pontból három pont lesz; az egyenes idézőjelek pedig göndörré válnak, ha a dokumentum erre van állítva. A szószám mellett egy kis +N chip mutatja, mit írtál ebben a munkamenetben. A próza említés-pontjai és az oldalsáv nevei egyaránt megnyitják a karakter profil oldalt: leírással, említésekkel, párbeszédekkel és POV-kapcsolóval.',
     },
     inProgress: {
       header: 'Ami most készül.',
       intro: 'A következő kör már fut. Két funkció egyszerre, mert ugyanazt a modellt osztják.',
       p1:
-        'Gazdag hangulatok. A jelenlegi érzelmi csővezeték csak pozitívat, semlegeset és negatívat ismer — ez a szókincs nem a szépirodalomé. Egy többnyelvű zero-shot modell veszi át a helyét, hogy az EKG a gyengéd, rettegés, vágyakozás, áhítat, gyász, csoda teljes palettáján tudjon megszólalni — abban, amit a regény valóban használ.',
+        'Gazdag hangulatok. A jelenlegi érzelmi csővezeték csak pozitívat, semlegeset és negatívat ismer; ez a szókincs nem a szépirodalomé. Egy többnyelvű zero-shot modell veszi át a helyét, hogy az EKG a gyengéd, rettegés, vágyakozás, áhítat, gyász, csoda teljes palettáján tudjon megszólalni, abban, amit a regény valóban használ.',
       p2:
-        'Ellentmondás-felismerés. Ugyanaz a modell párosítja a fejezeteken átívelő állításokat, és jelzi a következetlenségeket — szemszín, rokonság, ki mit és mikor tudott. Minden jelzés elvethető. Az író marad az irányításban; az AI csak a tükör.',
+        'Ellentmondás-felismerés. Ugyanaz a modell párosítja a fejezeteken átívelő állításokat, és jelzi a következetlenségeket: szemszín, rokonság, ki mit és mikor tudott. Minden jelzés elvethető. Az író marad az irányításban; az AI csak a tükör.',
       p3:
-        'AI-profil beállítások. A könnyű modell marad az alapértelmezés. A gazdagabb funkciók választhatók lesznek — egyetlen kattintás a beállításokban indítja a nagyobb letöltést. Az app soha nem lesz nehezebb, mint amennyit kértél.',
+        'AI-profil beállítások. A könnyű modell marad az alapértelmezés. A gazdagabb funkciók választhatók lesznek: egyetlen kattintás a beállításokban indítja a nagyobb letöltést. Az app soha nem lesz nehezebb, mint amennyit kértél.',
     },
     planned: {
       header: 'Amit éppen elképzelek.',
       intro: 'Távolabb. Azért van leírva, mert a szándék számít, nem azért, mert a dátum fix.',
       i1:
-        'Vázlatnézet. Jelenetkártyák második navigációs tengelyként — a parafatábla a kézirat mellett, hogy a szerkezet és a szöveg egyszerre látszódjon.',
+        'Vázlatnézet. Jelenetkártyák második navigációs tengelyként: a parafatábla a dokumentum mellett, hogy a szerkezet és a szöveg egyszerre látszódjon.',
       i2:
         'Mobil csiszolás. A szerkesztő már PWA-ként telepíthető bármelyik eszközre; az érintéses élmény még megérdemel egy saját szprintet, hogy telefonon is otthonosan szóljon.',
       i3:
         'Scrivener és Manuskript import. Aki más eszközről érkezik, ne kelljen üres lappal kezdenie.',
       i4:
-        'Saját helyi LLM. Az app magában soha nem fog szöveget generálni — de egy opcionális Ollama vagy LM Studio végpont lehetővé teheti, hogy a tapasztaltabb írók a saját modellüket kapcsolják be elemzésre.',
+        'Saját helyi LLM. Az app magában soha nem fog szöveget generálni, de egy opcionális Ollama vagy LM Studio végpont lehetővé teheti, hogy a tapasztaltabb írók a saját modellüket kapcsolják be elemzésre.',
       i5:
         'Lábjegyzetek és margójegyzetek a szövegben. Író-önmagához írt feljegyzések a szöveg folyamában, nem mellette.',
       i6:
         'Karakterkapcsolati háló. Ki ismer kit, ki bántott kit, hol keresztezik egymást a szálak.',
       i7:
-        'Akadálymentesítés. Teljes képernyőolvasó-támogatás, csak billentyűzettel bejárható felület, fókuszcsapda-fegyelem — nem utólagos toldalékként.',
+        'Akadálymentesítés. Teljes képernyőolvasó-támogatás, csak billentyűzettel bejárható felület, fókuszcsapda-fegyelem. Nem utólagos toldalékként.',
     },
     closing: {
       header: 'Egy levél, ha van.',
       body:
-        'Ha bármi ebből számít neked — ha valami jónak, rossznak vagy kérésre méltónak érződik — írj. Az alábbi űrlap egy privát csatornára érkezik, amit tényleg olvasok.',
+        'Ha bármi ebből számít neked, ha valami jónak, rossznak vagy kérésre méltónak érződik, írj. Az alábbi űrlap egy privát csatornára érkezik, amit tényleg olvasok.',
       cta: 'Visszajelzés küldése',
     },
   },
@@ -852,7 +852,7 @@ export const hu: Messages = {
         basic: {
           title: 'Alap',
           description:
-            'Hangulat három árnyalatban — pozitív, semleges, negatív. Körülbelül 60 MB, első használatkor töltődik be.',
+            'Hangulat három árnyalatban: pozitív, semleges, negatív. Körülbelül 60 MB, első használatkor töltődik be.',
         },
         rich: {
           title: 'Gazdag',
@@ -866,7 +866,7 @@ export const hu: Messages = {
         confirm: {
           title: 'Letöltsük a Gazdag modellt?',
           body:
-            'Egyszeri, kb. 80 MB letöltés. Feloldja a teljes hangulatpalettát és a következetlenség-ellenőrzést. A modell a böngésződben marad — semmi nem kerül fel sehová.',
+            'Egyszeri, kb. 80 MB letöltés. Feloldja a teljes hangulatpalettát és a következetlenség-ellenőrzést. A modell a böngésződben marad; semmi nem kerül fel sehová.',
           cta: 'Letöltés és bekapcsolás',
           cancel: 'Most nem',
         },
@@ -906,8 +906,8 @@ export const hu: Messages = {
     title: 'Szinkronizálás',
     off: 'A szinkronizálás ki van kapcsolva',
     on: 'A szinkronizálás be van kapcsolva',
-    description: 'Szinkronizáld a kéziratokat eszközeid között, végpontok között titkosítva. A szerver nem tudja elolvasni a regényeidet — csak a saját eszközeid.',
-    privacyLink: 'Hogyan védjük az adatod? — Adatvédelem',
+    description: 'Szinkronizáld a dokumentumokat eszközeid között, végpontok között titkosítva. A szerver nem tudja elolvasni őket, csak a saját eszközeid.',
+    privacyLink: 'Hogyan védjük az adatod? (Adatvédelem)',
     setUp: 'Szinkronizálás beállítása',
     addDevice: 'Másik eszköz hozzáadása',
     syncNow: 'Szinkronizálás most',
@@ -919,7 +919,7 @@ export const hu: Messages = {
 
     passphrase: {
       title: 'Válassz jelmondatot',
-      explanation: 'A jelmondat titkosítja a kéziratokat, mielőtt elhagyják ezt az eszközt. Nem tudjuk visszaállítani, ha elfelejted.',
+      explanation: 'A jelmondat titkosítja a dokumentumokat, mielőtt elhagyják ezt az eszközt. Nem tudjuk visszaállítani, ha elfelejted.',
       label: 'Jelmondat',
       confirm: 'Megerősítés',
       generate: 'Erős jelmondat generálása',
@@ -928,7 +928,7 @@ export const hu: Messages = {
       strengthStrong: 'erős',
       tooWeak: 'Válassz erősebb jelmondatot, vagy generálj egyet.',
       mismatch: 'A két jelmondat nem egyezik.',
-      deriving: 'Kéziratok titkosítása…',
+      deriving: 'Dokumentumok titkosítása…',
       show: 'Jelmondat megjelenítése',
       hide: 'Jelmondat elrejtése',
     },
@@ -939,7 +939,7 @@ export const hu: Messages = {
       step2: '2. Beállítások → Szinkronizálás → Eszköz hozzáadása',
       step3: '3. Add meg ezt a kódot és a jelmondatot',
       expires: 'A kód {{time}} múlva lejár',
-      expired: 'A kód lejárt — generálsz újat?',
+      expired: 'A kód lejárt. Generálsz újat?',
       generateNew: 'Új kód generálása',
     },
 
@@ -949,7 +949,7 @@ export const hu: Messages = {
       passphraseLabel: 'Jelmondat',
       submit: 'Csatlakozás',
       wrongPassphrase: 'A jelmondat nem egyezik. Próbáld újra.',
-      paircodeExpired: 'A kód lejárt — kérj egy újat a másik eszközön.',
+      paircodeExpired: 'A kód lejárt. Kérj egy újat a másik eszközön.',
       connected: 'Csatlakoztatva · {{n}} dokumentum szinkronizálva',
     },
 
@@ -988,7 +988,7 @@ export const hu: Messages = {
 
     orphan: {
       title: 'A szinkron újrapárosítást igényel',
-      explanation: 'A szerver már nem ismeri ennek az eszköznek a szinkronkörét. Ez általában azt jelenti, hogy a kör a szerveroldalon törlődött, vagy ez az eszköz még a végleges szinkron-tároló élesítése előtt párosított. A kéziratok biztonságban vannak ezen az eszközön — csak a szerveroldali titkosított másolat veszett el.',
+      explanation: 'A szerver már nem ismeri ennek az eszköznek a szinkronkörét. Ez általában azt jelenti, hogy a kör a szerveroldalon törlődött, vagy ez az eszköz még a végleges szinkron-tároló élesítése előtt párosított. A dokumentumok biztonságban vannak ezen az eszközön; csak a szerveroldali titkosított másolat veszett el.',
       reset: 'Visszaállítás és újrapárosítás',
       resetConfirm: 'Töröljük a helyi szinkronállapotot, és bontsuk a kapcsolatot az immár nem létező szerveroldali körrel? A dokumentumok az eszközön maradnak. Utána újrapárosíthatsz.',
       resetDone: 'A helyi szinkronállapot törölve. Állítsd be újra a szinkront a folytatáshoz.',
@@ -1029,11 +1029,11 @@ export const hu: Messages = {
         slowestMs: 'leglassabb pár',
         detectedLang: 'nyelv',
       },
-      noPairs: 'Nincs jelölt pár — előbb vizsgáld meg a kéziratot.',
+      noPairs: 'Nincs jelölt pár. Előbb vizsgáld meg a dokumentumot.',
     },
     badge: {
       overridden: 'felülírás {{value}}',
-      overriddenTitle: 'Aktív küszöb-felülírás — kattints a fejlesztői menü megnyitásához',
+      overriddenTitle: 'Aktív küszöb-felülírás. Kattints a fejlesztői menü megnyitásához',
     },
   },
 };

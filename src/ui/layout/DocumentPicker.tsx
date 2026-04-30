@@ -293,6 +293,7 @@ export const DocumentPicker = (props: Props) => {
               onClick={() => openSettingsModal()}
               class="px-3 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-violet-500 hover:border-violet-500 transition-colors"
               title={t('picker.settingsTitle')}
+              aria-label={t('picker.settingsTitle')}
             >
               {t('picker.settings')}
             </button>
@@ -340,6 +341,8 @@ export const DocumentPicker = (props: Props) => {
                     }}
                     ref={(el) => queueMicrotask(() => el.focus())}
                     placeholder={t('picker.titlePlaceholder')}
+                    aria-label={t('picker.titlePlaceholder')}
+                    aria-invalid={!!titleError()}
                     class="flex-1 bg-transparent outline-none border-b border-violet-300 dark:border-violet-700 focus:border-violet-500 text-stone-800 dark:text-stone-100 font-serif text-base py-1"
                     classList={{ 'border-red-400 focus:border-red-500': !!titleError() }}
                   />
@@ -424,6 +427,7 @@ export const DocumentPicker = (props: Props) => {
                         onClick={() => void exportDoc(doc)}
                         class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-500 text-[11px] px-1 transition-opacity"
                         title={t('picker.exportTitle')}
+                        aria-label={`${t('picker.exportLabel')}: ${doc.title || t('common.untitled')}`}
                       >
                         {t('picker.exportLabel')}
                       </button>
@@ -432,6 +436,7 @@ export const DocumentPicker = (props: Props) => {
                         onClick={() => void deleteDoc(doc)}
                         class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-500 text-xs px-1 transition-opacity"
                         title={t('picker.deleteTitle')}
+                        aria-label={`${t('common.delete')}: ${doc.title || t('common.untitled')}`}
                       >
                         ×
                       </button>

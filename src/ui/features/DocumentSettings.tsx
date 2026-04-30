@@ -142,9 +142,9 @@ export const DocumentSettings = () => {
               <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
                 {t('docSettings.metadata')}
               </div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">
+              <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">
                 {t('docSettings.document')}
-              </div>
+              </h2>
             </div>
             <button
               type="button"

@@ -181,6 +181,6 @@ describe('CharacterPage', () => {
     await waitFor(() =>
       expect(r.container.querySelector('[data-testid="character-page"]')).toBeTruthy(),
     );
-    expect(r.container.textContent).toMatch(/Not in the manuscript|nincs/i);
+    expect(r.container.textContent).toMatch(/Not in the document|dokumentumban/i);
   });
 });

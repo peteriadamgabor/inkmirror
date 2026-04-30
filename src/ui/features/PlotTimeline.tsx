@@ -43,7 +43,7 @@ export const PlotTimeline = () => {
               <div class="text-[10px] text-stone-400 inkmirror-smallcaps">
                 {t('plotTimeline.subtitle').slice(0, 24)}…
               </div>
-              <div class="font-serif text-lg text-stone-800 dark:text-stone-100">{t('plotTimeline.title')}</div>
+              <h2 class="font-serif text-lg font-normal text-stone-800 dark:text-stone-100">{t('plotTimeline.title')}</h2>
             </div>
             <button
               type="button"
@@ -75,7 +75,7 @@ export const PlotTimeline = () => {
                     return (
                       <>
                         <Show when={isNewChapter()}>
-                          <div class="text-[10px] uppercase tracking-wider text-violet-500 mt-4 mb-2 first:mt-0">
+                          <div class="text-[10px] inkmirror-smallcaps text-violet-500 mt-4 mb-2 first:mt-0">
                             {entry.chapter.title}
                           </div>
                         </Show>

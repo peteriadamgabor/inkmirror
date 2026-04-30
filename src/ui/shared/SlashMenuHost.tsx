@@ -124,7 +124,7 @@ export const SlashMenuHost = () => {
         role="menu"
         onClick={(e) => e.stopPropagation()}
       >
-        <div class="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-stone-400 flex items-center gap-2">
+        <div class="px-2 pt-2 pb-1 text-[10px] inkmirror-smallcaps text-stone-400 flex items-center gap-2">
           <span>Block type</span>
           <Show when={filter()}>
             <span class="font-mono text-stone-500 normal-case">/{filter()}</span>

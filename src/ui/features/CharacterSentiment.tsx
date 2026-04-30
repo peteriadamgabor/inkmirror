@@ -80,7 +80,7 @@ export const CharacterSentiment = () => {
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     <span
-                      class={`text-[10px] uppercase font-medium ${
+                      class={`text-[10px] inkmirror-smallcaps ${
                         SENTIMENT_COLORS[m.dominantLabel] ?? 'text-stone-400'
                       }`}
                     >

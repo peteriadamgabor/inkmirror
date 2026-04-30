@@ -38,7 +38,7 @@ export const CrashBoundary = (props: { children: JSX.Element }) => (
         <div class="h-full w-full bg-stone-100 dark:bg-stone-900 flex items-center justify-center p-8">
           <div class="w-[480px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-red-200 dark:border-red-900 shadow-xl p-6 flex flex-col gap-4">
             <div>
-              <div class="text-[10px] uppercase tracking-wider text-red-500 mb-1">
+              <div class="text-[10px] inkmirror-smallcaps text-red-500 mb-1">
                 Something went wrong
               </div>
               <div class="font-serif text-lg text-stone-900 dark:text-stone-50">

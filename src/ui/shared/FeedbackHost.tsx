@@ -72,12 +72,12 @@ export const FeedbackHost = () => {
           aria-labelledby="feedback-title"
         >
           <div>
-            <div
+            <h2
               id="feedback-title"
-              class="font-serif text-lg text-stone-900 dark:text-stone-100"
+              class="font-serif text-lg font-normal text-stone-900 dark:text-stone-100"
             >
               {t('feedback.title')}
-            </div>
+            </h2>
             <div class="text-sm text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
               {t('feedback.subtitle')}
             </div>
@@ -87,6 +87,7 @@ export const FeedbackHost = () => {
             value={message()}
             onInput={(e) => setMessage(e.currentTarget.value)}
             placeholder={t('feedback.placeholder')}
+            aria-label={t('feedback.placeholder')}
             rows={6}
             maxLength={4000}
             ref={(el) => queueMicrotask(() => el.focus())}
@@ -98,6 +99,7 @@ export const FeedbackHost = () => {
             value={contact()}
             onInput={(e) => setContact(e.currentTarget.value)}
             placeholder={t('feedback.contactPlaceholder')}
+            aria-label={t('feedback.contactPlaceholder')}
             maxLength={200}
             class="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-1.5 text-sm text-stone-700 dark:text-stone-200 focus:outline-none focus:border-violet-500 transition-colors"
           />

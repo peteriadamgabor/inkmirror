@@ -218,14 +218,23 @@ export const SidebarChapterList = (props: Props) => {
                 <div
                   onClick={() => !isEditing() && setActiveChapter(c.id)}
                   onDblClick={() => startRenameChapter(c.id, c.title)}
-                  class="group relative py-1.5 pl-3 pr-2 text-sm text-stone-800 dark:text-stone-200 rounded cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center"
+                  aria-current={isActive() ? 'true' : undefined}
+                  class="group relative py-1.5 pl-3 pr-2 text-sm rounded cursor-pointer transition-colors flex items-center gap-2"
                   classList={{
-                    'bg-stone-100 dark:bg-stone-700': isActive(),
-                  }}
-                  style={{
-                    'border-left': isActive() ? '2px solid #7F77DD' : '2px solid transparent',
+                    'bg-violet-500/10 dark:bg-violet-400/10 text-violet-700 dark:text-violet-200 font-medium':
+                      isActive(),
+                    'text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700':
+                      !isActive(),
                   }}
                 >
+                  <span
+                    class="w-1 h-1 rounded-full shrink-0 transition-colors"
+                    classList={{
+                      'bg-violet-500 dark:bg-violet-400': isActive(),
+                      'bg-transparent': !isActive(),
+                    }}
+                    aria-hidden="true"
+                  />
                   <div class="flex-1 min-w-0">
                     <Show
                       when={isEditing()}

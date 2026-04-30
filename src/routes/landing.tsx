@@ -8,13 +8,17 @@ import { openDemo } from '@/backup/demo';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
+// Two-Heart Mirror: only writer-violet and story-orange carry feature
+// accents. They alternate so the brand metaphor reads at a glance —
+// "the writer's side, then the story's side" — instead of dissolving
+// into a six-color rainbow.
 const FEATURE_ACCENTS = [
-  'text-teal-500',
-  'text-emerald-500',
+  'text-violet-500',
   'text-orange-500',
   'text-violet-500',
-  'text-rose-500',
-  'text-sky-500',
+  'text-orange-500',
+  'text-violet-500',
+  'text-orange-500',
 ];
 
 const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
