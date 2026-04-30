@@ -135,7 +135,7 @@ export const SidebarChapterList = (props: Props) => {
       </div>
 
       <Show when={!props.collapsed}>
-        <div class="flex flex-col gap-0.5">
+        <div class="flex flex-col inkmirror-chapter-rules">
           <For
             each={store.chapters}
             fallback={<div class="text-stone-500 text-sm">No chapters</div>}

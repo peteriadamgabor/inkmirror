@@ -17,6 +17,11 @@ html, body, #root {
      #D85A30 inline. Matches DESIGN.md Two Hot Colors Rule. */
   --writer-violet: #7F77DD;
   --story-orange: #D85A30;
+  /* Light-mode-tuned story orange — story-orange at 100% saturation reads
+     candy-bright against vellum. This token pulls chroma down ~10% so any
+     full-saturation usage on cream still belongs in the same room as the
+     manuscript page. */
+  --story-orange-vellum: #C4502B;
 
   /* Elevation: 3-tier soft-shadow scale. */
   --elev-1: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.06);
@@ -27,6 +32,20 @@ html, body, #root {
   --border-rest: 1px solid rgba(120, 113, 108, 0.18);
   --border-active: 1px solid rgba(127, 119, 221, 0.5);
   --border-modal: 1px solid rgba(120, 113, 108, 0.22);
+
+  /* Penguin-Classics hairline rule — a quiet section divider that helps
+     the eye find the next section without color or weight. Used above
+     sidebar chapter heads and at the ECG strip's bottom edge. */
+  --rule-hairline: rgba(120, 113, 108, 0.16);
+}
+
+/* Sidebar chapter list: hairline rules between chapters, Penguin-style.
+   The rule lives on top of every row except the first, so the section-
+   divider reading is "above this chapter" rather than "below the last."
+   Existing py-1.5 on each row gives the rule 12px of breathing room on
+   either side. */
+.inkmirror-chapter-rules > * + * {
+  border-top: 1px solid var(--rule-hairline);
 }
 .dark {
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -35,6 +54,7 @@ html, body, #root {
   --border-rest: 1px solid rgba(120, 113, 108, 0.22);
   --border-active: 1px solid rgba(127, 119, 221, 0.6);
   --border-modal: 1px solid rgba(120, 113, 108, 0.28);
+  --rule-hairline: rgba(120, 113, 108, 0.22);
 }
 
 /* ===========================================================
@@ -110,23 +130,36 @@ select:focus-visible {
 
 /* Light theme: warm sepia tint on the main surfaces. The Tailwind
    color classes stay unchanged (stone-100, stone-200, …); we just
-   nudge the root background and key panels toward a papery warmth
-   so the editor feels like a writing desk, not a spreadsheet. */
+   nudge the root background and key panels toward a papery warmth.
+   The scene sentence is "library reading room, late afternoon" —
+   honest warmth, not golden. Vellum reads as a manuscript page,
+   not an old paperback. */
 :root:not(.dark) {
   --tw-bg-opacity: 1;
-  background-color: #f5f0e8; /* warm cream instead of stone-100 #f5f5f4 */
+  background-color: #f3eee3; /* vellum-page — cooler than the old #f5f0e8 */
 }
 :root:not(.dark) .bg-stone-100 {
-  background-color: #f5f0e8;
+  background-color: #f3eee3;
 }
 :root:not(.dark) .bg-white {
-  background-color: #faf6f0;
+  background-color: #faf6ec; /* vellum-surface — one step warmer-and-paler so the floating-island lift reads by tone */
 }
 :root:not(.dark) .bg-white\/95 {
-  background-color: rgba(250, 246, 240, 0.95);
+  background-color: rgba(250, 246, 236, 0.95);
 }
 :root:not(.dark) .bg-white\/80 {
-  background-color: rgba(250, 246, 240, 0.8);
+  background-color: rgba(250, 246, 236, 0.8);
+}
+/* Modal backdrop in light mode — the default bg-stone-900/40 reads as
+   a cold slab against vellum. Shift to a warmer stone tone so the
+   library-window-indirect quality survives the overlay. The same two
+   classes are used by ConsistencyPanel/MoodHeatmap, but only inside
+   `dark:`-prefixed selectors that don't fire here. */
+:root:not(.dark) .bg-stone-900\/40 {
+  background-color: rgba(82, 73, 60, 0.32);
+}
+:root:not(.dark) .bg-stone-900\/50 {
+  background-color: rgba(82, 73, 60, 0.4);
 }
 
 /* Dark theme: warm stone with a hint of violet/indigo undertone,
@@ -216,9 +249,11 @@ select:focus-visible {
   border-right-color: transparent !important;
   border-bottom-color: transparent !important;
 }
-/* Unassigned fallback tint (no character color yet). */
+/* Unassigned fallback tint (no character color yet). Light-mode
+   floor is lower than dark — color-mix on cooler vellum muddies
+   easily, so we trade a touch of saturation for clarity. */
 [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
-  background: rgba(20, 184, 166, 0.06);
+  background: rgba(20, 184, 166, 0.05);
 }
 .dark [data-block-type="dialogue"] [data-editable]:not([style*="background"]) {
   background: rgba(20, 184, 166, 0.1);
@@ -232,10 +267,17 @@ select:focus-visible {
 /* Scene blocks: a subtle orange-tinted left edge marks them in
    context without shouting. Matches the "feature color only at
    the feature surface" principle — orange appears right where
-   scenes live, not scattered across unrelated UI. */
+   scenes live, not scattered across unrelated UI.
+   Light mode uses --story-orange-vellum (cooler chroma) so the
+   marker belongs to the manuscript-page palette; dark mode keeps
+   the brand story-orange at 45% — pure black backgrounds need
+   the full saturation to read at 2px. */
 [data-block-type="scene"] [data-editable] {
-  border-left: 2px solid rgba(234, 88, 12, 0.4); /* orange-600 @ 40% */
+  border-left: 2px solid rgba(196, 80, 43, 0.45); /* story-orange-vellum @ 45% */
   padding-left: 14px;
+}
+.dark [data-block-type="scene"] [data-editable] {
+  border-left-color: rgba(216, 90, 48, 0.45); /* brand story-orange @ 45% */
 }
 
 /* Note blocks: dimmed prose so the eye skips past them when
