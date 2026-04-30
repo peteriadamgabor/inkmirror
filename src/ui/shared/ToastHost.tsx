@@ -38,6 +38,20 @@ export const ToastHost = () => {
           >
             <span class="mt-0.5 opacity-80 shrink-0 inline-flex">{KIND_ICON[item.kind]()}</span>
             <span class="flex-1 break-words">{item.message}</span>
+            <Show when={item.action}>
+              {(action) => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    action().handler();
+                    if (!action().keepOpen) dismissToast(item.id);
+                  }}
+                  class="px-2 py-0.5 text-xs font-medium rounded-md bg-violet-500 text-white hover:bg-violet-600 transition-colors shrink-0"
+                >
+                  {action().label}
+                </button>
+              )}
+            </Show>
             <button
               type="button"
               onClick={() => dismissToast(item.id)}

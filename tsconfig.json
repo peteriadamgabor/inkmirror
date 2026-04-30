@@ -12,7 +12,7 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "types": ["vite/client", "vitest/globals", "node", "@cloudflare/workers-types"],
+    "types": ["vite/client", "vitest/globals", "node", "@cloudflare/workers-types", "vite-plugin-pwa/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],

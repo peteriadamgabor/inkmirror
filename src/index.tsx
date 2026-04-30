@@ -26,6 +26,9 @@ import {
 import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
+import { installSwUpdatePrompt } from '@/ui/shared/sw-update';
+import { installAnnouncementsScheduler } from '@/announcements/scheduler';
+import { CriticalAnnouncementModal } from '@/ui/features/CriticalAnnouncementModal';
 import { setReturnToPicker } from '@/store/ui-state';
 import { ConfirmHost } from '@/ui/shared/ConfirmHost';
 import { ToastHost } from '@/ui/shared/ToastHost';
@@ -169,6 +172,9 @@ render(
           </Router>
         </Match>
       </Switch>
+      {/* Critical announcements outrank every app state — render outside
+          the Switch so they appear over loading/picker/ready alike. */}
+      <CriticalAnnouncementModal />
     </CrashBoundary>
     ),
   rootEl,
@@ -179,6 +185,23 @@ render(
 // for a seamless single-document experience.
 // Skipped on the landing/roadmap pages and on unknown paths — no point
 // opening the DB for a URL that will never touch it.
+// Service-worker update prompt — install on every known path (including
+// landing/roadmap/privacy) so a returning visitor on a stale shell sees
+// the prompt before navigating into the app.
+if (isKnownPath) {
+  installSwUpdatePrompt();
+  // Operator → user announcements channel: anonymous pull, no per-user
+  // identifier server-side. Preview path lets the operator verify
+  // rendering before publishing live.
+  const previewMode =
+    new URLSearchParams(window.location.search).get('announcements') === 'preview';
+  installAnnouncementsScheduler({
+    url: previewMode ? '/announcements-preview.json' : undefined,
+    bypassDedup: previewMode,
+    oneShot: previewMode,
+  });
+}
+
 if (isKnownPath && !isStaticPage) {
   void initDb()
     .then(async () => {

@@ -67,8 +67,13 @@ export default defineConfig({
   plugins: [
     solid(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // 'prompt' instead of 'autoUpdate': don't auto-skip-waiting behind the
+      // user's back. A new SW activating mid-typing throws away pending
+      // edits that haven't hit the persistence pulse yet. We surface a
+      // toast and call skipWaiting only on the user's explicit click — see
+      // src/ui/shared/sw-update.ts.
+      registerType: 'prompt',
+      injectRegister: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg}'],
