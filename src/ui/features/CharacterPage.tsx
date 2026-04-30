@@ -3,6 +3,7 @@ import { store, updateCharacter, setActiveChapter } from '@/store/document';
 import { uiState, closeCharacterPage } from '@/store/ui-state';
 import { allVisibleBlocks, dialogueBlocksForSpeaker } from '@/store/selectors';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
+import { ColorPicker } from '@/ui/shared/ColorPicker';
 import { t } from '@/i18n';
 import type { Block, UUID } from '@/types';
 
@@ -109,6 +110,12 @@ export const CharacterPage = () => {
     updateCharacter(c.id, { description: value });
   };
 
+  const saveColor = (value: string) => {
+    const c = character();
+    if (!c) return;
+    updateCharacter(c.id, { color: value });
+  };
+
   // Document-level Escape handler. A key handler on the modal root only
   // fires when the root is focused, which isn't reliable across browsers
   // — contenteditable blocks steal focus behind the backdrop.
@@ -172,6 +179,13 @@ export const CharacterPage = () => {
                   data-testid="character-description"
                 />
               </div>
+
+              <ColorPicker
+                value={c().color}
+                onChange={saveColor}
+                label={t('characterPage.colorLabel')}
+                hint={t('characterPage.colorHint')}
+              />
 
               <div class="flex flex-col gap-2">
                 <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps">
