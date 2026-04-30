@@ -19,6 +19,19 @@ const SettingsSyncTab = lazy(() =>
   import('./SettingsSyncTab').then((m) => ({ default: m.SettingsSyncTab })),
 );
 
+// Advanced surfaces low-traffic readouts (storage usage, eviction
+// status). Most users will never open it; keep it out of the main chunk.
+const SettingsAdvancedTab = lazy(() =>
+  import('./SettingsAdvancedTab').then((m) => ({ default: m.SettingsAdvancedTab })),
+);
+
+// Privacy is the home for opt-in toggles (GlitchTip, announcements
+// off-switch, future telemetry). Lazy-load so the structural slot
+// doesn't drag empty contents into the main chunk.
+const SettingsPrivacyTab = lazy(() =>
+  import('./SettingsPrivacyTab').then((m) => ({ default: m.SettingsPrivacyTab })),
+);
+
 interface SidebarTab {
   id: SettingsModalTab;
   label: string;
@@ -58,6 +71,8 @@ export const SettingsModal = () => {
       { id: 'language', label: t('settings.tabs.language') },
     ];
     if (SYNC_FEATURE) base.push({ id: 'sync', label: t('settings.tabs.sync') });
+    base.push({ id: 'privacy', label: t('settings.tabs.privacy') });
+    base.push({ id: 'advanced', label: t('settings.tabs.advanced') });
     return base;
   });
 
@@ -167,6 +182,24 @@ export const SettingsModal = () => {
                   }
                 >
                   <SettingsSyncTab />
+                </Suspense>
+              </Show>
+              <Show when={activeTab() === 'privacy'}>
+                <Suspense
+                  fallback={
+                    <div class="text-xs text-stone-400">{t('common.loading')}</div>
+                  }
+                >
+                  <SettingsPrivacyTab />
+                </Suspense>
+              </Show>
+              <Show when={activeTab() === 'advanced'}>
+                <Suspense
+                  fallback={
+                    <div class="text-xs text-stone-400">{t('common.loading')}</div>
+                  }
+                >
+                  <SettingsAdvancedTab />
                 </Suspense>
               </Show>
             </section>

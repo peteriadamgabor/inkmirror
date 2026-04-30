@@ -170,4 +170,16 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   recordExportTimestamp();
+  // Quiet, opportunistic ask: a user clicking "download" has just
+  // signalled they care about durability — perfect moment to ask the
+  // browser to upgrade IDB to persistent storage. `askPersistenceOnce`
+  // is idempotent (records the outcome in localStorage), so subsequent
+  // exports won't re-ask. Lazy-loaded so the prompt path doesn't bloat
+  // the export hot path.
+  void import('@/utils/storage')
+    .then(({ askPersistenceOnce }) => askPersistenceOnce())
+    .catch(() => {
+      // No surface for failures here; the badge in Settings → Advanced
+      // is the source of truth for the user.
+    });
 }
