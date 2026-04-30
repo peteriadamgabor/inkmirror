@@ -1,7 +1,12 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { __resetDbForTests, getDb } from '@/db/connection';
-import { __setTestDb, deleteDocumentAllRows, loadDocument } from '@/db/repository';
+import {
+  __setTestDb,
+  deleteDocumentAllRows,
+  loadDocument,
+  repointDeletedBlocksForDeletedChapter,
+} from '@/db/repository';
 import { exportDatabaseBackup, exportDocumentBundle } from './export';
 import {
   importDatabaseBackup,
@@ -324,6 +329,210 @@ describe('backup roundtrip', () => {
     expect(loaded).not.toBeNull();
     expect(loaded?.document.title).toBe('Test Novel');
     expect(loaded?.blocks.length).toBe(1);
+  });
+
+  it('imports a bundle with orphan graveyard blocks (chapter hard-deleted while block was in the graveyard)', async () => {
+    // Construct a bundle that mirrors the buggy on-disk state we found in
+    // the wild: chapter X was hard-deleted, but a soft-deleted block whose
+    // chapter_id (and deleted_from.chapter_id) pointed at X rode along in
+    // the by_document export. Pre-fix, this tripped the validator.
+    const now = '2026-04-30T20:00:00.000Z';
+    const orphanBundle = {
+      kind: 'inkmirror.document' as const,
+      version: 1 as const,
+      exported_at: now,
+      app_version: '0.0.0-test',
+      document: {
+        id: 'doc-orphan',
+        title: 'Has Orphan',
+        author: '',
+        synopsis: '',
+        settings: {
+          font_family: '', font_size: 16, line_height: 1.8,
+          editor_width: 680, theme: 'light' as const,
+        },
+        pov_character_id: null,
+        created_at: now,
+        updated_at: now,
+      },
+      chapters: [
+        {
+          id: 'chap-survivor',
+          document_id: 'doc-orphan',
+          title: 'Survivor',
+          order: 0,
+          kind: 'standard' as const,
+          created_at: now, updated_at: now,
+        },
+      ],
+      blocks: [
+        // Active block in the surviving chapter — must still pass strict checks.
+        {
+          id: 'blk-live',
+          chapter_id: 'chap-survivor',
+          type: 'text' as const, content: 'live', order: 0,
+          metadata: { type: 'text' as const },
+          deleted_at: null, deleted_from: null,
+          created_at: now, updated_at: now,
+        },
+        // Graveyard block whose chapter was hard-deleted: BOTH chapter_id
+        // and deleted_from.chapter_id reference the missing chapter.
+        {
+          id: 'blk-orphan',
+          chapter_id: 'chap-gone',
+          type: 'text' as const, content: 'orphan', order: 1,
+          metadata: { type: 'text' as const },
+          deleted_at: now,
+          deleted_from: {
+            chapter_id: 'chap-gone',
+            chapter_title: 'Old Chapter',
+            position: 0,
+          },
+          created_at: now, updated_at: now,
+        },
+      ],
+      characters: [],
+      sentiments: [],
+    };
+
+    const result = await importDocumentBundle(orphanBundle as never);
+    expect(result.documentsAdded).toBe(1);
+
+    const db = await getDb();
+    const blocks = await db.getAllFromIndex('blocks', 'by_document', 'doc-orphan');
+    expect(blocks.length).toBe(2);
+    const orphan = blocks.find((b) => b.id === 'blk-orphan')!;
+    // Live chapter_id was re-pointed to the surviving chapter so nothing dangles.
+    expect(orphan.chapter_id).toBe('chap-survivor');
+    expect(orphan.deleted_at).toBe(now);
+    // The historical title snapshot is preserved for graveyard display.
+    expect((orphan.deleted_from as { chapter_title: string }).chapter_title).toBe('Old Chapter');
+  });
+
+  it('accepts a dialogue block with an unassigned speaker (speaker_id: "")', async () => {
+    // Newly created dialogue blocks (and blocks whose speaker character
+    // was deleted) carry speaker_id: '' at runtime. Bundles must be
+    // importable in that state — this used to fail with
+    // "dialogue speaker_id not a string".
+    const now = '2026-04-30T20:00:00.000Z';
+    const bundle = {
+      kind: 'inkmirror.document' as const,
+      version: 1 as const,
+      exported_at: now,
+      app_version: '0.0.0-test',
+      document: {
+        id: 'doc-unassigned',
+        title: 'Unassigned', author: '', synopsis: '',
+        settings: {
+          font_family: '', font_size: 16, line_height: 1.8,
+          editor_width: 680, theme: 'light' as const,
+        },
+        pov_character_id: null,
+        created_at: now, updated_at: now,
+      },
+      chapters: [
+        {
+          id: 'chap-1', document_id: 'doc-unassigned', title: 'C1', order: 0,
+          kind: 'standard' as const,
+          created_at: now, updated_at: now,
+        },
+      ],
+      blocks: [
+        {
+          id: 'blk-dlg', chapter_id: 'chap-1',
+          type: 'dialogue' as const, content: 'Hello?', order: 0,
+          metadata: { type: 'dialogue' as const, data: { speaker_id: '' } },
+          deleted_at: null, deleted_from: null,
+          created_at: now, updated_at: now,
+        },
+      ],
+      characters: [],
+      sentiments: [],
+    };
+    const result = await importDocumentBundle(bundle as never);
+    expect(result.documentsAdded).toBe(1);
+
+    const db = await getDb();
+    const blk = await db.get('blocks', 'blk-dlg');
+    expect((blk?.metadata as { data: { speaker_id: string } }).data.speaker_id).toBe('');
+  });
+
+  it('rejects an active block (deleted_at: null) whose chapter_id has no match', async () => {
+    // Sanity: relaxing the validator must not let truly broken active
+    // blocks through — those would be unreachable in the editor.
+    const now = '2026-04-30T20:00:00.000Z';
+    const malformed = {
+      kind: 'inkmirror.document' as const,
+      version: 1 as const,
+      exported_at: now,
+      app_version: '0.0.0-test',
+      document: {
+        id: 'doc-bad',
+        title: 'Bad', author: '', synopsis: '',
+        settings: {
+          font_family: '', font_size: 16, line_height: 1.8,
+          editor_width: 680, theme: 'light' as const,
+        },
+        pov_character_id: null,
+        created_at: now, updated_at: now,
+      },
+      chapters: [],
+      blocks: [
+        {
+          id: 'blk-live-bad',
+          chapter_id: 'chap-missing',
+          type: 'text' as const, content: 'x', order: 0,
+          metadata: { type: 'text' as const },
+          deleted_at: null, deleted_from: null,
+          created_at: now, updated_at: now,
+        },
+      ],
+      characters: [],
+      sentiments: [],
+    };
+    await expect(importDocumentBundle(malformed as never)).rejects.toThrow(/chapter_id/);
+  });
+
+  it('repointDeletedBlocksForDeletedChapter rewrites graveyard blocks pointing at the doomed chapter', async () => {
+    await seed('doc-1');
+    const db = await getDb();
+
+    // Add a second (surviving) chapter and an orphaned graveyard block whose
+    // chapter_id still points at the chapter we are about to "hard-delete".
+    const now = '2026-04-30T20:00:00.000Z';
+    await db.put('chapters', {
+      id: 'chap-survivor',
+      document_id: 'doc-1',
+      title: 'Survivor',
+      order_idx: 1,
+      kind: 'standard',
+      created_at: now, updated_at: now,
+    });
+    await db.put('blocks', {
+      id: 'blk-graveyard',
+      document_id: 'doc-1',
+      chapter_id: 'chap-1', // about-to-be-hard-deleted
+      type: 'text',
+      content: 'sat in graveyard',
+      order_idx: 99,
+      metadata: { type: 'text' },
+      deleted_at: now,
+      deleted_from: { chapter_id: 'chap-1', chapter_title: 'Chapter 1', position: 0 },
+      created_at: now, updated_at: now,
+    });
+
+    await repointDeletedBlocksForDeletedChapter('doc-1', 'chap-1', 'chap-survivor');
+
+    const repointed = await db.get('blocks', 'blk-graveyard');
+    expect(repointed?.chapter_id).toBe('chap-survivor');
+    // deleted_from is the audit trail and stays untouched.
+    expect((repointed?.deleted_from as { chapter_id: string }).chapter_id).toBe('chap-1');
+
+    // Active blocks (deleted_at: null) must NOT be touched even if their
+    // chapter_id matches — they belong to the live chapter view.
+    const live = await db.get('blocks', 'blk-1');
+    expect(live?.chapter_id).toBe('chap-1');
+    expect(live?.deleted_at).toBeNull();
   });
 
   it('deleteDocumentAllRows removes block revisions too', async () => {

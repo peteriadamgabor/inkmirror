@@ -81,6 +81,40 @@ export async function deleteChapterRow(id: UUID): Promise<void> {
   }
 }
 
+/**
+ * When a chapter is hard-deleted, soft-deleted blocks (graveyard) whose
+ * live `chapter_id` still pointed at it would otherwise be left dangling
+ * — exports include them by document_id, but their phantom chapter is
+ * gone, and any consumer that walks `chapter_id` ends up with a broken
+ * reference. Re-point those rows to a surviving chapter so the on-disk
+ * invariant "every block.chapter_id refers to an existing chapter" holds.
+ *
+ * `deleted_from.chapter_id` is preserved untouched — that is the audit
+ * trail the graveyard UI shows the user.
+ */
+export async function repointDeletedBlocksForDeletedChapter(
+  documentId: UUID,
+  deletedChapterId: UUID,
+  fallbackChapterId: UUID,
+): Promise<void> {
+  if (deletedChapterId === fallbackChapterId) return;
+  try {
+    const idb = await getDb();
+    const rows = await idb.getAllFromIndex('blocks', 'by_document', documentId);
+    const now = new Date().toISOString();
+    for (const row of rows) {
+      if (row.deleted_at === null) continue;
+      if (row.chapter_id !== deletedChapterId) continue;
+      row.chapter_id = fallbackChapterId;
+      row.updated_at = now;
+      await idb.put('blocks', row);
+    }
+  } catch (err) {
+    logDbError('repository.repointDeletedBlocksForDeletedChapter', err);
+    throw err;
+  }
+}
+
 export async function saveChapter(chapter: Chapter): Promise<void> {
   try {
     const d = await db();

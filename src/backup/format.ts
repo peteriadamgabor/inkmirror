@@ -108,8 +108,12 @@ function validateBlockMetadata(meta: unknown, characterIds: Set<string>): string
     const data = (meta as { data?: unknown }).data;
     if (!isPlainObject(data)) return 'dialogue metadata.data missing';
     const speakerId = (data as { speaker_id?: unknown }).speaker_id;
-    if (speakerId !== undefined && speakerId !== null) {
-      if (!isNonEmptyString(speakerId)) return 'dialogue speaker_id not a string';
+    // Runtime stores `''` to mean "unassigned" (newly created dialogue
+    // blocks, or blocks whose speaker character was deleted). Treat
+    // null / undefined / '' identically as "no speaker" — only validate
+    // when there's an actual id to look up.
+    if (speakerId !== undefined && speakerId !== null && speakerId !== '') {
+      if (typeof speakerId !== 'string') return 'dialogue speaker_id not a string';
       if (!characterIds.has(speakerId)) {
         return `dialogue speaker_id "${speakerId}" has no matching character`;
       }
@@ -213,24 +217,44 @@ export function validateDocumentBundle(bundle: DocumentBundleV1): void {
     if (typeof (b as { content?: unknown }).content !== 'string') {
       throw new Error(`block "${bid}" content is not a string`);
     }
-    const chapterId = (b as { chapter_id?: unknown }).chapter_id;
-    if (!isNonEmptyString(chapterId) || !chapterIds.has(chapterId)) {
-      throw new Error(`block "${bid}" chapter_id "${String(chapterId)}" has no matching chapter`);
-    }
-    const metaErr = validateBlockMetadata((b as { metadata?: unknown }).metadata, characterIds);
-    if (metaErr) throw new Error(`block "${bid}" ${metaErr}`);
+    const isSoftDeleted = (b as { deleted_at?: unknown }).deleted_at != null;
     const deletedFrom = (b as { deleted_from?: unknown }).deleted_from;
     if (deletedFrom !== null && deletedFrom !== undefined) {
       if (!isPlainObject(deletedFrom)) {
         throw new Error(`block "${bid}" deleted_from is not an object`);
       }
       const dfChapter = (deletedFrom as { chapter_id?: unknown }).chapter_id;
-      if (!isNonEmptyString(dfChapter) || !chapterIds.has(dfChapter)) {
+      if (!isNonEmptyString(dfChapter)) {
         throw new Error(
-          `block "${bid}" deleted_from.chapter_id "${String(dfChapter)}" has no matching chapter`,
+          `block "${bid}" deleted_from.chapter_id "${String(dfChapter)}" is not a string`,
         );
       }
+      // Active blocks have no deleted_from, so we shouldn't see one here.
+      // If we do (data shape error), reject.
+      if (!isSoftDeleted) {
+        throw new Error(`block "${bid}" has deleted_from but is not soft-deleted`);
+      }
+      // For soft-deleted blocks, deleted_from.chapter_id is a historical
+      // snapshot — the chapter may have been hard-deleted afterward. The
+      // graveyard UI uses the snapshotted chapter_title, not a live join,
+      // so a stale id is harmless here. Don't reject on miss.
     }
+    // Active blocks MUST point at a real chapter (otherwise they're
+    // unreachable in the editor). Soft-deleted blocks may carry a stale
+    // chapter_id from a chapter that was hard-deleted while they sat in
+    // the graveyard — the importer re-points those to a surviving
+    // chapter so on-disk references stay valid.
+    const chapterId = (b as { chapter_id?: unknown }).chapter_id;
+    if (!isNonEmptyString(chapterId)) {
+      throw new Error(`block "${bid}" chapter_id "${String(chapterId)}" is not a string`);
+    }
+    if (!isSoftDeleted && !chapterIds.has(chapterId)) {
+      throw new Error(
+        `block "${bid}" chapter_id "${chapterId}" has no matching chapter`,
+      );
+    }
+    const metaErr = validateBlockMetadata((b as { metadata?: unknown }).metadata, characterIds);
+    if (metaErr) throw new Error(`block "${bid}" ${metaErr}`);
     blockIds.add(bid);
   }
 

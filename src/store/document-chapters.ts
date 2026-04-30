@@ -126,7 +126,23 @@ export function deleteChapter(chapterId: UUID): boolean {
     setStore('activeChapterId', fallback);
   }
 
-  if (canPersist()) {
+  if (canPersist() && store.document) {
+    const documentId = store.document.id;
+    const fallbackChapterId = remaining[0]?.id;
+    // Re-point any pre-existing graveyard blocks whose live chapter_id
+    // matched this chapter — otherwise their reference dangles and
+    // future exports trip the import validator.
+    if (fallbackChapterId) {
+      track(
+        repo
+          .repointDeletedBlocksForDeletedChapter(
+            documentId,
+            chapterId,
+            fallbackChapterId,
+          )
+          .catch(() => undefined),
+      );
+    }
     track(repo.deleteChapterRow(chapterId).catch(() => undefined));
   }
   return true;

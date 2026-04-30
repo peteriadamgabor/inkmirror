@@ -172,11 +172,23 @@ export async function importDocumentBundle(
     await saveCharacter(imported);
   }
 
+  // Soft-deleted blocks may carry a stale live `chapter_id` (or even a
+  // stale `deleted_from.chapter_id`) when their original chapter was
+  // hard-deleted while they sat in the graveyard. Pick a surviving
+  // chapter as the universal fallback so no on-disk reference dangles.
+  const fallbackChapterId: UUID | null =
+    bundle.chapters.length > 0
+      ? mapId(chapterIdMap, bundle.chapters[0].id)
+      : null;
+
   for (const b of bundle.blocks) {
-    const deletedFrom = b.deleted_from
+    const deletedFromRaw = b.deleted_from;
+    const deletedFrom = deletedFromRaw
       ? {
-          ...b.deleted_from,
-          chapter_id: mapId(chapterIdMap, b.deleted_from.chapter_id),
+          ...deletedFromRaw,
+          chapter_id: chapterIdMap.has(deletedFromRaw.chapter_id)
+            ? mapId(chapterIdMap, deletedFromRaw.chapter_id)
+            : (fallbackChapterId ?? deletedFromRaw.chapter_id),
         }
       : null;
 
@@ -202,10 +214,30 @@ export async function importDocumentBundle(
       };
     }
 
+    // Resolve the live chapter_id: prefer the original (mapped), then
+    // deleted_from, then any surviving chapter. Active blocks always hit
+    // the first branch — the validator already required it.
+    let liveChapterTarget: UUID;
+    if (chapterIdMap.has(b.chapter_id)) {
+      liveChapterTarget = mapId(chapterIdMap, b.chapter_id);
+    } else if (
+      deletedFromRaw &&
+      chapterIdMap.has(deletedFromRaw.chapter_id)
+    ) {
+      liveChapterTarget = mapId(chapterIdMap, deletedFromRaw.chapter_id);
+    } else if (fallbackChapterId) {
+      liveChapterTarget = fallbackChapterId;
+    } else {
+      // Bundle has zero chapters — only possible for a soft-deleted
+      // block in a degenerate/empty doc. Keep the original id; nothing
+      // sane references it anyway.
+      liveChapterTarget = b.chapter_id;
+    }
+
     const imported: Block = {
       ...b,
       id: mapId(blockIdMap, b.id),
-      chapter_id: mapId(chapterIdMap, b.chapter_id),
+      chapter_id: liveChapterTarget,
       deleted_from: deletedFrom,
       metadata,
     };
