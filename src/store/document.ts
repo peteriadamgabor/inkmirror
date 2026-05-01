@@ -26,6 +26,7 @@ import type { LoadedDocument, SentimentEntry } from '@/db/repository';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import { findMentions } from '@/engine/character-matcher';
 import { markDirty } from '@/sync';
+import { shouldSnapshot, recordSnapshot, resetSnapshotTracking } from './snapshot-gate';
 
 export interface ViewportState {
   scrollTop: number;
@@ -165,17 +166,12 @@ export function persistBlockNow(blockId: UUID): void {
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
   track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
-  // Snapshot a revision on every persistence pulse. The repo layer dedups
-  // identical content so no-op commits don't bloat history.
-  if (block.content.trim().length > 0) {
+  if (shouldSnapshot(blockId, block.content)) {
+    const snapshotAt = block.updated_at;
+    recordSnapshot(blockId, block.content, Date.parse(snapshotAt));
     track(
       repo
-        .saveRevision({
-          blockId,
-          documentId,
-          content: block.content,
-          snapshotAt: block.updated_at,
-        })
+        .saveRevision({ blockId, documentId, content: block.content, snapshotAt })
         .catch(() => undefined),
     );
   }
@@ -270,6 +266,7 @@ export function loadSyntheticDoc(doc: SyntheticDoc): void {
     consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
+  resetSnapshotTracking();
   documentReplacedHook?.();
 }
 
@@ -314,6 +311,7 @@ export function hydrateFromLoaded(loaded: LoadedDocument): void {
     consistencyScan: null,
     viewport: { scrollTop: 0, viewportHeight: 0 },
   });
+  resetSnapshotTracking();
   documentReplacedHook?.();
 }
 
