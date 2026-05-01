@@ -260,7 +260,7 @@ describe('block revisions', () => {
     expect(state.blockRevisions).toHaveLength(1);
   });
 
-  it('caps per-block history at 20 entries', async () => {
+  it('caps per-block history at 50 entries', async () => {
     const { db, state } = createMockDb();
     __setTestDb(db);
     for (let i = 0; i < 51; i++) {
