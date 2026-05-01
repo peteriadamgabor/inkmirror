@@ -5,6 +5,7 @@ import {
   exitPreview,
   isPreviewing,
   commitPreview,
+  cancelPreviewIfDocMatches,
 } from './preview';
 import * as repo from '@/db/repository';
 import { store, setStore } from './document';
@@ -110,5 +111,33 @@ describe('commitPreview', () => {
     expect(saveBlockSpy).not.toHaveBeenCalled();
     expect(store.blocks['block-1'].content).toBe('STILL LIVE');
     expect(previewState()).toBeNull();
+  });
+});
+
+describe('cancelPreviewIfDocMatches', () => {
+  beforeEach(() => {
+    exitPreview();
+  });
+
+  it('cancels preview and returns true when the doc matches', () => {
+    setStore('document', { id: 'doc-1' } as any);
+    enterPreview('block-1', 'old', '2026-01-01T00:00:00Z');
+    const cancelled = cancelPreviewIfDocMatches('doc-1');
+    expect(cancelled).toBe(true);
+    expect(previewState()).toBeNull();
+  });
+
+  it('does NOT cancel and returns false when the doc id does not match', () => {
+    setStore('document', { id: 'doc-1' } as any);
+    enterPreview('block-1', 'old', '2026-01-01T00:00:00Z');
+    const cancelled = cancelPreviewIfDocMatches('doc-2');
+    expect(cancelled).toBe(false);
+    expect(previewState()).not.toBeNull();
+  });
+
+  it('returns false when no preview is active', () => {
+    setStore('document', { id: 'doc-1' } as any);
+    const cancelled = cancelPreviewIfDocMatches('doc-1');
+    expect(cancelled).toBe(false);
   });
 });

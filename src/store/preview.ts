@@ -27,6 +27,26 @@ export function isPreviewing(blockId: UUID): boolean {
   return s !== null && s.blockId === blockId;
 }
 
+/**
+ * Cancel the active preview if it belongs to the specified document.
+ *
+ * Returns true if a preview was cancelled (so the caller can surface a
+ * user-visible notification). Used by the sync apply path: if a remote
+ * update lands for the doc the user is mid-preview on, we drop the preview
+ * — committing a Restore against a stale base would silently overwrite the
+ * remote-updated content the user hasn't seen yet.
+ *
+ * Cross-doc previews aren't possible by design (only one doc is active at
+ * a time, and preview is per-block in that active doc), so the doc-id
+ * check is more of a defensive guard than a real branch.
+ */
+export function cancelPreviewIfDocMatches(docId: UUID): boolean {
+  if (state() === null) return false;
+  if (store.document?.id !== docId) return false;
+  setState(null);
+  return true;
+}
+
 export async function commitPreview(): Promise<void> {
   const s = state();
   if (!s) return;
