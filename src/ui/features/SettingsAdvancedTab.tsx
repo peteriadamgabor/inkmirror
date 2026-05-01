@@ -152,19 +152,23 @@ export function SettingsAdvancedTab() {
         <p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
           {t('settings.advanced.revisionHistory.body')}
         </p>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-1">
           <For each={REVISION_PRESETS}>
             {(p: RevisionPreset) => (
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label class="group flex items-center gap-3 py-1 cursor-pointer select-none">
                 <input
                   type="radio"
                   name="inkmirror-revision-preset"
                   value={p}
                   checked={revisionPreset() === p}
                   onChange={() => setRevisionPreset(p)}
-                  class="accent-violet-500"
+                  class="peer sr-only"
                 />
-                <span class="text-sm text-stone-700 dark:text-stone-200">
+                <span
+                  aria-hidden="true"
+                  class="relative w-4 h-4 shrink-0 rounded-full border border-stone-300 dark:border-stone-600 transition-colors group-hover:border-stone-400 dark:group-hover:border-stone-500 peer-checked:border-violet-500 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300 dark:peer-focus-visible:ring-violet-700 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-stone-800 after:content-[''] after:absolute after:inset-[3px] after:rounded-full after:bg-violet-500 after:scale-0 motion-safe:after:transition-transform peer-checked:after:scale-100"
+                />
+                <span class="text-sm text-stone-700 dark:text-stone-200 motion-safe:transition-colors peer-checked:text-stone-900 dark:peer-checked:text-stone-50">
                   {t(`settings.advanced.revisionHistory.${p}` as const)}
                 </span>
               </label>
