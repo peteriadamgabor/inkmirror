@@ -28,6 +28,7 @@ import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
 import { installSwUpdatePrompt } from '@/ui/shared/sw-update';
 import { installAnnouncementsScheduler } from '@/announcements/scheduler';
+import { initGlitchTip } from '@/utils/glitchtip';
 import { CriticalAnnouncementModal } from '@/ui/features/CriticalAnnouncementModal';
 import { setReturnToPicker } from '@/store/ui-state';
 import { ConfirmHost } from '@/ui/shared/ConfirmHost';
@@ -189,6 +190,10 @@ render(
 // landing/roadmap/privacy) so a returning visitor on a stale shell sees
 // the prompt before navigating into the app.
 if (isKnownPath) {
+  // Opt-in error reporting (off by default). Lazy-imports the SDK only
+  // when the user has flipped the toggle in Settings → Privacy, so
+  // non-opt-in users pay zero bytes for it.
+  void initGlitchTip();
   installSwUpdatePrompt();
   // Operator → user announcements channel: anonymous pull, no per-user
   // identifier server-side. Preview path lets the operator verify

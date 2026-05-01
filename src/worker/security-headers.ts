@@ -7,9 +7,13 @@
  *   inline `style="…"` attributes. No inline <style> injection surface
  *   because we don't use JSX-as-HTML anywhere; see the `marksToHtml`
  *   allowlist in src/engine/marks.ts.
- * - `connect-src 'self'` — HF proxy is same-origin. Direct HF requests
- *   from localhost dev happen before this CSP ships (dev bypasses the
- *   Worker entirely).
+ * - `connect-src 'self' glitchtip.peteriadamgabor.com` — HF proxy is
+ *   same-origin; the GlitchTip origin is permitted unconditionally
+ *   because the Sentry SDK only reaches it when the user has opted in
+ *   via Settings → Privacy. CSP is per-response, not per-user, so
+ *   gating it on the toggle would mean every flip needs a new CSP.
+ *   Direct HF requests from localhost dev happen before this CSP ships
+ *   (dev bypasses the Worker entirely).
  * - `worker-src 'self' blob:` — Vite emits workers as blob URLs in some
  *   build modes; the ai-worker is a real module worker under 'self'.
  */
@@ -19,7 +23,7 @@ const CSP =
   "style-src 'self' 'unsafe-inline'; " +
   "img-src 'self' data: blob:; " +
   "font-src 'self' data:; " +
-  "connect-src 'self'; " +
+  "connect-src 'self' https://glitchtip.peteriadamgabor.com; " +
   "worker-src 'self' blob:; " +
   "object-src 'none'; " +
   "base-uri 'self'; " +

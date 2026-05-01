@@ -904,10 +904,18 @@ export const en = {
           name: 'Discord',
           role: 'Receives feedback messages you submit through the in-app form. Skipped if you never use feedback.',
         },
+        glitchtip: {
+          name: 'GlitchTip (self-hosted)',
+          role: "Receives crash reports if you turn on error reporting below. Self-hosted at glitchtip.peteriadamgabor.com — no third-party SaaS. Skipped entirely while the toggle is off.",
+        },
       },
       optIns: {
         heading: 'Opt-in features',
-        empty: 'Nothing to opt into yet. Future features that send anything beyond your browser — error reports, announcements, telemetry — will appear here as toggles, off by default.',
+      },
+      errorReports: {
+        title: 'Send crash reports',
+        body: 'Help fix bugs by sending sanitised crash reports to our self-hosted GlitchTip. Build version, error message, stack trace, and browser info are sent. Manuscript content, character names, document titles, and sync identifiers are stripped before anything leaves your browser.',
+        reloadHint: 'Reload the app for this change to take effect.',
       },
     },
     advanced: {

@@ -897,10 +897,18 @@ export const hu: Messages = {
           name: 'Discord',
           role: 'Fogadja az alkalmazásban beküldött visszajelzéseket. Csak akkor érintett, ha élsz a visszajelzéssel.',
         },
+        glitchtip: {
+          name: 'GlitchTip (saját üzemeltetés)',
+          role: 'Hibajelentéseket fogad, ha lent bekapcsolod a hibajelentés-küldést. Saját szerverünkön fut a glitchtip.peteriadamgabor.com címen — nincs harmadik féltől származó SaaS. Kikapcsolt állapotban semmi nem kerül elküldésre.',
+        },
       },
       optIns: {
         heading: 'Választható funkciók',
-        empty: 'Egyelőre nincs választható kapcsoló. A jövőben minden olyan funkció, amely bármit kiküld a böngésződből — hibajelentés, közlemények, telemetria — itt jelenik meg, alapértelmezetten kikapcsolva.',
+      },
+      errorReports: {
+        title: 'Hibajelentések küldése',
+        body: 'Segíts a hibák javításában: küldj megtisztított hibajelentéseket a saját GlitchTip-szerverünkre. A verziószám, a hibaüzenet, a stack trace és a böngésző-adatok kerülnek elküldésre. A kéziratod, a karakter nevek, a dokumentumcímek és a szinkronizációs azonosítók sosem hagyják el a böngésződet.',
+        reloadHint: 'A változás érvénybe lépéséhez töltsd újra az alkalmazást.',
       },
     },
     advanced: {

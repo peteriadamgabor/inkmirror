@@ -23,6 +23,14 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-01c',
+    title: 'v0.5.0: Optional crash reports',
+    items: [
+      'New opt-in toggle in Settings → Privacy: send sanitised crash reports to our self-hosted GlitchTip server. Off by default — nothing is sent until you flip it on. The reports include build version, error message, stack trace, and browser info; the manuscript, character names, document titles, and sync identifiers are stripped before anything leaves your browser.',
+      'GlitchTip is a self-hosted, Sentry-protocol-compatible error tracker — no third-party SaaS involved. New sub-processor row on the Privacy tab and updated CSP reflect that.',
+    ],
+  },
+  {
     id: '2026-05-01b',
     title: 'v0.4.1: Pick any color for any character',
     items: [
@@ -86,6 +94,14 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-01c',
+    title: 'v0.5.0: Választható hibajelentések',
+    items: [
+      'Új, választható kapcsoló a Beállítások → Adatvédelem fülön: küldj megtisztított hibajelentéseket a saját üzemeltetésű GlitchTip szerverünkre. Alapértelmezetten kikapcsolva — semmi nem kerül elküldésre, amíg te magad nem engedélyezed. A jelentés tartalmazza a verziószámot, a hibaüzenetet, a stack trace-t és a böngésző-adatokat; a kéziratod, a karakternevek, a dokumentumcímek és a szinkronizációs azonosítók sosem hagyják el a böngésződet.',
+      'A GlitchTip egy saját üzemeltetésű, Sentry-protokollal kompatibilis hibakövető — nincs harmadik féltől származó SaaS. Új alfeldolgozói sor az Adatvédelem fülön és frissített CSP tükrözi mindezt.',
+    ],
+  },
   {
     id: '2026-05-01b',
     title: 'v0.4.1: Bármilyen szín, bármelyik karakterhez',
