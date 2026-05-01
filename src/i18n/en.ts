@@ -522,7 +522,7 @@ export const en = {
       header: "What's being made now.",
       intro: 'The next cycle is underway. Two features at once, because they share a model.',
       p1:
-        'Rich moods. The current sentiment pipeline knows only positive, neutral, and negative: the wrong vocabulary for fiction. A multilingual zero-shot model is replacing it so the ECG can speak in tender, dread, longing, awe, grief, wonder, and the full palette a novel actually uses.',
+        'Rich moods. The current sentiment pipeline knows only positive, neutral, and negative: the wrong vocabulary for fiction. A multilingual zero-shot model is replacing it so the ECG can speak in tender, dread, yearning, awe, grief, stillness, and the full palette a novel actually uses.',
       p2:
         'Inconsistency detection. The same model pairs claims across chapters and flags contradictions: eye color, kinship, who knew what and when. Every flag is dismissible. The writer is still in charge; the AI is only the mirror.',
       p3:
@@ -732,13 +732,13 @@ export const en = {
     tender: 'Tender',
     tension: 'Tension',
     dread: 'Dread',
-    longing: 'Longing',
+    longing: 'Yearning',
     grief: 'Grief',
     hope: 'Hope',
     joy: 'Joy',
-    wonder: 'Wonder',
+    wonder: 'Awe',
     rage: 'Rage',
-    calm: 'Calm',
+    calm: 'Stillness',
     unanalyzed: 'Not yet analyzed',
   },
   graveyard: {

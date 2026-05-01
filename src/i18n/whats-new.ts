@@ -23,6 +23,13 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-02b',
+    title: 'v0.6.1: Mood labels with more literary weight',
+    items: [
+      "Three of the ten rich mood labels in the heatmap and timeline now read as the writer's vocabulary, not the dictionary's: Longing → Yearning, Wonder → Awe, Calm → Stillness. Display only — your existing scenes and chapters carry the same moods, just labelled with a touch more weight.",
+    ],
+  },
+  {
     id: '2026-05-02',
     title: 'v0.6.0: Revision history that helps',
     items: [
@@ -111,6 +118,13 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-02b',
+    title: 'v0.6.1: Irodalmibb hangulatcímkék',
+    items: [
+      'A tíz gazdag hangulatcímke irodalmibb hangzású szavakat kapott. Angolul: Longing → Yearning, Wonder → Awe, Calm → Stillness. Magyarul: Vágyódás → Vágyakozás, Csoda → Áhítat (a Nyugalom marad — már eddig is jól ülte meg a Stillness helyét). Csak megjelenés — a meglévő jelenetek és fejezetek ugyanazokat a hangulatokat hordozzák, csak egy fokkal erősebb címkével.',
+    ],
+  },
   {
     id: '2026-05-02',
     title: 'v0.6.0: Hasznos verziótörténet',
