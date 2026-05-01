@@ -74,6 +74,7 @@ interface Props {
   liveContent: string;
   isPreviewing: boolean;
   onSelect: (rev: BlockRevision) => void;
+  now?: number;
 }
 
 export function BlockHistoryRow(props: Props) {
@@ -81,7 +82,7 @@ export function BlockHistoryRow(props: Props) {
   const segCount = () => countSegments(segments());
   const isMajorRewrite = () => segCount() > MAJOR_REWRITE_THRESHOLD;
   const isLive = () => props.rev.content === props.liveContent;
-  const now = Date.now();
+  const now = () => props.now ?? Date.now();
 
   return (
     <button
@@ -100,7 +101,7 @@ export function BlockHistoryRow(props: Props) {
           class="text-[10px] text-stone-500 dark:text-stone-400"
           classList={{ 'text-violet-500 font-medium': isLive() || props.isPreviewing }}
         >
-          {formatRelative(props.rev.snapshotAt, now)}
+          {formatRelative(props.rev.snapshotAt, now())}
           {isLive() && ' · current'}
         </span>
         <Show when={!isLive() && props.prev}>

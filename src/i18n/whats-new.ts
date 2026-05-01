@@ -23,6 +23,14 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-02c',
+    title: 'v0.6.2: Revision history polish',
+    items: [
+      "The revision-history button (⟲ on each block) now shows up in the command palette. Open the palette (Ctrl/Cmd+K), type \"revision\", and the popover opens for whichever block your cursor was last sitting in.",
+      "Relative timestamps inside the popover (\"12m ago\") now refresh while it stays open instead of freezing at the moment you opened it.",
+    ],
+  },
+  {
     id: '2026-05-02b',
     title: 'v0.6.1: Mood labels with more literary weight',
     items: [
@@ -118,6 +126,14 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-02c',
+    title: 'v0.6.2: Verziótörténet finomítások',
+    items: [
+      'A blokkok melletti ⟲ verziótörténet gomb mostantól a parancspalettában is megjelenik. Nyisd meg a palettát (Ctrl/Cmd+K), írd be hogy „verzió”, és az előugró ablak annál a blokknál nyílik meg, amelyikben legutóbb a kurzor állt.',
+      'Az előugró ablakban látható relatív időbélyegek („12 perce”) mostantól nyitva tartás közben is frissülnek, nem fagynak be a megnyitás pillanatára.',
+    ],
+  },
   {
     id: '2026-05-02b',
     title: 'v0.6.1: Irodalmibb hangulatcímkék',

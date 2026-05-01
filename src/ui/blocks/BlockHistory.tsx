@@ -7,10 +7,36 @@ import { t } from '@/i18n';
 import { BlockHistoryRow } from './BlockHistoryRow';
 import type { BlockRevision } from '@/db/repository-revisions';
 
+// Lets the command palette (or any other surface) request a specific block's
+// revision-history popover to open. Cleared once consumed so re-requesting the
+// same blockId still fires.
+const [openRequest, setOpenRequest] = createSignal<UUID | null>(null);
+export function requestBlockHistoryOpen(blockId: UUID): void {
+  setOpenRequest(blockId);
+}
+
 export const BlockHistory = (props: { blockId: UUID }) => {
   const [open, setOpen] = createSignal(false);
   const [version, setVersion] = createSignal(0);
+  const [now, setNow] = createSignal(Date.now());
   let popoverEl: HTMLDivElement | undefined;
+
+  // While the popover is open, refresh `now` every 30 s so relative
+  // timestamps ("12m ago") don't freeze on long-open popovers.
+  createEffect(() => {
+    if (!open()) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    onCleanup(() => clearInterval(id));
+  });
+
+  // External open requests (e.g. from the command palette).
+  createEffect(() => {
+    if (openRequest() !== props.blockId) return;
+    setOpen(true);
+    setVersion((v) => v + 1);
+    setOpenRequest(null);
+  });
 
   // Dismiss on outside click, scroll, or Esc — anchoring to the block
   // wrapper means any scroll would drift the popover, so we just close.
@@ -97,6 +123,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
                       prev={prev()}
                       liveContent={store.blocks[props.blockId]?.content ?? ''}
                       isPreviewing={isThisPreview()}
+                      now={now()}
                       onSelect={onSelect}
                     />
                   );

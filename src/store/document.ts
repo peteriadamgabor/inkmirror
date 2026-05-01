@@ -511,7 +511,6 @@ export {
   updateSceneMetadata,
   graveyardBlocks,
   loadBlockRevisions,
-  restoreBlockContent,
   refreshGraveyard,
   restoreBlock,
   deleteBlock,

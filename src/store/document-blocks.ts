@@ -37,7 +37,6 @@ import {
   canPersist,
   cancelPendingContentWrite,
   matchLeadingSpeaker,
-  persistBlockNow,
   removeInconsistencyFlag,
   scheduleBlockContentWrite,
   setStore,
@@ -657,31 +656,6 @@ export async function loadBlockRevisions(blockId: UUID): Promise<BlockRevision[]
   } catch {
     return [];
   }
-}
-
-export function restoreBlockContent(blockId: UUID, content: string): void {
-  const block = store.blocks[blockId];
-  if (!block) return;
-  const now = new Date().toISOString();
-  setStore('blocks', blockId, (b) => ({ ...b, content, updated_at: now }));
-  // Persist immediately — don't debounce — so the restored content is safe.
-  persistBlockNow(blockId);
-  // Place caret at the end of the restored content so the writer can
-  // keep typing without guessing where the cursor went.
-  requestAnimationFrame(() => {
-    const el = document.querySelector<HTMLElement>(
-      `[data-block-id="${blockId}"] [data-editable]`,
-    );
-    if (!el) return;
-    el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    const sel = window.getSelection();
-    if (!sel) return;
-    sel.removeAllRanges();
-    sel.addRange(range);
-  });
 }
 
 async function recoverLastNonEmpty(blockId: UUID): Promise<string | null> {

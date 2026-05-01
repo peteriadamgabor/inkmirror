@@ -13,6 +13,8 @@ import {
 import { store } from '@/store/document';
 import { toast } from '@/ui/shared/toast';
 import { isDevModeEnabled } from '@/ui/shared/dev-mode';
+import { requestBlockHistoryOpen } from '@/ui/blocks/BlockHistory';
+import type { UUID } from '@/types';
 
 async function openDevMenuLazy(): Promise<void> {
   // Lazy-import keeps the dev-menu chunk out of the main bundle.
@@ -50,7 +52,7 @@ async function runExport(format: ExporterDescriptor): Promise<void> {
   }
 }
 
-function buildCommands(): Command[] {
+function buildCommands(focusedBlockId: UUID | null): Command[] {
   const cmds: Command[] = [];
   for (const meta of BINDING_META) {
     cmds.push({
@@ -58,6 +60,14 @@ function buildCommands(): Command[] {
       label: t(meta.labelKey as Parameters<typeof t>[0]),
       hint: hotkeys[meta.action],
       run: () => runAction(meta.action as AppAction),
+    });
+  }
+  if (focusedBlockId) {
+    const blockId = focusedBlockId;
+    cmds.push({
+      id: 'block.history',
+      label: t('misc.revisionHistory'),
+      run: () => requestBlockHistoryOpen(blockId),
     });
   }
   for (const exp of EXPORTER_DESCRIPTORS) {
@@ -97,9 +107,11 @@ function scoreMatch(query: string, label: string): number {
 export const CommandPalette = () => {
   const [query, setQuery] = createSignal('');
   const [cursor, setCursor] = createSignal(0);
+  // Captured at open time, before the palette steals focus from the editor.
+  const [focusedBlockId, setFocusedBlockId] = createSignal<UUID | null>(null);
   let inputEl: HTMLInputElement | undefined;
 
-  const allCommands = createMemo(() => buildCommands());
+  const allCommands = createMemo(() => buildCommands(focusedBlockId()));
 
   const filtered = createMemo(() => {
     const q = query();
@@ -110,9 +122,16 @@ export const CommandPalette = () => {
     return scored.map((x) => x.cmd);
   });
 
-  // Reset the cursor + focus the input whenever the palette opens.
+  // Reset the cursor + focus the input whenever the palette opens. We snapshot
+  // the editor's active block first — at this point document.activeElement is
+  // still the contenteditable, since the palette only grabs focus inside the
+  // queued microtask below.
   createEffect(() => {
     if (uiState.commandPaletteOpen) {
+      const active = document.activeElement;
+      const blockEl = active instanceof Element ? active.closest('[data-block-id]') : null;
+      const id = blockEl?.getAttribute('data-block-id') ?? null;
+      setFocusedBlockId(id as UUID | null);
       setQuery('');
       setCursor(0);
       queueMicrotask(() => inputEl?.focus());
