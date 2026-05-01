@@ -289,6 +289,7 @@ export const hu: Messages = {
     previewRestore: 'Visszaállítás',
     previewCancel: 'Mégse',
     previewRestoredToast: 'Visszaállítva — {{ago}} óta',
+    previewRestoreFailedToast: 'A visszaállítás nem sikerült — próbáld újra',
     previewSyncCancelled: 'A szinkronizálás frissítette a blokkot — előnézet megszakítva',
     sceneLocation: 'Helyszín',
     sceneTime: 'Idő',

@@ -30,7 +30,7 @@ export function PreviewBanner() {
       // commitPreview already cleared preview state on failure (Task 8 fix).
       // Surface the failure to the user; specific error text is generic since
       // the underlying IDB error message would not help a writer.
-      toast.error(t('block.previewRestoredToast', { ago: ts }) + ' — failed');
+      toast.error(t('block.previewRestoreFailedToast'));
     }
   };
 

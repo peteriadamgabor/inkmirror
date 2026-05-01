@@ -594,6 +594,7 @@ export const en = {
     previewRestore: 'Restore',
     previewCancel: 'Cancel',
     previewRestoredToast: 'Restored to version from {{ago}}',
+    previewRestoreFailedToast: 'Could not restore — please try again',
     previewSyncCancelled: 'Sync updated this block — preview cancelled',
     sceneLocation: 'Location',
     sceneTime: 'Time',
