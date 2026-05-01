@@ -51,7 +51,7 @@ describe('commitPreview', () => {
 
   it('writes a pre-restore snapshot then restores the previewed content', async () => {
     const saveSpy = vi.spyOn(repo, 'saveRevision').mockResolvedValue();
-    vi.spyOn(repo, 'saveBlock').mockResolvedValue();
+    const saveBlockSpy = vi.spyOn(repo, 'saveBlock').mockResolvedValue();
 
     setStore('document', { id: 'doc-1', title: 't' } as any);
     setStore('blocks', 'block-1', {
@@ -66,6 +66,10 @@ describe('commitPreview', () => {
 
     expect(saveSpy).toHaveBeenCalledWith(
       expect.objectContaining({ blockId: 'block-1', content: 'CURRENT LIVE CONTENT' }),
+    );
+    expect(saveBlockSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'OLD VERSION' }),
+      'doc-1',
     );
     expect(store.blocks['block-1'].content).toBe('OLD VERSION');
     expect(previewState()).toBeNull();
@@ -85,6 +89,26 @@ describe('commitPreview', () => {
     await commitPreview();
 
     expect(saveSpy).not.toHaveBeenCalled();
+    expect(previewState()).toBeNull();
+  });
+
+  it('aborts the restore (and re-throws) when the pre-restore snapshot fails', async () => {
+    const failure = new Error('snapshot write failed');
+    vi.spyOn(repo, 'saveRevision').mockRejectedValueOnce(failure);
+    const saveBlockSpy = vi.spyOn(repo, 'saveBlock').mockResolvedValue();
+
+    setStore('document', { id: 'doc-1' } as any);
+    setStore('blocks', 'block-1', {
+      id: 'block-1',
+      content: 'STILL LIVE',
+      updated_at: '2026-05-01T10:00:00Z',
+    } as any);
+
+    enterPreview('block-1', 'WOULD-BE OLD', '2026-05-01T09:00:00Z');
+
+    await expect(commitPreview()).rejects.toThrow('snapshot write failed');
+    expect(saveBlockSpy).not.toHaveBeenCalled();
+    expect(store.blocks['block-1'].content).toBe('STILL LIVE');
     expect(previewState()).toBeNull();
   });
 });

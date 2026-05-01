@@ -50,7 +50,12 @@ export async function commitPreview(): Promise<void> {
         content: liveContent,
         snapshotAt: nowIso,
       })
-      .catch(() => undefined),
+      .catch((err) => {
+        // Pre-restore snapshot failed — do NOT overwrite live content.
+        // Clear preview state and re-throw so the caller can surface the failure.
+        setState(null);
+        throw err;
+      }),
   );
   setStore('blocks', s.blockId, {
     content: s.content,
