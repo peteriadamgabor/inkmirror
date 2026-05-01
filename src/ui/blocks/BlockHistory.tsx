@@ -100,7 +100,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
           <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-stone-400 px-2 pb-1 pt-1">
             <span>{t('block.historyTitle')}</span>
             <span class="font-normal normal-case tracking-normal text-stone-400/70">
-              {(revisions() ?? []).length} / 20
+              {(revisions() ?? []).length} / 50
             </span>
           </div>
           <Show

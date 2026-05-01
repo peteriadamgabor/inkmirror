@@ -17,7 +17,7 @@ export interface BlockRevision {
   snapshotAt: string;
 }
 
-const REVISION_CAP = 20;
+const REVISION_CAP = 50;
 
 function revisionId(blockId: UUID, snapshotAt: string): string {
   return `${blockId}|${snapshotAt}`;
