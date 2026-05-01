@@ -260,10 +260,10 @@ describe('block revisions', () => {
     expect(state.blockRevisions).toHaveLength(1);
   });
 
-  it('caps per-block history at 20 entries', async () => {
+  it('caps per-block history at 50 entries', async () => {
     const { db, state } = createMockDb();
     __setTestDb(db);
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 51; i++) {
       await saveRevision({
         blockId: 'b1',
         documentId: 'd1',
@@ -271,10 +271,10 @@ describe('block revisions', () => {
         snapshotAt: `2026-04-14T12:00:${String(i).padStart(2, '0')}.000Z`,
       });
     }
-    expect(state.blockRevisions).toHaveLength(20);
+    expect(state.blockRevisions).toHaveLength(50);
     // Oldest entries trimmed; newest preserved.
     const contents = state.blockRevisions.map((r) => r.content).sort();
-    expect(contents).toContain('v24');
+    expect(contents).toContain('v50');
     expect(contents).not.toContain('v0');
   });
 

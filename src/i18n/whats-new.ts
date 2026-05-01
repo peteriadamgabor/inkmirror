@@ -23,6 +23,16 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-02',
+    title: 'v0.6.0: Revision history that helps',
+    items: [
+      'Snapshots now fire on the order of one per minute instead of every keystroke pause, so the history list (the ⟲ button on each block) shows meaningful versions instead of near-duplicates.',
+      'Each row in the popover shows what changed — added words in green, removed words struck through. Scan the list at a glance instead of clicking through to find out what differs.',
+      'Click a revision to preview it in the editor with Restore and Cancel buttons. Reading an old version no longer destroys the current one — Cancel returns you to live content untouched.',
+      'New Settings → Advanced → Revision history preset (Frequent / Balanced / Sparse) lets you tune how often snapshots fire. Balanced is the default; Frequent gives finer-grained history, Sparse keeps the list cleaner.',
+    ],
+  },
+  {
     id: '2026-05-01d',
     title: 'v0.5.1: Multi-line text inside a single block sticks now',
     items: [
@@ -101,6 +111,16 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-02',
+    title: 'v0.6.0: Hasznos verziótörténet',
+    items: [
+      'A pillanatfelvételek mostantól körülbelül percenként készülnek, nem minden gépelési szünet után — így a verziótörténet (a blokk melletti ⟲ gomb) értelmes változatokat mutat, nem közel azonos másolatokat.',
+      'A listában minden sor mutatja, mi változott — a hozzáadott szavak zölden, az eltávolítottak áthúzva. Egy pillantással átnézheted a listát, nem kell végigkattintanod, hogy lásd a különbséget.',
+      'Egy verzióra kattintva a szerkesztőben láthatod azt, Visszaállítás és Mégse gombokkal. Egy régi változat megnézése már nem írja felül az aktuálisat — a Mégse gomb sértetlenül visszahoz az élő tartalomhoz.',
+      'Új Beállítások → Speciális → Verziótörténet beállítás (Gyakori / Kiegyensúlyozott / Ritkás) szabályozza, milyen gyakran készüljenek a felvételek. A Kiegyensúlyozott az alapértelmezett; a Gyakori finomabb történetet ad, a Ritkás tisztább listát.',
+    ],
+  },
   {
     id: '2026-05-01d',
     title: 'v0.5.1: A többsoros szöveg egy blokkon belül már megmarad',

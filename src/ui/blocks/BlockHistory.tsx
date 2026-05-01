@@ -1,37 +1,11 @@
 import { createResource, createSignal, For, Show, createEffect, onCleanup } from 'solid-js';
 import type { UUID } from '@/types';
-import { loadBlockRevisions, restoreBlockContent, store } from '@/store/document';
-import { toast } from '@/ui/shared/toast';
+import { loadBlockRevisions, store } from '@/store/document';
+import { enterPreview, previewState } from '@/store/preview';
 import { IconHistory } from '@/ui/shared/icons';
 import { t } from '@/i18n';
-
-function formatRelative(iso: string, now: number): string {
-  const ms = new Date(iso).getTime();
-  if (Number.isNaN(ms)) return iso;
-  const diff = Math.max(0, now - ms);
-  const s = Math.round(diff / 1000);
-  if (s < 5) return 'just now';
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = new Date(ms);
-  const today = new Date(now);
-  const isYesterday =
-    d.getDate() === today.getDate() - 1 &&
-    d.getMonth() === today.getMonth() &&
-    d.getFullYear() === today.getFullYear();
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (isYesterday) return `yesterday ${time}`;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ` ${time}`;
-}
-
-function charDelta(current: string, prev: string): string {
-  const diff = current.length - prev.length;
-  if (diff === 0) return '';
-  return diff > 0 ? `+${diff}` : `${diff}`;
-}
+import { BlockHistoryRow } from './BlockHistoryRow';
+import type { BlockRevision } from '@/db/repository-revisions';
 
 export const BlockHistory = (props: { blockId: UUID }) => {
   const [open, setOpen] = createSignal(false);
@@ -74,10 +48,9 @@ export const BlockHistory = (props: { blockId: UUID }) => {
     if (!open()) setVersion((v) => v + 1);
   };
 
-  const onRestore = (content: string) => {
-    restoreBlockContent(props.blockId, content);
+  const onSelect = (rev: BlockRevision) => {
+    enterPreview(props.blockId, rev.content, rev.snapshotAt);
     setOpen(false);
-    toast.success(t('block.historyRestored'));
   };
 
   return (
@@ -100,7 +73,7 @@ export const BlockHistory = (props: { blockId: UUID }) => {
           <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-stone-400 px-2 pb-1 pt-1">
             <span>{t('block.historyTitle')}</span>
             <span class="font-normal normal-case tracking-normal text-stone-400/70">
-              {(revisions() ?? []).length} / 20
+              {(revisions() ?? []).length} / 50
             </span>
           </div>
           <Show
@@ -111,63 +84,25 @@ export const BlockHistory = (props: { blockId: UUID }) => {
               </div>
             }
           >
-            {(() => {
-              const now = Date.now();
-              const liveContent = () => store.blocks[props.blockId]?.content ?? '';
-              return (
-                <div class="flex flex-col">
-                  <For each={revisions()}>
-                    {(r, i) => {
-                      const isCurrent = () => r.content === liveContent();
-                      const prev = () => revisions()?.[i() + 1];
-                      const delta = () => {
-                        const p = prev();
-                        return p ? charDelta(r.content, p.content) : '';
-                      };
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => onRestore(r.content)}
-                          disabled={isCurrent()}
-                          class="text-left px-2 py-1.5 rounded-md transition-colors group"
-                          classList={{
-                            'hover:bg-stone-100 dark:hover:bg-stone-700': !isCurrent(),
-                            'bg-violet-50 dark:bg-violet-950/30 cursor-default': isCurrent(),
-                          }}
-                        >
-                          <div class="flex items-baseline justify-between gap-2 mb-0.5">
-                            <span
-                              class="text-[10px] text-stone-500 dark:text-stone-400"
-                              classList={{
-                                'group-hover:text-violet-500': !isCurrent(),
-                                'text-violet-500 font-medium': isCurrent(),
-                              }}
-                            >
-                              {formatRelative(r.snapshotAt, now)}
-                              {isCurrent() && ' · current'}
-                            </span>
-                            <Show when={delta()}>
-                              <span
-                                class="text-[10px] font-mono"
-                                classList={{
-                                  'text-emerald-500': delta().startsWith('+'),
-                                  'text-red-400': delta().startsWith('-'),
-                                }}
-                              >
-                                {delta()}
-                              </span>
-                            </Show>
-                          </div>
-                          <div class="font-serif text-xs text-stone-700 dark:text-stone-300 line-clamp-2 whitespace-pre-wrap">
-                            {r.content}
-                          </div>
-                        </button>
-                      );
-                    }}
-                  </For>
-                </div>
-              );
-            })()}
+            <div class="flex flex-col">
+              <For each={revisions()}>
+                {(r, i) => {
+                  const prev = () => revisions()?.[i() + 1];
+                  const isThisPreview = () =>
+                    previewState()?.blockId === props.blockId &&
+                    previewState()?.snapshotAt === r.snapshotAt;
+                  return (
+                    <BlockHistoryRow
+                      rev={r}
+                      prev={prev()}
+                      liveContent={store.blocks[props.blockId]?.content ?? ''}
+                      isPreviewing={isThisPreview()}
+                      onSelect={onSelect}
+                    />
+                  );
+                }}
+              </For>
+            </div>
           </Show>
         </div>
       </Show>

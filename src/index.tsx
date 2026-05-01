@@ -38,6 +38,8 @@ import { SettingsModal } from '@/ui/features/SettingsModal';
 import { WhatsNewModal } from '@/ui/features/WhatsNewModal';
 import { daysSinceLastExport } from '@/exporters';
 import { toast } from '@/ui/shared/toast';
+import { t } from '@/i18n';
+import { cancelPreviewIfDocMatches } from '@/store/preview';
 import type { UUID } from '@/types';
 import './index.css';
 
@@ -218,7 +220,12 @@ if (isKnownPath && !isStaticPage) {
         void startSync({
           baseUrl: '',
           buildBundle: buildSyncBundleForDocument,
-          applyBundle: applySyncBundleToDocument,
+          applyBundle: async (docId, plaintext) => {
+            if (cancelPreviewIfDocMatches(docId)) {
+              toast.info(t('block.previewSyncCancelled'));
+            }
+            await applySyncBundleToDocument(docId, plaintext);
+          },
           getDocLastRevision: getDocLastSyncRevision,
           setDocLastRevision: (id, rev) => { void setDocLastSyncRevision(id, rev); },
         });
