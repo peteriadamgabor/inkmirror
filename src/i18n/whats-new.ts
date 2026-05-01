@@ -23,6 +23,13 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-01d',
+    title: 'v0.5.1: Multi-line text inside a single block sticks now',
+    items: [
+      'Pressing Enter in the middle of a block (most often inside an Epigraph or Dedication, where a quote runs across two visible lines) used to drop the line break on reload — your two-line text quietly collapsed back to one. Fixed: the line break now survives the round-trip through storage in every block type.',
+    ],
+  },
+  {
     id: '2026-05-01c',
     title: 'v0.5.0: Optional crash reports',
     items: [
@@ -94,6 +101,13 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-01d',
+    title: 'v0.5.1: A többsoros szöveg egy blokkon belül már megmarad',
+    items: [
+      'Ha egy blokkon belül (leggyakrabban Mottó vagy Ajánlás fejezetben, ahol egy idézet két látható sorra fut) az Enter-t a sor közepén ütötted le, az újratöltés után a sortörés eltűnt — a két sorod csendben egy sorrá omlott össze. Javítva: a sortörés mostantól minden blokktípusban túléli a tárolási oda-vissza utat.',
+    ],
+  },
   {
     id: '2026-05-01c',
     title: 'v0.5.0: Választható hibajelentések',

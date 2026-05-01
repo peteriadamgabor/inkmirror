@@ -162,11 +162,19 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;');
 }
 
+// Block-level tags the browser produces for Enter inside contenteditable.
+// Each one starts a new visual line, so they round-trip as "\n" boundaries.
+const BLOCK_TAGS = new Set([
+  'div', 'p', 'blockquote', 'pre', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+]);
+
 /**
  * Walk the contenteditable DOM subtree and reconstruct
  * `{ content, marks }`. Recognizes <b>/<strong> as bold and
- * <i>/<em> as italic. <br> becomes "\n". Everything else is
- * treated as a container whose text content is collected.
+ * <i>/<em> as italic. <br> and block-level elements (<div>,
+ * <p>, …) become "\n" — without this, the line break the
+ * browser inserts on mid-content Enter is lost on commit.
  */
 export function parseMarksFromDom(root: Node): { content: string; marks: Mark[] } {
   let content = '';
@@ -185,6 +193,10 @@ export function parseMarksFromDom(root: Node): { content: string; marks: Mark[] 
     if (tag === 'br') {
       content += '\n';
       return;
+    }
+
+    if (BLOCK_TAGS.has(tag) && content.length > 0 && !content.endsWith('\n')) {
+      content += '\n';
     }
 
     let markType: MarkType | null = null;

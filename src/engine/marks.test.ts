@@ -168,6 +168,39 @@ describe('parseMarksFromDom', () => {
     const { content } = parseMarksFromDom(makeRoot('first<br>second'));
     expect(content).toBe('first\nsecond');
   });
+
+  it('treats sibling <div> blocks as newlines (Firefox mid-Enter)', () => {
+    // Firefox's contenteditable wraps each line in its own <div> when the
+    // user presses Enter mid-content. Without paragraph-break detection,
+    // the line break is silently flattened on commit and lost on reload.
+    const { content } = parseMarksFromDom(makeRoot('<div>Quote</div><div> line one</div>'));
+    expect(content).toBe('Quote\n line one');
+  });
+
+  it('treats text + <div> as a newline (Chromium mid-Enter)', () => {
+    // Chromium's mid-Enter leaves the leading text loose and wraps the
+    // tail in a <div>: "First<div>XX line</div>".
+    const { content } = parseMarksFromDom(makeRoot('First<div>XX line</div>'));
+    expect(content).toBe('First\nXX line');
+  });
+
+  it('treats <p> blocks as newlines', () => {
+    const { content } = parseMarksFromDom(makeRoot('<p>one</p><p>two</p>'));
+    expect(content).toBe('one\ntwo');
+  });
+
+  it('does not double newlines when a <div> already follows a <br>', () => {
+    const { content } = parseMarksFromDom(makeRoot('a<br><div>b</div>'));
+    expect(content).toBe('a\nb');
+  });
+
+  it('preserves marks across <div> paragraph breaks', () => {
+    const { content, marks } = parseMarksFromDom(
+      makeRoot('<div><b>bold</b></div><div>plain</div>'),
+    );
+    expect(content).toBe('bold\nplain');
+    expect(marks).toEqual([{ type: 'bold', start: 0, end: 4 }]);
+  });
 });
 
 describe('roundtrip: marks → html → marks', () => {
