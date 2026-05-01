@@ -1,4 +1,4 @@
-import { createEffect, onMount } from 'solid-js';
+import { createEffect, onMount, Show } from 'solid-js';
 import type { Block } from '@/types';
 import {
   updateBlockContent,
@@ -40,6 +40,8 @@ import {
 } from './block-caret';
 import { BlockHeader } from './BlockHeader';
 import { DRAG_MIME, useBlockDnd } from './useBlockDnd';
+import { isPreviewing, previewState } from '@/store/preview';
+import { PreviewBanner } from './PreviewBanner';
 
 const COMMIT_DEBOUNCE_MS = 300;
 
@@ -51,8 +53,15 @@ export const BlockView = (props: { block: Block }) => {
 
   const dnd = useBlockDnd({ block: props.block, wrapper: () => wrapperEl });
 
+  const inPreview = () => isPreviewing(props.block.id);
+
   onMount(() => {
-    el.innerHTML = marksToHtml(props.block.content, props.block.marks);
+    const preview = previewState();
+    if (preview && preview.blockId === props.block.id) {
+      el.innerHTML = marksToHtml(preview.content, undefined);
+    } else {
+      el.innerHTML = marksToHtml(props.block.content, props.block.marks);
+    }
   });
 
   // Rule 1: skip DOM writes while the block is focused or composing —
@@ -61,6 +70,18 @@ export const BlockView = (props: { block: Block }) => {
   // force the write and restore the caret at end-of-text.
   let lastExternalRev = 0;
   createEffect(() => {
+    const preview = previewState();
+    const inPrev = preview !== null && preview.blockId === props.block.id;
+
+    if (inPrev) {
+      if (!el) return;
+      const html = marksToHtml(preview!.content, undefined);
+      if (el.innerHTML !== html) {
+        el.innerHTML = html;
+      }
+      return;
+    }
+
     const incoming = props.block.content;
     const marks = props.block.marks;
     const pulse = externalSync();
@@ -268,6 +289,7 @@ export const BlockView = (props: { block: Block }) => {
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (inPreview()) return; // previewed block is read-only
     if (isComposing || e.isComposing) return;
 
     // Bold / italic toggles. Run before the intent resolver so Cmd+B
@@ -457,6 +479,9 @@ export const BlockView = (props: { block: Block }) => {
       onDragLeave={dnd.onDragLeave}
       onDrop={dnd.onDrop}
     >
+      <Show when={inPreview()}>
+        <PreviewBanner />
+      </Show>
       <BlockHeader
         block={props.block}
         onDragStart={dnd.onDragStart}
@@ -466,7 +491,7 @@ export const BlockView = (props: { block: Block }) => {
       <div
         ref={el}
         data-editable
-        contentEditable
+        contentEditable={!inPreview()}
         role="textbox"
         aria-multiline="true"
         aria-label={`${t(`block.types.${props.block.type}`)}: ${t(`block.hints.${props.block.type}`)}`}
@@ -507,6 +532,9 @@ export const BlockView = (props: { block: Block }) => {
           }
         }}
         class="font-serif text-base leading-[1.8] text-stone-900 dark:text-stone-100 whitespace-pre-wrap break-words outline-none px-4 py-2 rounded-xl border border-transparent hover:border-stone-200/60 dark:hover:border-stone-700/40 focus:border-stone-300 dark:focus:border-stone-600/60 transition-colors"
+        classList={{
+          'ring-2 ring-violet-300/50 dark:ring-violet-700/50': inPreview(),
+        }}
         style={(() => {
           if (props.block.metadata.type !== 'dialogue') return undefined;
           const color = dialogueSpeakerColor();
