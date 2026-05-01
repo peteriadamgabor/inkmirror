@@ -29,9 +29,10 @@ describe('diffWords', () => {
 
   it('treats newline as a token', () => {
     const segs = diffWords('a b', 'a\nb');
-    const hasNewlineAdd = segs.some((s) => s.kind === 'add' && s.text.includes('\n'));
-    const hasSpaceRemove = segs.some((s) => s.kind === 'remove' && s.text === ' ');
-    expect(hasNewlineAdd || hasSpaceRemove).toBe(true);
+    const reconstructedPrev = segs.filter((s) => s.kind !== 'add').map((s) => s.text).join('');
+    const reconstructedNext = segs.filter((s) => s.kind !== 'remove').map((s) => s.text).join('');
+    expect(reconstructedPrev).toBe('a b');
+    expect(reconstructedNext).toBe('a\nb');
   });
 
   it('handles empty inputs', () => {
@@ -49,6 +50,19 @@ describe('diffWords', () => {
       .map((s) => s.text)
       .join('');
     expect(reconstructed).toBe(next);
+  });
+
+  it('tokenizes curly quotes as separate tokens', () => {
+    // Typography layer produces " " ' ' in stored content.
+    // The tokenizer must split on them so that minor edits inside a quoted
+    // phrase don't lump the whole quote into a single segment.
+    const segs = diffWords('She said "hello".', 'She said "goodbye".');
+    // Expect at most two non-equal segments (one remove, one add) for a single
+    // word swap inside curly quotes — not the whole quoted run.
+    const removed = segs.filter((s) => s.kind === 'remove').map((s) => s.text).join('');
+    const added = segs.filter((s) => s.kind === 'add').map((s) => s.text).join('');
+    expect(removed).toBe('hello');
+    expect(added).toBe('goodbye');
   });
 });
 

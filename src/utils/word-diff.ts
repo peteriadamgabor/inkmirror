@@ -5,7 +5,7 @@ export interface WordDiffSegment {
   text: string;
 }
 
-const TOKEN_RE = /(\s+|[.,;:!?—–"'()…\[\]{}])/;
+const TOKEN_RE = /(\s+|[.,;:!?—–"'''""()…\[\]{}])/;
 
 function tokenize(s: string): string[] {
   if (s.length === 0) return [];
