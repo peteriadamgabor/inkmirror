@@ -1,4 +1,4 @@
-import { createResource, createSignal, Show } from 'solid-js';
+import { createResource, createSignal, For, Show } from 'solid-js';
 import { t } from '@/i18n';
 import {
   estimate,
@@ -7,6 +7,12 @@ import {
   requestPersistence,
 } from '@/utils/storage';
 import { toast } from '@/ui/shared/toast';
+import {
+  REVISION_PRESETS,
+  revisionPreset,
+  setRevisionPreset,
+  type RevisionPreset,
+} from '@/store/revision-preset';
 
 export function SettingsAdvancedTab() {
   // Two reactive resources, refetchable so the "Request again" CTA can
@@ -137,6 +143,34 @@ export function SettingsAdvancedTab() {
             </span>
           </Show>
         </Show>
+      </section>
+
+      <section>
+        <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
+          {t('settings.advanced.revisionHistory.heading')}
+        </h2>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+          {t('settings.advanced.revisionHistory.body')}
+        </p>
+        <div class="flex flex-col gap-2">
+          <For each={REVISION_PRESETS}>
+            {(p: RevisionPreset) => (
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="inkmirror-revision-preset"
+                  value={p}
+                  checked={revisionPreset() === p}
+                  onChange={() => setRevisionPreset(p)}
+                  class="accent-violet-500"
+                />
+                <span class="text-sm text-stone-700 dark:text-stone-200">
+                  {t(`settings.advanced.revisionHistory.${p}` as const)}
+                </span>
+              </label>
+            )}
+          </For>
+        </div>
       </section>
     </div>
   );
