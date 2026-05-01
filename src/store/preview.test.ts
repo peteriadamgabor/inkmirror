@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   previewState,
   enterPreview,
   exitPreview,
   isPreviewing,
+  commitPreview,
 } from './preview';
+import * as repo from '@/db/repository';
+import { store, setStore } from './document';
 
 describe('preview store', () => {
   beforeEach(() => {
@@ -36,6 +39,52 @@ describe('preview store', () => {
   it('exitPreview clears state', () => {
     enterPreview('block-1', 'old', '2026-01-01T00:00:00Z');
     exitPreview();
+    expect(previewState()).toBeNull();
+  });
+});
+
+describe('commitPreview', () => {
+  beforeEach(() => {
+    exitPreview();
+    vi.restoreAllMocks();
+  });
+
+  it('writes a pre-restore snapshot then restores the previewed content', async () => {
+    const saveSpy = vi.spyOn(repo, 'saveRevision').mockResolvedValue();
+    vi.spyOn(repo, 'saveBlock').mockResolvedValue();
+
+    setStore('document', { id: 'doc-1', title: 't' } as any);
+    setStore('blocks', 'block-1', {
+      id: 'block-1',
+      type: 'text',
+      content: 'CURRENT LIVE CONTENT',
+      updated_at: '2026-05-01T10:00:00Z',
+    } as any);
+
+    enterPreview('block-1', 'OLD VERSION', '2026-05-01T09:00:00Z');
+    await commitPreview();
+
+    expect(saveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ blockId: 'block-1', content: 'CURRENT LIVE CONTENT' }),
+    );
+    expect(store.blocks['block-1'].content).toBe('OLD VERSION');
+    expect(previewState()).toBeNull();
+  });
+
+  it('is a no-op if previewed content equals live content', async () => {
+    const saveSpy = vi.spyOn(repo, 'saveRevision').mockResolvedValue();
+
+    setStore('document', { id: 'doc-1' } as any);
+    setStore('blocks', 'block-1', {
+      id: 'block-1',
+      content: 'SAME',
+      updated_at: '2026-05-01T10:00:00Z',
+    } as any);
+
+    enterPreview('block-1', 'SAME', '2026-05-01T09:00:00Z');
+    await commitPreview();
+
+    expect(saveSpy).not.toHaveBeenCalled();
     expect(previewState()).toBeNull();
   });
 });

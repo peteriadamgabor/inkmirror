@@ -1,5 +1,8 @@
 import { createSignal } from 'solid-js';
+import { unwrap } from 'solid-js/store';
 import type { UUID } from '@/types';
+import * as repo from '@/db/repository';
+import { store, setStore, track } from './document';
 
 export interface PreviewState {
   blockId: UUID;
@@ -22,4 +25,39 @@ export function exitPreview(): void {
 export function isPreviewing(blockId: UUID): boolean {
   const s = state();
   return s !== null && s.blockId === blockId;
+}
+
+export async function commitPreview(): Promise<void> {
+  const s = state();
+  if (!s) return;
+  const documentId = store.document?.id;
+  const block = store.blocks[s.blockId];
+  if (!documentId || !block) {
+    setState(null);
+    return;
+  }
+  const liveContent = block.content;
+  if (liveContent === s.content) {
+    setState(null);
+    return;
+  }
+  const nowIso = new Date().toISOString();
+  await track(
+    repo
+      .saveRevision({
+        blockId: s.blockId,
+        documentId,
+        content: liveContent,
+        snapshotAt: nowIso,
+      })
+      .catch(() => undefined),
+  );
+  setStore('blocks', s.blockId, {
+    content: s.content,
+    updated_at: nowIso,
+  });
+  await track(
+    repo.saveBlock(unwrap(store.blocks[s.blockId]), documentId).catch(() => undefined),
+  );
+  setState(null);
 }
