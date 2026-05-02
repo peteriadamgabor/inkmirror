@@ -67,7 +67,7 @@ Six formats: **Markdown, JSON, Fountain, EPUB, DOCX, PDF.** Inline bold / italic
 
 ## Tech stack
 
-- **Solid.js 1** + **TypeScript strict** + **Vite 5** + **Tailwind 3**
+- **Solid.js 1** + **TypeScript strict** + **Vite 8** + **Tailwind 3**
 - **IndexedDB** (via [`idb`](https://www.npmjs.com/package/idb)) for persistence
 - **[Transformers.js](https://huggingface.co/docs/transformers.js)** in a Web Worker for local sentiment analysis (multilingual DistilBERT)
 - **[Tone.js](https://tonejs.github.io/)** for sonification
@@ -88,7 +88,7 @@ Scripts:
 |---|---|
 | `npm run build` | Typecheck + Vite production build |
 | `npm run preview` | Local preview via Wrangler (matches prod) |
-| `npm test` | Vitest unit suite (~360 tests) |
+| `npm test` | Vitest unit suite (~660 tests) |
 | `npm run test:e2e` | Playwright end-to-end suite |
 | `npm run deploy` | Build and deploy to Cloudflare Workers |
 
