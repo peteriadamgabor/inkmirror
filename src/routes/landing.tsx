@@ -29,7 +29,62 @@ const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
   accent: FEATURE_ACCENTS[n - 1],
 }));
 
-const MORE = Array.from({ length: 20 }, (_, i) => `landing.more.item${i + 1}`);
+type MoreGroup = {
+  labelKey: string;
+  itemKeys: readonly string[];
+  accent: 'text-violet-600' | 'text-orange-600';
+  accentDark: 'dark:text-violet-300' | 'dark:text-orange-400';
+};
+
+const MORE_GROUPS: readonly MoreGroup[] = [
+  {
+    labelKey: 'landing.more.g1Label',
+    itemKeys: [
+      'landing.more.g1Item1',
+      'landing.more.g1Item2',
+      'landing.more.g1Item3',
+      'landing.more.g1Item4',
+      'landing.more.g1Item5',
+    ],
+    accent: 'text-violet-600',
+    accentDark: 'dark:text-violet-300',
+  },
+  {
+    labelKey: 'landing.more.g2Label',
+    itemKeys: [
+      'landing.more.g2Item1',
+      'landing.more.g2Item2',
+      'landing.more.g2Item3',
+      'landing.more.g2Item4',
+      'landing.more.g2Item5',
+    ],
+    accent: 'text-orange-600',
+    accentDark: 'dark:text-orange-400',
+  },
+  {
+    labelKey: 'landing.more.g3Label',
+    itemKeys: [
+      'landing.more.g3Item1',
+      'landing.more.g3Item2',
+      'landing.more.g3Item3',
+      'landing.more.g3Item4',
+    ],
+    accent: 'text-violet-600',
+    accentDark: 'dark:text-violet-300',
+  },
+  {
+    labelKey: 'landing.more.g4Label',
+    itemKeys: [
+      'landing.more.g4Item1',
+      'landing.more.g4Item2',
+      'landing.more.g4Item3',
+      'landing.more.g4Item4',
+      'landing.more.g4Item5',
+    ],
+    accent: 'text-orange-600',
+    accentDark: 'dark:text-orange-400',
+  },
+];
 
 export const LandingRoute = () => {
   const [demoLoading, setDemoLoading] = createSignal(false);
@@ -263,18 +318,35 @@ export const LandingRoute = () => {
       </div>
     </section>
 
-    {/* --- Everything else --- */}
-    <section class="py-24 px-6 bg-stone-900/30">
+    {/* --- More --- */}
+    <section class="py-28 px-6">
       <div class="max-w-4xl mx-auto">
-        <h2 class="font-serif text-3xl md:text-4xl text-center mb-12">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 text-center mb-3">
+          {t('landing.more.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl text-center mb-16 text-stone-900 dark:text-stone-100">
           {t('landing.more.heading')}
         </h2>
-        <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
-          <For each={MORE}>
-            {(item) => (
-              <div class="flex items-start gap-2 text-sm text-stone-400">
-                <span class="text-violet-500 mt-0.5 shrink-0">·</span>
-                <span>{t(item)}</span>
+
+        <div class="grid md:grid-cols-2 gap-x-12 gap-y-10">
+          <For each={MORE_GROUPS}>
+            {(group) => (
+              <div>
+                <p class={`inkmirror-smallcaps tracking-widest text-xs mb-4 ${group.accent} ${group.accentDark}`}>
+                  {t(group.labelKey)}
+                </p>
+                <ul class="list-none p-0 m-0">
+                  <For each={group.itemKeys}>
+                    {(key, i) => (
+                      <li
+                        class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed py-2.5"
+                        classList={{ 'border-t border-stone-300/40 dark:border-stone-700/40': i() > 0 }}
+                      >
+                        {t(key)}
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </div>
             )}
           </For>
