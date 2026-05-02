@@ -23,6 +23,15 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-02d',
+    title: 'v0.7.0: A literary public-page recraft',
+    items: [
+      "The landing, roadmap, privacy, and 404 pages are recrafted in the editor's warm cream typography — serif, real small-caps, hairline rules, two-hearts color discipline. Same shape, new register.",
+      "Features section is now a numbered literary list with italic Roman ordinals (i.–vi.) instead of a card grid; the privacy \"icon cards\" are replaced by editorial stanzas; the \"Everything else\" list is grouped into four thematic rooms.",
+      "Hungarian copy ships as a faithful translation pending a native polish pass.",
+    ],
+  },
+  {
     id: '2026-05-02c',
     title: 'v0.6.2: Revision history polish',
     items: [
@@ -126,6 +135,15 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-02d',
+    title: 'v0.7.0: A nyilvános oldalak irodalmi újragondolása',
+    items: [
+      'A landing, a roadmap, a privacy és a 404 oldal újragondolva a szerkesztő meleg krémes tipográfiájában — serif, igazi kiskapitális, hajszálvonalak, két-szív szín-fegyelem. Ugyanaz a forma, új regiszter.',
+      'A funkciók szekció most számozott irodalmi lista dőlt római sorszámokkal (i.–vi.), nem kártyarács; az adatvédelmi „ikon-kártyák" helyett szerkesztői versszakok; a „Minden más" lista négy tematikus szobába rendezve.',
+      'A magyar szöveg hűséges fordításként érkezik — a natív csiszolás később.',
+    ],
+  },
   {
     id: '2026-05-02c',
     title: 'v0.6.2: Verziótörténet finomítások',
