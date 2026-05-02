@@ -22,10 +22,11 @@ What's shipped:
 - In-app feedback form → Cloudflare Worker → Discord webhook
 - PWA, undo/redo, Dead Text Graveyard, Plot Timeline, Hotkeys editor, Command Palette
 - Premium UI layer: design tokens (elevation, borders), typography system, motion pack (block enter, ECG draw-in, modal scale-fade, mirror breath), quiet-by-default chrome
+- Public surface (`/landing`, `/roadmap`, `/privacy`, `/not-found`) recrafted on the editor's light-cream vocabulary in v0.7.0 — numbered literary list, editorial stanzas, hairline rules; sun/moon theme toggle in `SiteNav` via `useTheme()` so visitors flip light↔dark without entering the editor (v0.7.1)
 
 ## Stack (required)
 
-- **Solid.js 1** + **TypeScript strict** + **Vite 5** + **Tailwind 3**
+- **Solid.js 1** + **TypeScript strict** + **Vite 8** + **Tailwind 3**
 - **[`pretext`](https://www.npmjs.com/package/@chenglou/pretext)** — Canvas/Wasm text measurement (wrapped by `src/engine/measure.ts`, which can swap it out if the API changes)
 - **[`idb`](https://www.npmjs.com/package/idb)** for IndexedDB (we pivoted away from SurrealDB Wasm — there's an upstream bug that made it unreliable)
 - **Transformers.js** in a Web Worker for sentiment analysis (model: `Xenova/distilbert-base-multilingual-cased-sentiments-student`)
