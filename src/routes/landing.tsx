@@ -189,24 +189,33 @@ export const LandingRoute = () => {
     </section>
 
     {/* --- Philosophy --- */}
-    <section class="py-24 px-6 bg-stone-900/30">
+    <section class="py-28 px-6">
       <div class="max-w-3xl mx-auto text-center">
-        <h2 class="font-serif text-3xl md:text-4xl mb-6">
+        <div class="inkmirror-hairline-neutral mx-auto mb-12" style={{ width: '14rem' }} />
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 mb-3">
+          {t('landing.philosophy.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl mb-8 text-stone-900 dark:text-stone-100">
           {t('landing.philosophy.heading')}
         </h2>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-lg text-stone-700 dark:text-stone-300 leading-relaxed mb-6 font-serif">
           {t('landing.philosophy.p1')}
         </p>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-lg text-stone-700 dark:text-stone-300 leading-relaxed mb-8 font-serif">
           {t('landing.philosophy.p2Before')}
-          <em class="text-stone-200">{t('landing.philosophy.p2Analyzes')}</em>
+          <em class="text-stone-900 dark:text-stone-100 not-italic font-serif italic">
+            {t('landing.philosophy.p2Analyzes')}
+          </em>
           {t('landing.philosophy.p2Middle')}
-          <em class="text-stone-200">{t('landing.philosophy.p2Feels')}</em>
+          <em class="text-stone-900 dark:text-stone-100 not-italic font-serif italic">
+            {t('landing.philosophy.p2Feels')}
+          </em>
           {t('landing.philosophy.p2After')}
         </p>
-        <p class="text-lg text-stone-300 font-serif italic">
+        <p class="text-lg text-stone-800 dark:text-stone-200 font-serif italic">
           {t('landing.philosophy.closing')}
         </p>
+        <div class="inkmirror-hairline-neutral mx-auto mt-12" style={{ width: '14rem' }} />
       </div>
     </section>
 

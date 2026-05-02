@@ -732,15 +732,16 @@ export const hu: Messages = {
         'A fókusz mód és a zen mód addig hántja le a felületet, míg csak a próza marad. A környezeti szonifikáció a fejezet hangulatát generatív akkorddá fordítja. Az alkalmazás tiszteli a munkát; semmi sem tolakszik, hacsak nem kérik.',
     },
     philosophy: {
-      heading: '"Az AI nem ír helyetted"',
+      kicker: 'A tükör, nem a toll',
+      heading: 'Az AI nem ír helyetted',
       p1:
-        'Az InkMirror soha nem fog szöveget generálni, befejezni a mondataidat, vagy cselekmény-fordulatokat javasolni. Az a te dolgod, és a világnak nincs szüksége még egy eszközre, ami rosszabbul csinálja, mint te.',
-      p2Before: 'Ehelyett az AI ',
+        'Az InkMirror sosem fejez be egy mondatot helyetted, sosem javasol cselekményfordulatot, sosem fejezi be a sort, amit elkezdtél. A próza az íróé. A világnak nem kell még egy eszköz, ami rosszabbul fogalmaz, mint az, aki tartja.',
+      p2Before: 'Helyette az AI ',
       p2Analyzes: 'elemez',
-      p2Middle: '. Olvassa a prózádat, és elmondja, milyen ',
-      p2Feels: 'érzés',
+      p2Middle: '. Olvassa, amit az író már leírt, és elmondja neki, hogy az hogyan ',
+      p2Feels: 'érződik',
       p2After:
-        ': a hangulat, a tempó, a feszültség íve. Követi a karaktereidet a jeleneteken át, és jelzi, ha a leírásuk ellentmondásba kerül. Méri az írói ritmusodat, és megmutatja, mikor vagy flow-ban.',
+        ' — a hangulat, a tempó, a feszültségív. Követi a szereplőgárdát jeleneteken át, és jelzi, hol mondanak ellent egymásnak a portrék. Hallgatja a ritmust, és megmutatja az írónak, mikor van áramlatban.',
       closing: 'Két szív, egy lélek. Az író alkot. A történet visszaszól.',
     },
     privacy: {

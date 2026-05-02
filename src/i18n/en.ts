@@ -410,15 +410,16 @@ export const en = {
         "Focus mode and zen mode strip the chrome until only the prose remains. Ambient sonification turns the chapter’s mood into a generative chord. The app respects the work; nothing intrudes unless asked.",
     },
     philosophy: {
-      heading: "\"AI doesn't write for you\"",
+      kicker: 'The mirror, not the pen',
+      heading: 'The AI does not write for you',
       p1:
-        "InkMirror will never generate text, autocomplete your sentences, or suggest plot twists. That's your job, and the world doesn't need another tool that does it worse than you.",
+        "InkMirror will never autocomplete a sentence, suggest a plot turn, or finish a line you started. The prose is the writer’s. The world does not need another tool that drafts worse than the person holding it.",
       p2Before: 'Instead, the AI ',
-      p2Analyzes: 'analyzes',
-      p2Middle: '. It reads your prose and tells you how it ',
+      p2Analyzes: 'analyses',
+      p2Middle: '. It reads what the writer has already written and tells them how it ',
       p2Feels: 'feels',
       p2After:
-        ": the sentiment, the pacing, the tension curve. It tracks your characters across scenes and flags when their descriptions contradict. It measures your writing rhythm and shows you when you're in flow.",
+        ' — the sentiment, the pacing, the tension curve. It tracks the cast across scenes and flags where their portraits contradict. It listens to the rhythm and shows the writer when they are in flow.',
       closing: 'Two hearts, one soul. The writer creates. The story speaks back.',
     },
     privacy: {
