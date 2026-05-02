@@ -386,27 +386,28 @@ export const en = {
       smallPrint: 'No account, no install, no telemetry. Free, and yours.',
     },
     features: {
-      heading: 'Everything a writer needs',
+      kicker: 'What it is',
+      heading: 'Six tools, one mirror',
       subheading:
-        'Not a stripped-down notes app. Not bloated enterprise software. A real tool built by someone who writes.',
-      f1Title: 'Chat-style dialogue',
+        "Not a stripped-down notes app. Not a generative coauthor. A real instrument for a writer who wants to see what they’re building as they build it.",
+      f1Title: 'Story Pulse, an ECG of your prose',
       f1Desc:
-        'Colored bubbles per speaker, live auto-detect from "Name: Hello", POV alignment like iMessage. Tab cycles through your cast.',
-      f2Title: 'Story Pulse',
+        "Sentiment becomes a living waveform. The writer hears the heartbeat of the manuscript without re-reading every line — when the chapter is calm, when it tightens, when it stalls.",
+      f2Title: 'Mood across the whole book',
       f2Desc:
-        "AI-powered sentiment analysis runs locally in your browser. See your story's emotional arc in a real-time ECG, mood heatmap, and per-character mood tracker.",
-      f3Title: '6 export formats',
+        'A heatmap stripe spanning every chapter, every scene, every block. Rises, falls, and silences appear at a glance. The shape of the work, made visible.',
+      f3Title: 'A graveyard for cut text',
       f3Desc:
-        "Markdown, JSON, Fountain, EPUB, DOCX, PDF, one click each. Bold and italic carry through. Fountain gets CONT'D markers automatically.",
-      f4Title: 'Nothing is lost',
+        "Every deleted block goes to the Dead Text Graveyard. Every edit is kept in a per-block revision history. Nothing the writer wrote is ever truly gone — only quietly set aside.",
+      f4Title: 'Six exports, on demand',
       f4Desc:
-        'Every deleted block goes to the Dead Text Graveyard. Every edit is tracked in a per-block revision history. Undo with Ctrl+Z across block deletions and type changes.',
-      f5Title: 'Offline & private',
+        "Markdown, EPUB, PDF, Fountain, DOCX, JSON. The work leaves on the writer’s terms, in any shape they need, the moment they need it.",
+      f5Title: 'Per-character sentiment, per-chapter mood',
       f5Desc:
-        'Your novel never leaves your browser. No server, no account, no telemetry. Installable as a PWA. AI runs locally via Transformers.js. Not even the sentiment model phones home.',
-      f6Title: 'Built for focus',
+        'The cast tracked across scenes, their emotional arcs measured against one another. POV alignment, speaker detection, contradictions surfaced — the architecture of the story shown to the writer who wrote it.',
+      f6Title: 'Quiet by default, deep on attention',
       f6Desc:
-        "Focus mode hides everything but the writing and anchors the active block to the centre of the screen, typewriter style. Zen mode strips even the block chrome. Ambient sonification maps your chapter's mood to a generative chord.",
+        "Focus mode and zen mode strip the chrome until only the prose remains. Ambient sonification turns the chapter’s mood into a generative chord. The app respects the work; nothing intrudes unless asked.",
     },
     philosophy: {
       heading: "\"AI doesn't write for you\"",

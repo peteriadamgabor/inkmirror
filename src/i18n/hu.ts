@@ -708,27 +708,28 @@ export const hu: Messages = {
       smallPrint: 'Nincs fiók, nincs telepítés, nincs telemetria. Ingyen, és a tiéd.',
     },
     features: {
-      heading: 'Minden, amire egy írónak szüksége van',
+      kicker: 'Mi ez',
+      heading: 'Hat eszköz, egy tükör',
       subheading:
-        'Nem csupasz jegyzetelő. Nem felduzzasztott vállalati szoftver. Valódi eszköz, amit egy író készített.',
-      f1Title: 'Chat-stílusú párbeszéd',
+        'Nem egy lecsupaszított jegyzetelő. Nem egy generatív társszerző. Egy igazi műszer az írónak, aki látni akarja, mit épít, miközben építi.',
+      f1Title: 'Story Pulse, a próza EKG-ja',
       f1Desc:
-        'Színezett buborékok beszélőnként, élő automatikus felismerés a "Név: Szia" formából, POV igazítás mint az iMessage. Tab billentyűvel válthatsz a szereplők közt.',
-      f2Title: 'Történet Pulzus',
+        'A hangulat élő hullámformává válik. Az író hallja a kézirat szívverését anélkül, hogy minden sort újraolvasna — mikor nyugodt a fejezet, mikor feszül, mikor megáll.',
+      f2Title: 'Hangulat az egész könyvön át',
       f2Desc:
-        'AI-alapú sentiment elemzés helyben fut a böngésződben. Lásd a történeted érzelmi ívét valós idejű EKG-n, hangulat-hőtérképen és karakterenkénti hangulat-követőn.',
-      f3Title: '6 export formátum',
+        'Egy hőtérkép-csík minden fejezeten, jeleneten, blokkon. Emelkedések, esések, csendek egy pillantásra láthatóvá válnak. A mű alakja, megmutatva.',
+      f3Title: 'Temető a kivágott szövegnek',
       f3Desc:
-        "Markdown, JSON, Fountain, EPUB, DOCX, PDF, egy kattintás mindegyik. A félkövér és dőlt formázás átmegy. Fountain automatikusan kap CONT'D jelzőket.",
-      f4Title: 'Semmi nem vész el',
+        'Minden törölt blokk a Dead Text Graveyardba kerül. Minden szerkesztés megőrződik a blokkonkénti változatkezelésben. Amit az író leírt, az soha nem vész el — csak csendben félre van téve.',
+      f4Title: 'Hat export, parancsra',
       f4Desc:
-        'Minden törölt blokk a Halott Szöveg Temetőbe kerül. Minden szerkesztést a blokkonkénti verziótörténet követ. Ctrl+Z-vel visszavonhatsz blokk-törléseket és típusváltásokat is.',
-      f5Title: 'Offline és privát',
+        'Markdown, EPUB, PDF, Fountain, DOCX, JSON. A mű az író feltételei szerint távozik, abban a formában, amilyenben szüksége van rá, akkor, amikor szüksége van rá.',
+      f5Title: 'Karakterenkénti hangulat, fejezetenkénti tónus',
       f5Desc:
-        'A regényed soha nem hagyja el a böngésződet. Nincs szerver, nincs fiók, nincs telemetria. PWA-ként telepíthető. Az AI helyben fut Transformers.js-en keresztül. Még a sentiment modell sem kommunikál a szerverrel.',
-      f6Title: 'Fókuszra építve',
+        'A szereplőgárda jeleneteken átkövetve, az érzelmi íveik egymáshoz mérve. POV-igazítás, beszélőfelismerés, ellentmondások felszínre hozva — a történet architektúrája megmutatva annak, aki írta.',
+      f6Title: 'Csendes alapból, mély figyelemre',
       f6Desc:
-        'A Fókusz mód mindent elrejt az íráson kívül, és az aktív blokkot a képernyő közepére rögzíti (írógép-érzet). A Zen mód még a blokk-keretet is leveti. A háttérhang a fejezeted hangulatát generatív akkorddá fordítja.',
+        'A fókusz mód és a zen mód addig hántja le a felületet, míg csak a próza marad. A környezeti szonifikáció a fejezet hangulatát generatív akkorddá fordítja. Az alkalmazás tiszteli a munkát; semmi sem tolakszik, hacsak nem kérik.',
     },
     philosophy: {
       heading: '"Az AI nem ír helyetted"',

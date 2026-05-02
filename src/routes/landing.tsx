@@ -8,20 +8,22 @@ import { openDemo } from '@/backup/demo';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
-// Two-Heart Mirror: only writer-violet and story-orange carry feature
-// accents. They alternate so the brand metaphor reads at a glance —
-// "the writer's side, then the story's side" — instead of dissolving
-// into a six-color rainbow.
+const FEATURE_ORDINALS = ['i.', 'ii.', 'iii.', 'iv.', 'v.', 'vi.'];
+
+// Two-hearts alternation: i, iii, v carry the writer-violet kicker;
+// ii, iv, vi carry story-orange. Same intent as before, retuned for
+// the new cream surface.
 const FEATURE_ACCENTS = [
-  'text-violet-500',
-  'text-orange-500',
-  'text-violet-500',
-  'text-orange-500',
-  'text-violet-500',
-  'text-orange-500',
+  'text-violet-600',
+  'text-orange-600',
+  'text-violet-600',
+  'text-orange-600',
+  'text-violet-600',
+  'text-orange-600',
 ];
 
 const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
+  ordinal: FEATURE_ORDINALS[n - 1],
   titleKey: `landing.features.f${n}Title`,
   descKey: `landing.features.f${n}Desc`,
   accent: FEATURE_ACCENTS[n - 1],
@@ -149,27 +151,40 @@ export const LandingRoute = () => {
 
     {/* --- Features --- */}
     <section class="py-24 px-6">
-      <div class="max-w-5xl mx-auto">
-        <h2 class="font-serif text-3xl md:text-4xl text-center mb-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 text-center mb-3">
+          {t('landing.features.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl text-center mb-4 text-stone-900 dark:text-stone-100">
           {t('landing.features.heading')}
         </h2>
-        <p class="text-stone-500 text-center mb-16 max-w-xl mx-auto">
+        <p class="text-stone-600 dark:text-stone-400 text-center mb-16 max-w-xl mx-auto leading-relaxed">
           {t('landing.features.subheading')}
         </p>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <ol class="list-none p-0 m-0 max-w-2xl mx-auto">
           <For each={FEATURES}>
-            {(f) => (
-              <div class="rounded-2xl border border-stone-800 bg-stone-900/50 p-6 hover:border-stone-700 transition-colors">
-                <div class={`text-sm font-medium mb-2 ${f.accent}`}>
-                  {t(f.titleKey)}
+            {(f, i) => (
+              <li
+                class="grid gap-x-5 gap-y-1 py-7"
+                style={{ 'grid-template-columns': '3rem 1fr' }}
+                classList={{ 'border-t border-stone-300/40 dark:border-stone-700/40': i() > 0 }}
+              >
+                <span class={`font-serif italic text-2xl leading-none mt-1 ${f.accent}`}>
+                  {f.ordinal}
+                </span>
+                <div>
+                  <div class="font-serif text-lg text-stone-900 dark:text-stone-100 mb-1">
+                    {t(f.titleKey)}
+                  </div>
+                  <p class="text-stone-600 dark:text-stone-400 leading-relaxed">
+                    {t(f.descKey)}
+                  </p>
                 </div>
-                <p class="text-sm text-stone-400 leading-relaxed">
-                  {t(f.descKey)}
-                </p>
-              </div>
+              </li>
             )}
           </For>
-        </div>
+        </ol>
       </div>
     </section>
 
