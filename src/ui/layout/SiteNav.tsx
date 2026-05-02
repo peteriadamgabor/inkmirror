@@ -49,8 +49,8 @@ export const SiteNav = (props: Props) => {
 
   const linkClass = (active: boolean) =>
     active
-      ? 'text-violet-400 border-b border-violet-500/60'
-      : 'text-stone-400 hover:text-violet-400 border-b border-transparent';
+      ? 'text-violet-600 dark:text-violet-300 border-b border-violet-500/60'
+      : 'text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 border-b border-transparent';
 
   return (
     <>
@@ -58,7 +58,7 @@ export const SiteNav = (props: Props) => {
         aria-label={t('aria.site')}
         class="fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color] duration-300"
         classList={{
-          'bg-stone-950/92 border-b border-stone-800/60': scrolled(),
+          'bg-stone-100/92 dark:bg-stone-900/92 border-b border-stone-300/40 dark:border-stone-800/60': scrolled(),
           'bg-transparent border-b border-transparent': !scrolled(),
         }}
       >
@@ -66,7 +66,7 @@ export const SiteNav = (props: Props) => {
           {/* Left: wordmark */}
           <a
             href="/landing"
-            class="font-serif text-stone-200 hover:text-white transition-colors text-sm tracking-tight"
+            class="font-serif text-stone-800 dark:text-stone-100 hover:text-violet-600 dark:hover:text-violet-300 transition-colors text-sm tracking-tight"
           >
             {t('nav.home')}
           </a>
@@ -92,13 +92,13 @@ export const SiteNav = (props: Props) => {
             >
               {t('nav.feedback')}
             </button>
-            <LanguagePicker tone="onDark" />
+            <LanguagePicker tone="muted" />
           </div>
 
           {/* Right: mobile menu trigger */}
           <button
             type="button"
-            class="sm:hidden flex flex-col justify-center w-8 h-8 gap-1.5 rounded border border-stone-700 text-stone-300 hover:text-white hover:border-stone-500 transition-colors"
+            class="sm:hidden flex flex-col justify-center w-8 h-8 gap-1.5 rounded border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:text-violet-600 dark:hover:text-white hover:border-stone-400 dark:hover:border-stone-500 transition-colors"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen() ? t('nav.closeMenu') : t('nav.openMenu')}
             aria-expanded={mobileOpen()}
@@ -124,15 +124,15 @@ export const SiteNav = (props: Props) => {
       {/* Mobile sheet */}
       <Show when={mobileOpen()}>
         <div
-          class="sm:hidden fixed inset-0 z-40 bg-stone-950 pt-16 px-6 flex flex-col gap-4"
+          class="sm:hidden fixed inset-0 z-40 bg-stone-100 dark:bg-stone-900 pt-16 px-6 flex flex-col gap-4"
           onClick={() => setMobileOpen(false)}
         >
           <a
             href="/roadmap"
             class={`text-lg font-serif pb-1 border-b ${
               isCurrent('/roadmap')
-                ? 'text-violet-400 border-violet-500/60'
-                : 'text-stone-200 border-stone-800'
+                ? 'text-violet-600 dark:text-violet-300 border-violet-500/60'
+                : 'text-stone-800 dark:text-stone-100 border-stone-300/60 dark:border-stone-800'
             }`}
           >
             {t('nav.roadmap')}
@@ -141,8 +141,8 @@ export const SiteNav = (props: Props) => {
             href="/privacy"
             class={`text-lg font-serif pb-1 border-b ${
               isCurrent('/privacy')
-                ? 'text-violet-400 border-violet-500/60'
-                : 'text-stone-200 border-stone-800'
+                ? 'text-violet-600 dark:text-violet-300 border-violet-500/60'
+                : 'text-stone-800 dark:text-stone-100 border-stone-300/60 dark:border-stone-800'
             }`}
           >
             {t('nav.privacy')}
@@ -154,12 +154,12 @@ export const SiteNav = (props: Props) => {
               setMobileOpen(false);
               openFeedback();
             }}
-            class="text-left text-lg font-serif text-stone-200 pb-1 border-b border-stone-800"
+            class="text-left text-lg font-serif text-stone-800 dark:text-stone-100 pb-1 border-b border-stone-300/60 dark:border-stone-800"
           >
             {t('nav.feedback')}
           </button>
           <div class="pt-2">
-            <LanguagePicker tone="onDark" variant="inline" />
+            <LanguagePicker tone="muted" variant="inline" />
           </div>
         </div>
       </Show>

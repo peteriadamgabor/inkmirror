@@ -8,26 +8,83 @@ import { openDemo } from '@/backup/demo';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
-// Two-Heart Mirror: only writer-violet and story-orange carry feature
-// accents. They alternate so the brand metaphor reads at a glance —
-// "the writer's side, then the story's side" — instead of dissolving
-// into a six-color rainbow.
+const FEATURE_ORDINALS = ['i.', 'ii.', 'iii.', 'iv.', 'v.', 'vi.'];
+
+// Two-hearts alternation: i, iii, v carry the writer-violet kicker;
+// ii, iv, vi carry story-orange. Same intent as before, retuned for
+// the new cream surface.
 const FEATURE_ACCENTS = [
-  'text-violet-500',
-  'text-orange-500',
-  'text-violet-500',
-  'text-orange-500',
-  'text-violet-500',
-  'text-orange-500',
+  'text-violet-600',
+  'text-orange-600',
+  'text-violet-600',
+  'text-orange-600',
+  'text-violet-600',
+  'text-orange-600',
 ];
 
 const FEATURES = [1, 2, 3, 4, 5, 6].map((n) => ({
+  ordinal: FEATURE_ORDINALS[n - 1],
   titleKey: `landing.features.f${n}Title`,
   descKey: `landing.features.f${n}Desc`,
   accent: FEATURE_ACCENTS[n - 1],
 }));
 
-const MORE = Array.from({ length: 20 }, (_, i) => `landing.more.item${i + 1}`);
+type MoreGroup = {
+  labelKey: string;
+  itemKeys: readonly string[];
+  accent: 'text-violet-600' | 'text-orange-600';
+  accentDark: 'dark:text-violet-300' | 'dark:text-orange-400';
+};
+
+const MORE_GROUPS: readonly MoreGroup[] = [
+  {
+    labelKey: 'landing.more.g1Label',
+    itemKeys: [
+      'landing.more.g1Item1',
+      'landing.more.g1Item2',
+      'landing.more.g1Item3',
+      'landing.more.g1Item4',
+      'landing.more.g1Item5',
+    ],
+    accent: 'text-violet-600',
+    accentDark: 'dark:text-violet-300',
+  },
+  {
+    labelKey: 'landing.more.g2Label',
+    itemKeys: [
+      'landing.more.g2Item1',
+      'landing.more.g2Item2',
+      'landing.more.g2Item3',
+      'landing.more.g2Item4',
+      'landing.more.g2Item5',
+    ],
+    accent: 'text-orange-600',
+    accentDark: 'dark:text-orange-400',
+  },
+  {
+    labelKey: 'landing.more.g3Label',
+    itemKeys: [
+      'landing.more.g3Item1',
+      'landing.more.g3Item2',
+      'landing.more.g3Item3',
+      'landing.more.g3Item4',
+    ],
+    accent: 'text-violet-600',
+    accentDark: 'dark:text-violet-300',
+  },
+  {
+    labelKey: 'landing.more.g4Label',
+    itemKeys: [
+      'landing.more.g4Item1',
+      'landing.more.g4Item2',
+      'landing.more.g4Item3',
+      'landing.more.g4Item4',
+      'landing.more.g4Item5',
+    ],
+    accent: 'text-orange-600',
+    accentDark: 'dark:text-orange-400',
+  },
+];
 
 export const LandingRoute = () => {
   const [demoLoading, setDemoLoading] = createSignal(false);
@@ -68,41 +125,44 @@ export const LandingRoute = () => {
   };
 
   return (
-    <div class="bg-stone-950 text-stone-100 font-sans scroll-smooth">
+    <div class="inkmirror-public-page inkmirror-paper scroll-smooth">
       <SiteNav current="/landing" />
       <FeedbackHost />
       <ConfirmHost />
       <ToastHost />
     {/* --- Hero --- */}
-    <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-violet-950/40 via-stone-950 to-stone-950 pointer-events-none" />
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden pt-24 pb-16">
       <div class="relative z-10 max-w-2xl">
-        {/* Two hearts icon */}
+        {/* Two hearts — kept as-is, recalibrated for cream */}
         <div class="flex items-center justify-center gap-3 mb-8">
-          <div class="w-16 h-16 rounded-full bg-violet-500/20 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-violet-500/15 flex items-center justify-center">
             <div class="w-8 h-8 rounded-full bg-violet-500" />
           </div>
-          <div class="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-orange-500/15 flex items-center justify-center">
             <div class="w-8 h-8 rounded-full bg-orange-600" />
           </div>
         </div>
+
         <div class="relative mb-4">
-          <h1 class="font-serif text-5xl md:text-7xl tracking-tight">
+          <h1 class="font-serif text-5xl md:text-7xl tracking-tight text-stone-900 dark:text-stone-100">
             InkMirror
           </h1>
-          {/* Mirror surface line */}
+          {/* Mirror surface line — existing motif, retuned opacity for cream */}
           <div
             class="w-48 h-px mx-auto mt-2 mb-1"
             style={{
-              background: 'linear-gradient(to right, transparent, rgba(127,119,221,0.6), transparent)',
+              background:
+                'linear-gradient(to right, transparent, rgba(127,119,221,0.55), transparent)',
             }}
           />
-          {/* Mirror reflection */}
+          {/* Mirror reflection — slightly stronger violet so it reads on cream */}
           <div
-            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-300 inkmirror-mirror-breath"
+            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-400 dark:text-violet-300 inkmirror-mirror-breath"
             style={{
-              'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
-              '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
+              'mask-image':
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+              '-webkit-mask-image':
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
               'line-height': '1',
               filter: 'blur(0.5px)',
             }}
@@ -111,18 +171,20 @@ export const LandingRoute = () => {
             InkMirror
           </div>
         </div>
-        <p class="text-xl md:text-2xl text-stone-400 leading-relaxed mb-3">
+
+        <p class="text-xl md:text-2xl text-stone-700 dark:text-stone-300 leading-relaxed mb-3 font-serif">
           {t('landing.hero.title1')}<br />
           {t('landing.hero.title2')}
         </p>
-        <p class="text-base text-stone-500 max-w-lg mx-auto mb-10">
+        <p class="text-base text-stone-500 dark:text-stone-500 max-w-lg mx-auto mb-10">
           {t('landing.hero.subtitle')}
         </p>
+
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           <a
             href="/"
             onClick={() => markVisited()}
-            class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+            class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/15"
           >
             {t('landing.hero.cta')}
           </a>
@@ -130,109 +192,161 @@ export const LandingRoute = () => {
             type="button"
             onClick={handleDemo}
             disabled={demoLoading()}
-            class="text-sm text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+            class="text-sm text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 underline underline-offset-4 decoration-stone-300 dark:decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
             {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
           </button>
         </div>
-        <p class="mt-4 text-xs text-stone-600">
+        <p class="mt-4 text-xs text-stone-500 dark:text-stone-600">
           {t('landing.hero.smallPrint')}
         </p>
       </div>
-      <div class="absolute bottom-8 text-stone-600 animate-bounce">
-        ↓
-      </div>
+      {/* Bouncy ↓ arrow removed intentionally. */}
     </section>
 
     {/* --- Features --- */}
     <section class="py-24 px-6">
-      <div class="max-w-5xl mx-auto">
-        <h2 class="font-serif text-3xl md:text-4xl text-center mb-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 text-center mb-3">
+          {t('landing.features.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl text-center mb-4 text-stone-900 dark:text-stone-100">
           {t('landing.features.heading')}
         </h2>
-        <p class="text-stone-500 text-center mb-16 max-w-xl mx-auto">
+        <p class="text-stone-600 dark:text-stone-400 text-center mb-16 max-w-xl mx-auto leading-relaxed">
           {t('landing.features.subheading')}
         </p>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <ol class="list-none p-0 m-0 max-w-2xl mx-auto">
           <For each={FEATURES}>
-            {(f) => (
-              <div class="rounded-2xl border border-stone-800 bg-stone-900/50 p-6 hover:border-stone-700 transition-colors">
-                <div class={`text-sm font-medium mb-2 ${f.accent}`}>
-                  {t(f.titleKey)}
+            {(f, i) => (
+              <li
+                class="grid gap-x-5 gap-y-1 py-7"
+                style={{ 'grid-template-columns': '3rem 1fr' }}
+                classList={{ 'border-t border-stone-300/40 dark:border-stone-700/40': i() > 0 }}
+              >
+                <span class={`font-serif italic text-2xl leading-none mt-1 ${f.accent}`}>
+                  {f.ordinal}
+                </span>
+                <div>
+                  <div class="font-serif text-lg text-stone-900 dark:text-stone-100 mb-1">
+                    {t(f.titleKey)}
+                  </div>
+                  <p class="text-stone-600 dark:text-stone-400 leading-relaxed">
+                    {t(f.descKey)}
+                  </p>
                 </div>
-                <p class="text-sm text-stone-400 leading-relaxed">
-                  {t(f.descKey)}
-                </p>
-              </div>
+              </li>
             )}
           </For>
-        </div>
+        </ol>
       </div>
     </section>
 
     {/* --- Philosophy --- */}
-    <section class="py-24 px-6 bg-stone-900/30">
+    <section class="py-28 px-6">
       <div class="max-w-3xl mx-auto text-center">
-        <h2 class="font-serif text-3xl md:text-4xl mb-6">
+        <div class="inkmirror-hairline-neutral mx-auto mb-12" style={{ width: '14rem' }} />
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 mb-3">
+          {t('landing.philosophy.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl mb-8 text-stone-900 dark:text-stone-100">
           {t('landing.philosophy.heading')}
         </h2>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-lg text-stone-700 dark:text-stone-300 leading-relaxed mb-6 font-serif">
           {t('landing.philosophy.p1')}
         </p>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-lg text-stone-700 dark:text-stone-300 leading-relaxed mb-8 font-serif">
           {t('landing.philosophy.p2Before')}
-          <em class="text-stone-200">{t('landing.philosophy.p2Analyzes')}</em>
+          <em class="text-stone-900 dark:text-stone-100 not-italic font-serif italic">
+            {t('landing.philosophy.p2Analyzes')}
+          </em>
           {t('landing.philosophy.p2Middle')}
-          <em class="text-stone-200">{t('landing.philosophy.p2Feels')}</em>
+          <em class="text-stone-900 dark:text-stone-100 not-italic font-serif italic">
+            {t('landing.philosophy.p2Feels')}
+          </em>
           {t('landing.philosophy.p2After')}
         </p>
-        <p class="text-lg text-stone-300 font-serif italic">
+        <p class="text-lg text-stone-800 dark:text-stone-200 font-serif italic">
           {t('landing.philosophy.closing')}
         </p>
+        <div class="inkmirror-hairline-neutral mx-auto mt-12" style={{ width: '14rem' }} />
       </div>
     </section>
 
     {/* --- Privacy --- */}
     <section class="py-24 px-6">
-      <div class="max-w-3xl mx-auto text-center">
-        <h2 class="font-serif text-3xl md:text-4xl mb-6">
+      <div class="max-w-2xl mx-auto text-center">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 mb-3">
+          {t('landing.privacy.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl mb-6 text-stone-900 dark:text-stone-100">
           {t('landing.privacy.heading')}
         </h2>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-stone-700 dark:text-stone-300 leading-relaxed mb-12 font-serif text-lg max-w-xl mx-auto">
           {t('landing.privacy.body')}
         </p>
-        <div class="grid md:grid-cols-3 gap-6 mt-12">
-          <div class="text-center">
-            <div class="text-2xl mb-2">🔒</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardTelemetryTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardTelemetryBody')}</div>
+
+        <div class="text-left">
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-violet-600 dark:text-violet-300 mb-2">
+              {t('landing.privacy.stanza1Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza1Body')}
+            </p>
           </div>
-          <div class="text-center">
-            <div class="text-2xl mb-2">✈️</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardOfflineTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardOfflineBody')}</div>
+          <div class="inkmirror-hairline-neutral" />
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-orange-600 dark:text-orange-400 mb-2">
+              {t('landing.privacy.stanza2Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza2Body')}
+            </p>
           </div>
-          <div class="text-center">
-            <div class="text-2xl mb-2">📦</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardExportTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardExportBody')}</div>
+          <div class="inkmirror-hairline-neutral" />
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-violet-600 dark:text-violet-300 mb-2">
+              {t('landing.privacy.stanza3Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza3Body')}
+            </p>
           </div>
         </div>
       </div>
     </section>
 
-    {/* --- Everything else --- */}
-    <section class="py-24 px-6 bg-stone-900/30">
+    {/* --- More --- */}
+    <section class="py-28 px-6">
       <div class="max-w-4xl mx-auto">
-        <h2 class="font-serif text-3xl md:text-4xl text-center mb-12">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 text-center mb-3">
+          {t('landing.more.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl text-center mb-16 text-stone-900 dark:text-stone-100">
           {t('landing.more.heading')}
         </h2>
-        <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
-          <For each={MORE}>
-            {(item) => (
-              <div class="flex items-start gap-2 text-sm text-stone-400">
-                <span class="text-violet-500 mt-0.5 shrink-0">·</span>
-                <span>{t(item)}</span>
+
+        <div class="grid md:grid-cols-2 gap-x-12 gap-y-10">
+          <For each={MORE_GROUPS}>
+            {(group) => (
+              <div>
+                <p class={`inkmirror-smallcaps tracking-widest text-xs mb-4 ${group.accent} ${group.accentDark}`}>
+                  {t(group.labelKey)}
+                </p>
+                <ul class="list-none p-0 m-0">
+                  <For each={group.itemKeys}>
+                    {(key, i) => (
+                      <li
+                        class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed py-2.5"
+                        classList={{ 'border-t border-stone-300/40 dark:border-stone-700/40': i() > 0 }}
+                      >
+                        {t(key)}
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </div>
             )}
           </For>
@@ -242,17 +356,17 @@ export const LandingRoute = () => {
 
     {/* --- CTA --- */}
     <section class="py-32 px-6 text-center">
-      <h2 class="font-serif text-4xl md:text-5xl mb-4">
+      <h2 class="font-serif text-4xl md:text-5xl mb-4 text-stone-900 dark:text-stone-100">
         {t('landing.cta.heading')}
       </h2>
-      <p class="text-stone-500 mb-10 text-lg">
+      <p class="text-stone-600 dark:text-stone-400 mb-10 text-lg font-serif">
         {t('landing.cta.subheading')}
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
         <a
           href="/"
           onClick={() => markVisited()}
-          class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+          class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/15"
         >
           {t('landing.cta.button')}
         </a>
@@ -260,7 +374,7 @@ export const LandingRoute = () => {
           type="button"
           onClick={handleDemo}
           disabled={demoLoading()}
-          class="text-base text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+          class="text-base text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 underline underline-offset-4 decoration-stone-300 dark:decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
           {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
         </button>
@@ -268,9 +382,9 @@ export const LandingRoute = () => {
     </section>
 
     {/* --- Footer --- */}
-      <footer class="py-8 px-6 border-t border-stone-800 text-center text-xs text-stone-600">
-        {t('landing.footer')}
-      </footer>
+    <footer class="py-10 px-6 border-t border-stone-300/50 dark:border-stone-800 text-center text-xs text-stone-500 dark:text-stone-600">
+      {t('landing.footer')}
+    </footer>
     </div>
   );
 };
