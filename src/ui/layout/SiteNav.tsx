@@ -1,6 +1,8 @@
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 import { openFeedback } from '@/ui/shared/feedback';
+import { useTheme } from '@/ui/theme';
+import { IconSun, IconMoon } from '@/ui/shared/icons';
 import { t } from '@/i18n';
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
 export const SiteNav = (props: Props) => {
   const [scrolled, setScrolled] = createSignal(false);
   const [mobileOpen, setMobileOpen] = createSignal(false);
+  const { theme, toggleTheme } = useTheme();
 
   // RAF-throttled scroll handler so the signal write fires at most once
   // per frame regardless of scroll-event rate. Without this, every
@@ -92,6 +95,15 @@ export const SiteNav = (props: Props) => {
             >
               {t('nav.feedback')}
             </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme() === 'dark' ? t('topBar.switchToLight') : t('topBar.switchToDark')}
+              aria-label={t('aria.toggleTheme')}
+              class="w-7 h-7 flex items-center justify-center rounded text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
+            >
+              {theme() === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
+            </button>
             <LanguagePicker tone="muted" />
           </div>
 
@@ -157,6 +169,18 @@ export const SiteNav = (props: Props) => {
             class="text-left text-lg font-serif text-stone-800 dark:text-stone-100 pb-1 border-b border-stone-300/60 dark:border-stone-800"
           >
             {t('nav.feedback')}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTheme();
+            }}
+            aria-label={t('aria.toggleTheme')}
+            class="text-left text-lg font-serif text-stone-800 dark:text-stone-100 pb-1 border-b border-stone-300/60 dark:border-stone-800 flex items-center justify-between"
+          >
+            <span>{theme() === 'dark' ? t('topBar.switchToLight') : t('topBar.switchToDark')}</span>
+            {theme() === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
           </button>
           <div class="pt-2">
             <LanguagePicker tone="muted" variant="inline" />

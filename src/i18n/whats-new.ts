@@ -23,6 +23,13 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-02e',
+    title: 'v0.7.1: Theme toggle on the public pages',
+    items: [
+      'A small sun/moon button now sits in the top-right of the landing, roadmap, privacy, and 404 pages. Visitors can flip light ↔ dark without crossing into the editor first; the choice persists across pages and survives a reload.',
+    ],
+  },
+  {
     id: '2026-05-02d',
     title: 'v0.7.0: A literary public-page recraft',
     items: [
@@ -135,6 +142,13 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-02e',
+    title: 'v0.7.1: Témaválasztó a nyilvános oldalakon',
+    items: [
+      'Egy kis nap/hold gomb most a landing, a roadmap, a privacy és a 404 oldal jobb felső sarkában ül. A látogatók a szerkesztő megnyitása nélkül válthatnak világos ↔ sötét között; a választás megmarad oldalak között és túléli az újratöltést.',
+    ],
+  },
   {
     id: '2026-05-02d',
     title: 'v0.7.0: A nyilvános oldalak irodalmi újragondolása',

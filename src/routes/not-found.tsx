@@ -1,10 +1,22 @@
 import { t } from '@/i18n';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
+import { useTheme } from '@/ui/theme';
+import { IconSun, IconMoon } from '@/ui/shared/icons';
 
 export const NotFoundRoute = () => {
+  const { theme, toggleTheme } = useTheme();
   return (
     <div class="min-h-screen w-full inkmirror-public-page inkmirror-paper text-stone-900 dark:text-stone-100 flex items-center justify-center px-6 relative">
-      <div class="absolute top-4 right-4">
+      <div class="absolute top-4 right-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={theme() === 'dark' ? t('topBar.switchToLight') : t('topBar.switchToDark')}
+          aria-label={t('aria.toggleTheme')}
+          class="w-7 h-7 flex items-center justify-center rounded text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
+        >
+          {theme() === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
+        </button>
         <LanguagePicker tone="muted" />
       </div>
       <div class="w-[460px] max-w-[92vw] text-center">
