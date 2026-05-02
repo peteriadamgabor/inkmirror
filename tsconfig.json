@@ -13,8 +13,6 @@
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
     "types": ["vite/client", "vitest/globals", "node", "@cloudflare/workers-types", "vite-plugin-pwa/client"],
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@engine/*": ["./src/engine/*"],
