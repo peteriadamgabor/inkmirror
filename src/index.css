@@ -128,6 +128,34 @@ select:focus-visible {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.82  0 0 0 0 0.78  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
+/* Public surface — landing, roadmap, privacy, not-found.
+   Mirrors the editor's light-default + dark-mode convention so a
+   visitor never gets a dark→light shock when crossing into the app. */
+.inkmirror-public-page {
+  @apply bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-stone-100 font-sans;
+}
+
+/* Warm-neutral hairline used as section divider on public pages.
+   Replaces tinted-bg section alternation. Keep `width` and `margin`
+   on the element using this class; only the gradient is shared. */
+.inkmirror-hairline-neutral {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(120, 113, 108, 0.35),
+    transparent
+  );
+}
+.dark .inkmirror-hairline-neutral {
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(168, 162, 158, 0.25),
+    transparent
+  );
+}
+
 /* Light theme: warm sepia tint on the main surfaces. The Tailwind
    color classes stay unchanged (stone-100, stone-200, …); we just
    nudge the root background and key panels toward a papery warmth.
