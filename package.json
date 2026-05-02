@@ -14,7 +14,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
-    "@chenglou/pretext": "0.0.5",
+    "@chenglou/pretext": "0.0.6",
     "@huggingface/transformers": "4.2.0",
     "@sentry/browser": "10.51.0",
     "@solidjs/router": "0.13.6",
