@@ -3,7 +3,7 @@ import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 
 export const NotFoundRoute = () => {
   return (
-    <div class="min-h-screen w-full bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-100 flex items-center justify-center px-6 relative">
+    <div class="min-h-screen w-full inkmirror-public-page inkmirror-paper text-stone-900 dark:text-stone-100 flex items-center justify-center px-6 relative">
       <div class="absolute top-4 right-4">
         <LanguagePicker tone="muted" />
       </div>

@@ -204,7 +204,7 @@ export const RoadmapRoute = () => {
           <button
             type="button"
             onClick={() => openFeedback()}
-            class="inline-block px-6 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-sans font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+            class="inline-block px-6 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-sans font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/15"
           >
             {t('roadmap.closing.cta')}
           </button>
