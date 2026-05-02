@@ -130,6 +130,7 @@ The visual register is **two surfaces, one soul**: the editor (light vellum, cal
 - Quiet by default: block chrome resolves to 25% opacity until hover/focus.
 - Real OpenType small-caps and old-style numerals in prose; tabular numerals on every counter.
 - Motion is small, fast (140-180ms), and exponential — except mirror-breath, which is 6s and meant to be subliminal.
+- Public surfaces (landing, roadmap, privacy, 404) opt in via `.inkmirror-public-page` (`bg-stone-100 dark:bg-stone-900 font-sans`), always paired with `.inkmirror-paper`. The warm-neutral hairline (`.inkmirror-hairline-neutral`) divides their sections — never tinted-background alternation.
 
 ## 2. Colors: The Two-Heart Palette
 
@@ -160,6 +161,8 @@ The palette is deliberately small. Two hot colors carry the metaphor; everything
 
 **The Feature-Color-At-Feature-Surface Rule.** A color appears at the surface that owns the feature, not as decoration elsewhere. Story Orange marks scene blocks because scenes ARE story. Writer Violet marks focus and selection because focus IS the writer's attention. Do not scatter either accent across unrelated UI for "branding."
 
+**The Two-Hearts Alternation Rule.** On public-page structural sequences (feature lists, section-group headers, editorial stanzas), writer-violet governs odd-indexed items (1st, 3rd, 5th…) and story-orange governs even-indexed items (2nd, 4th, 6th…). This is a deliberate rhythm signal — the two hearts beat in turn, not simultaneously. Do not reverse the order (violet odd, orange even is the canonical direction). Do not apply the pattern inside the editor surface or to sequences with fewer than two meaningful items.
+
 ## 3. Typography: Editorial Serif, System Sans
 
 **Display Font:** `ui-serif, Georgia, Cambria, Times New Roman, Times, serif` — system serif chain. The user can override per-document via Document Settings → Typeface.
@@ -184,6 +187,8 @@ The palette is deliberately small. Two hot colors carry the metaphor; everything
 **The Real-Small-Caps Rule.** Use `.inkmirror-smallcaps` instead of CSS `text-transform: uppercase` for any label that reads as a heading or category. The class falls back to synthetic uppercase on faces without `'smcp'`, but where the face supports it, you get real small-caps. Do not scatter `uppercase` utilities — they will look cheap next to the labels that *aren't* cheap.
 
 **The Serif-For-Prose-Sans-For-Chrome Rule.** If text is something the user wrote (or the AI is reflecting back about something the user wrote), it's serif. If text is interface (buttons, menus, settings labels), it's sans. The contrast is the system. Do not unify them "for consistency" — the inconsistency is the point.
+
+**The Italic-Roman-Ordinal Rule.** Numbered lists on the public landing that want literary weight use lower-case Roman ordinals — `i.`, `ii.`, `iii.` — set in `font-serif italic text-2xl` (leading-none, inline, one step larger than the list body). They are colored by the Two-Hearts Alternation Rule (violet on odd, orange on even). Never use Arabic numerals for these kickers; never bold the ordinals; never use uppercase Roman. The italic lowercase Roman is the only allowed form.
 
 ## 4. Elevation: Soft Layered, Never Floating
 
@@ -257,12 +262,30 @@ For each component: a one-line character note, then exact specs. Tailwind utilit
 - **Header:** Title in `font-serif text-lg`. Close button is a `w-7 h-7 rounded` icon button.
 - **Z-index:** `z-40` for regular modals, `z-50` for confirm/feedback overlays.
 
+### Editorial Stanza
+**Character:** The prose unit of the public surface. A small-caps label (alternating violet/orange via the Two-Hearts Alternation Rule) above 1–2 sentences of literary serif body, bounded above and below by `.inkmirror-hairline-neutral` rules. Used in the PRIVACY section and wherever a public page needs to break a thesis into named, independently readable units.
+
+- **Label:** `.inkmirror-smallcaps tracking-widest text-xs` + Two-Hearts Alternation color (`text-violet-600 dark:text-violet-300` or `text-orange-600 dark:text-orange-400`). No period, no colon.
+- **Body:** `font-serif text-stone-700 dark:text-stone-300 leading-relaxed`.
+- **Spacing:** `py-6` around each stanza unit.
+- **Divider:** `.inkmirror-hairline-neutral` between stanzas — full-width, no horizontal margin. This is the warm-neutral gradient hairline, never a `border-t` utility.
+- Do not use tinted background alternation (odd/even bg-stone-50 etc.) in place of hairlines. Hairlines are the section-divider vocabulary on public pages.
+
 ### Navigation (Site / Editor)
 **Character:** Quiet, top-aligned, no logo lockup competing with the prose.
 
 - **Site nav** (landing/roadmap/privacy): inline links in `font-sans text-sm`, no underlines except `underline underline-offset-4` on the secondary CTA.
 - **Sidebar** (editor): `bg-stone-100 dark:bg-stone-900` (which becomes Vellum / Indigo Lamplight via the CSS layer). Items have soft hover via `hover:bg-stone-200 dark:hover:bg-stone-700/30`.
 - **Settings tabs**: `text-left px-3 py-2 rounded-lg`. Active state `bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-300 font-semibold`.
+
+### Theme Toggle
+**Character:** The only non-prose icon in the public nav. A sun/moon pair that mirrors the editor's `useTheme()` hook — same hook, same persistence — so the theme state is identical whether the user enters via the landing page or the editor directly.
+
+- **Shape:** `w-7 h-7 rounded` icon button — matches the global icon-button spec exactly.
+- **Colors:** `text-stone-600 dark:text-stone-400` at rest → `hover:text-violet-600 dark:hover:text-violet-300`. Same hover target as nav links.
+- **Icon:** `IconSun` (14px) when in dark mode (click to go light), `IconMoon` (14px) when in light mode (click to go dark). Always provide `aria-label` via `t('aria.toggleTheme')`.
+- **Placement:** Rightmost slot in the desktop nav row (to the right of nav links, left of LanguagePicker); or fixed `top-4 right-4` corner in page-only surfaces like 404 that lack a SiteNav.
+- **Do not** add a visible label alongside the icon. The icon + title tooltip are sufficient.
 
 ### Story Pulse ECG (signature component)
 **Character:** The mirror made literal. A horizontal sentiment strip across the top of the editor that draws in left-to-right on first render.
@@ -290,8 +313,10 @@ For each component: a one-line character note, then exact specs. Tailwind utilit
 - **Do** use `rounded-2xl` (16px) for floating-island surfaces (modals, document picker, feature cards), `rounded-md`/`rounded-lg` (8-12px) for inline buttons and inputs.
 - **Do** lead with a ghost button (border + stone text → violet hover) for any non-primary action. Reserve the violet-fill primary for the one decisive CTA per surface.
 - **Do** start every motion at 140-180ms and let it ease out exponentially (`cubic-bezier(0.2, 0.9, 0.3, 1)` and friends). Mirror-breath at 6s is the only long-duration exception.
+- **Do** use `.inkmirror-hairline-neutral` (the warm-gradient 1px rule) to divide sections on public pages. It is the canonical section-divider vocabulary. The utility is already defined in `src/index.css` with correct light/dark gradients; do not inline a replacement.
 
 ### Don't:
+- **Don't** alternate section backgrounds (`bg-stone-50` / `bg-white` / any tinted-even-row pattern) to create visual rhythm on public pages. Hairlines are the rhythm instrument — background alternation imports the SaaS-feature-table aesthetic InkMirror explicitly rejects.
 - **Don't** use indigo-to-purple gradients, hero-metric cards, glassmorphism, "Built with [logo] [logo]" trust strips, or any other AI-startup-landing-page cliché. InkMirror's anti-references include Linear/Vercel-style aesthetics by name.
 - **Don't** add "Continue writing", "Generate", "Improve", or any other generative-AI button into the editor surface. The AI reads, never writes. Every Sudowrite/Novelcrafter pattern is forbidden.
 - **Don't** introduce a third hot color. Red for danger, green for success, blue for info — use stone neutrals plus an icon or copy first. Adding hot colors dilutes the violet/orange metaphor.

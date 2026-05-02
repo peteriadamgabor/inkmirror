@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-04-29T00:00:00.000Z",
+  "generatedAt": "2026-05-02T00:00:00.000Z",
   "title": "Design System: InkMirror",
   "extensions": {
     "colorMeta": {
@@ -157,6 +157,22 @@
       "description": "Sidebar tab in the settings modal. Resting state is silent; active state uses the violet tint that's the universal 'selected' cue across the app.",
       "html": "<nav class=\"ds-settings-nav\"><button class=\"ds-settings-tab ds-settings-tab--active\">Typeface</button><button class=\"ds-settings-tab\">AI Profile</button><button class=\"ds-settings-tab\">Sync</button><button class=\"ds-settings-tab\">Hotkeys</button></nav>",
       "css": ".ds-settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 12px; background: #f5f0e8; border-right: 1px solid rgba(120,113,108,0.18); } .ds-settings-tab { padding: 8px 12px; background: transparent; color: #44403c; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; line-height: 1.4; text-align: left; border: none; border-radius: 8px; transition: background 150ms ease-out, color 150ms ease-out; cursor: pointer; } .ds-settings-tab:hover { background: rgba(120,113,108,0.08); } .ds-settings-tab--active { background: rgba(127,119,221,0.1); color: #4a4194; font-weight: 600; } .ds-settings-tab:focus-visible { outline: 2px solid rgba(127,119,221,0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Editorial Stanza",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Public-page prose unit. A small-caps label (two-hearts alternation color) above literary serif body, bounded by warm-neutral hairline rules. Used in PRIVACY and wherever a public page needs named, independently readable prose units. Never use tinted-background row alternation in its place.",
+      "html": "<div class=\"ds-stanza-group\"><div class=\"ds-stanza\"><p class=\"ds-stanza-label ds-stanza-label--violet\">Local first</p><p class=\"ds-stanza-body\">Your novel never leaves your browser without your permission. There is no cloud account, no upload in the background, no server that could be breached or shut down.</p></div><div class=\"ds-hairline-neutral\"></div><div class=\"ds-stanza\"><p class=\"ds-stanza-label ds-stanza-label--orange\">No account required</p><p class=\"ds-stanza-body\">Open InkMirror and start writing. Nothing to sign up for, nothing to verify. The only identity that matters here is the one you give your protagonist.</p></div><div class=\"ds-hairline-neutral\"></div><div class=\"ds-stanza\"><p class=\"ds-stanza-label ds-stanza-label--violet\">Export anytime</p><p class=\"ds-stanza-body\">Your work is yours. Export to EPUB, DOCX, PDF, Markdown, or the open .inkmirror bundle format. No lock-in clause in the fine print.</p></div></div>",
+      "css": ".ds-stanza-group { max-width: 480px; } .ds-stanza { padding: 24px 0; } .ds-stanza-label { margin: 0 0 8px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; font-variant-caps: all-small-caps; font-feature-settings: 'smcp' 1, 'c2sc' 1; text-transform: uppercase; line-height: 1.2; } .ds-stanza-label--violet { color: #7F77DD; } .ds-stanza-label--orange { color: #D85A30; } .ds-stanza-body { margin: 0; font-family: ui-serif, Georgia, Cambria, serif; font-size: 1rem; line-height: 1.65; color: #44403c; font-feature-settings: 'kern' 1, 'liga' 1; } .ds-hairline-neutral { height: 1px; background: linear-gradient(to right, transparent, rgba(120,113,108,0.35), transparent); }"
+    },
+    {
+      "name": "Theme Toggle",
+      "kind": "button",
+      "refersTo": null,
+      "description": "Sun/moon icon button that switches light/dark mode. Lives in the site nav right-side row (right of nav links, left of LanguagePicker) and in the top-right corner of page-only surfaces like 404. Shares the global icon-button spec and the editor's useTheme() hook so theme state is consistent across all surfaces.",
+      "html": "<button type=\"button\" class=\"ds-theme-toggle\" aria-label=\"Switch to dark mode\" title=\"Switch to dark mode\"><svg class=\"ds-theme-toggle__icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"/></svg></button>",
+      "css": ".ds-theme-toggle { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: #78716c; border: none; border-radius: 6px; transition: color 150ms ease-out; cursor: pointer; } .ds-theme-toggle:hover { color: #7F77DD; } .ds-theme-toggle:focus-visible { outline: 2px solid rgba(127,119,221,0.7); outline-offset: 2px; } .ds-theme-toggle__icon { width: 14px; height: 14px; } @media (prefers-color-scheme: dark) { .ds-theme-toggle { color: #a8a29e; } .ds-theme-toggle:hover { color: #bdb8f0; } }"
     }
   ],
   "narrative": {
@@ -169,7 +185,8 @@
       "Three-tier soft elevation that never goes opaque-black, even in dark mode.",
       "Quiet by default: block chrome resolves to 25% opacity until hover/focus.",
       "Real OpenType small-caps and old-style numerals in prose; tabular numerals on every counter.",
-      "Motion is small, fast (140-180ms), and exponential — except mirror-breath, which is 6s and meant to be subliminal."
+      "Motion is small, fast (140-180ms), and exponential — except mirror-breath, which is 6s and meant to be subliminal.",
+      "Public surfaces (landing, roadmap, privacy, 404) opt in via .inkmirror-public-page paired with .inkmirror-paper. Section rhythm comes from .inkmirror-hairline-neutral — never tinted-background alternation."
     ],
     "rules": [
       { "name": "The Two Hot Colors Rule", "body": "Writer Violet and Story Orange are the only two saturated colors in the entire chrome. If you find yourself reaching for a third (red for danger, green for success, blue for info), use a stone-toned neutral plus an icon or copy first. Add a third hot color only with explicit justification.", "section": "colors" },
@@ -180,7 +197,10 @@
       { "name": "The Serif-For-Prose-Sans-For-Chrome Rule", "body": "If text is something the user wrote (or the AI is reflecting back about something the user wrote), it's serif. If text is interface (buttons, menus, settings labels), it's sans. The contrast is the system.", "section": "typography" },
       { "name": "The Stone-Tinted-Shadows Rule", "body": "Every shadow value is rgba(28, 25, 23, ...) in light mode (warm stone tint, never neutral grey) and rgba(0, 0, 0, ...) in dark mode (true black, higher opacity).", "section": "elevation" },
       { "name": "The Earned-Elevation Rule", "body": "A surface earns elevation only if it floats above the page in a real spatial sense — modal, dropdown, command palette, popover. Do not put --elev-2 on an inline card to 'make it pop.' Inline surfaces use border + background tone, not shadow.", "section": "elevation" },
-      { "name": "The Functional-Marker Exception", "body": "Scene blocks have a 2px Story Orange left border at 40% opacity. This sits close to the absolute-ban side-stripe accent pattern, but is deliberately exempt because it is a block-taxonomy marker (not a card-accent decoration), uses the second hot color at the surface that owns scene-ness, and is quiet enough to scan past. Do not extend this pattern to other components.", "section": "components" }
+      { "name": "The Functional-Marker Exception", "body": "Scene blocks have a 2px Story Orange left border at 40% opacity. This sits close to the absolute-ban side-stripe accent pattern, but is deliberately exempt because it is a block-taxonomy marker (not a card-accent decoration), uses the second hot color at the surface that owns scene-ness, and is quiet enough to scan past. Do not extend this pattern to other components.", "section": "components" },
+      { "name": "The Two-Hearts Alternation Rule", "body": "On public-page structural sequences (feature lists, section-group headers, editorial stanzas), writer-violet governs odd-indexed items and story-orange governs even-indexed items. Violet odd / orange even is the canonical direction. Do not reverse. Do not apply inside the editor surface or to sequences with fewer than two meaningful items.", "section": "colors" },
+      { "name": "The Italic-Roman-Ordinal Rule", "body": "Numbered lists on the public landing that want literary weight use lower-case Roman ordinals — i., ii., iii. — set in font-serif italic text-2xl (leading-none, inline). Colored by the Two-Hearts Alternation Rule. Never Arabic numerals, never bold, never uppercase Roman for these kickers.", "section": "typography" },
+      { "name": "The Hairline-Not-Tint Rule", "body": "Section dividers on public pages use .inkmirror-hairline-neutral (the warm-gradient 1px rule). Background-color alternation (bg-stone-50 / bg-white rows) is the SaaS-feature-table aesthetic InkMirror explicitly rejects — do not use it.", "section": "components" }
     ],
     "dos": [
       "Do route every neutral background through Vellum / Indigo Lamplight. The CSS layer in src/index.css already rewrites bg-stone-100, bg-white, bg-stone-900, bg-stone-800 — trust that, don't bypass with hardcoded #fff.",
@@ -190,7 +210,10 @@
       "Do pair @keyframes with a prefers-reduced-motion: reduce 'animation: none !important' override. Every single one. No exceptions.",
       "Do use rounded-2xl (16px) for floating-island surfaces (modals, document picker, feature cards), rounded-md/rounded-lg (8-12px) for inline buttons and inputs.",
       "Do lead with a ghost button (border + stone text → violet hover) for any non-primary action. Reserve the violet-fill primary for the one decisive CTA per surface.",
-      "Do start every motion at 140-180ms and let it ease out exponentially. Mirror-breath at 6s is the only long-duration exception."
+      "Do start every motion at 140-180ms and let it ease out exponentially. Mirror-breath at 6s is the only long-duration exception.",
+      "Do use .inkmirror-hairline-neutral (the warm-gradient 1px rule, defined in src/index.css) to divide sections on public pages. It is the canonical section-divider vocabulary.",
+      "Do apply the Two-Hearts Alternation pattern (violet odd, orange even) to structural sequences on public pages — feature lists, section-group headers, editorial stanza labels.",
+      "Do use lower-case italic Roman ordinals (i., ii., iii. in font-serif italic text-2xl) for numbered feature lists on the landing surface, colored by the Two-Hearts Alternation Rule."
     ],
     "donts": [
       "Don't use indigo-to-purple gradients, hero-metric cards, glassmorphism, 'Built with [logo] [logo]' trust strips, or any other AI-startup-landing-page cliché. InkMirror's anti-references include Linear/Vercel-style aesthetics by name.",
@@ -203,7 +226,9 @@
       "Don't hardcode English in JSX. Every user-facing string routes through t() from src/i18n.",
       "Don't apply .inkmirror-mirror-breath to readable text. The class includes scaleY(-1). Reflections only.",
       "Don't open modals as a first thought. Inline editing, popovers, slide-in panels first.",
-      "Don't nest cards. A card inside a card is always wrong in this system."
+      "Don't nest cards. A card inside a card is always wrong in this system.",
+      "Don't alternate section backgrounds (bg-stone-50 / bg-white / any tinted-even-row pattern) to create rhythm on public pages. Hairlines are the rhythm instrument — background alternation imports the SaaS-feature-table aesthetic InkMirror explicitly rejects.",
+      "Don't add a visible text label next to the theme toggle icon. The icon and title tooltip are sufficient; a label crowds the nav."
     ]
   }
 }
