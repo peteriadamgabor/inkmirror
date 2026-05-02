@@ -23,13 +23,13 @@ const StatusChip = (props: { status: Status }) => {
   const tone = () => {
     switch (props.status) {
       case 'shipped':
-        return 'text-emerald-400/80 border-emerald-400/30';
+        return 'text-emerald-700 dark:text-emerald-400/80 border-emerald-500/40 dark:border-emerald-400/30';
       case 'inProgress':
-        return 'text-violet-400/90 border-violet-400/40';
+        return 'text-violet-600 dark:text-violet-400/90 border-violet-500/50 dark:border-violet-400/40';
       case 'planned':
-        return 'text-sky-400/80 border-sky-400/30';
+        return 'text-sky-700 dark:text-sky-400/80 border-sky-500/40 dark:border-sky-400/30';
       case 'maybe':
-        return 'text-stone-400/70 border-stone-500/30';
+        return 'text-stone-600 dark:text-stone-400/70 border-stone-400/50 dark:border-stone-500/30';
     }
   };
   return (
@@ -106,7 +106,7 @@ const PLANNED_ITEMS: Array<{ key: string; maybe?: boolean }> = [
 
 const SectionHeader = (props: { status: Status; title: string }) => (
   <div class="flex items-center gap-3 mb-6">
-    <h2 class="font-serif text-3xl md:text-4xl tracking-tight text-stone-100">
+    <h2 class="font-serif text-3xl md:text-4xl tracking-tight text-stone-900 dark:text-stone-100">
       {props.title}
     </h2>
     <StatusChip status={props.status} />
@@ -124,17 +124,17 @@ export const RoadmapRoute = () => {
   });
 
   return (
-    <div class="min-h-screen bg-stone-950 text-stone-100 font-sans inkmirror-paper">
+    <div class="min-h-screen inkmirror-public-page inkmirror-paper font-sans">
       <SiteNav current="/roadmap" />
       <FeedbackHost />
 
-      <main class="max-w-2xl mx-auto px-6 pt-32 pb-24 font-serif text-stone-300 leading-relaxed text-[17px]">
+      <main class="max-w-2xl mx-auto px-6 pt-32 pb-24 font-serif text-stone-700 dark:text-stone-300 leading-relaxed text-[17px]">
         {/* --- Opening --- */}
         <SectionReveal>
-          <h1 class="font-serif text-4xl md:text-5xl tracking-tight text-stone-100 mb-6">
+          <h1 class="font-serif text-4xl md:text-5xl tracking-tight text-stone-900 dark:text-stone-100 mb-6">
             {t('roadmap.opening.header')}
           </h1>
-          <p class="text-stone-400">{t('roadmap.opening.body')}</p>
+          <p class="text-stone-600 dark:text-stone-400">{t('roadmap.opening.body')}</p>
         </SectionReveal>
 
         <MirrorDivider />
@@ -145,7 +145,7 @@ export const RoadmapRoute = () => {
             status="shipped"
             title={t('roadmap.shipped.header')}
           />
-          <p class="text-stone-400 mb-5">{t('roadmap.shipped.intro')}</p>
+          <p class="text-stone-600 dark:text-stone-400 mb-5">{t('roadmap.shipped.intro')}</p>
           <p class="mb-5">{t('roadmap.shipped.p1')}</p>
           <p class="mb-5">{t('roadmap.shipped.p2')}</p>
           <p class="mb-5">{t('roadmap.shipped.p3')}</p>
@@ -161,7 +161,7 @@ export const RoadmapRoute = () => {
             status="inProgress"
             title={t('roadmap.inProgress.header')}
           />
-          <p class="text-stone-400 mb-5">{t('roadmap.inProgress.intro')}</p>
+          <p class="text-stone-600 dark:text-stone-400 mb-5">{t('roadmap.inProgress.intro')}</p>
           <p class="mb-5">{t('roadmap.inProgress.p1')}</p>
           <p class="mb-5">{t('roadmap.inProgress.p2')}</p>
           <p>{t('roadmap.inProgress.p3')}</p>
@@ -172,7 +172,7 @@ export const RoadmapRoute = () => {
         {/* --- Planned --- */}
         <SectionReveal>
           <SectionHeader status="planned" title={t('roadmap.planned.header')} />
-          <p class="text-stone-400 mb-5">{t('roadmap.planned.intro')}</p>
+          <p class="text-stone-600 dark:text-stone-400 mb-5">{t('roadmap.planned.intro')}</p>
           <ul class="space-y-5">
             <For each={PLANNED_ITEMS}>
               {(item) => (
@@ -197,10 +197,10 @@ export const RoadmapRoute = () => {
 
         {/* --- Closing --- */}
         <SectionReveal>
-          <h2 class="font-serif text-3xl md:text-4xl tracking-tight text-stone-100 mb-6">
+          <h2 class="font-serif text-3xl md:text-4xl tracking-tight text-stone-900 dark:text-stone-100 mb-6">
             {t('roadmap.closing.header')}
           </h2>
-          <p class="text-stone-400 mb-8">{t('roadmap.closing.body')}</p>
+          <p class="text-stone-600 dark:text-stone-400 mb-8">{t('roadmap.closing.body')}</p>
           <button
             type="button"
             onClick={() => openFeedback()}
