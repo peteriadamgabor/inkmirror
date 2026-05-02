@@ -221,28 +221,43 @@ export const LandingRoute = () => {
 
     {/* --- Privacy --- */}
     <section class="py-24 px-6">
-      <div class="max-w-3xl mx-auto text-center">
-        <h2 class="font-serif text-3xl md:text-4xl mb-6">
+      <div class="max-w-2xl mx-auto text-center">
+        <p class="inkmirror-smallcaps tracking-widest text-xs text-stone-500 dark:text-stone-400 mb-3">
+          {t('landing.privacy.kicker')}
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl mb-6 text-stone-900 dark:text-stone-100">
           {t('landing.privacy.heading')}
         </h2>
-        <p class="text-lg text-stone-400 leading-relaxed mb-8">
+        <p class="text-stone-700 dark:text-stone-300 leading-relaxed mb-12 font-serif text-lg max-w-xl mx-auto">
           {t('landing.privacy.body')}
         </p>
-        <div class="grid md:grid-cols-3 gap-6 mt-12">
-          <div class="text-center">
-            <div class="text-2xl mb-2">🔒</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardTelemetryTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardTelemetryBody')}</div>
+
+        <div class="text-left">
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-violet-600 dark:text-violet-300 mb-2">
+              {t('landing.privacy.stanza1Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza1Body')}
+            </p>
           </div>
-          <div class="text-center">
-            <div class="text-2xl mb-2">✈️</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardOfflineTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardOfflineBody')}</div>
+          <div class="inkmirror-hairline-neutral" />
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-orange-600 dark:text-orange-400 mb-2">
+              {t('landing.privacy.stanza2Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza2Body')}
+            </p>
           </div>
-          <div class="text-center">
-            <div class="text-2xl mb-2">📦</div>
-            <div class="text-sm font-medium text-stone-200 mb-1">{t('landing.privacy.cardExportTitle')}</div>
-            <div class="text-xs text-stone-500">{t('landing.privacy.cardExportBody')}</div>
+          <div class="inkmirror-hairline-neutral" />
+          <div class="py-6">
+            <p class="inkmirror-smallcaps tracking-widest text-xs text-violet-600 dark:text-violet-300 mb-2">
+              {t('landing.privacy.stanza3Label')}
+            </p>
+            <p class="text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+              {t('landing.privacy.stanza3Body')}
+            </p>
           </div>
         </div>
       </div>

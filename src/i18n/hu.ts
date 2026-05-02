@@ -745,15 +745,19 @@ export const hu: Messages = {
       closing: 'Két szív, egy lélek. Az író alkot. A történet visszaszól.',
     },
     privacy: {
-      heading: 'A regényed soha nem hagyja el a böngésződet',
+      kicker: 'Hogy működik itt az adatvédelem',
+      heading: 'A regényed sosem hagyja el a böngésződet',
       body:
-        'Minden helyben fut. A szöveged az IndexedDB-ben van tárolva, nem szerveren, nem a felhőben, sehol, ami nem a gépeden van. Az AI modell egyszer töltődik le, és egy Web Workerben fut. Az alkalmazás PWA-ként telepíthető, és teljes mértékben működik offline.',
-      cardTelemetryTitle: 'Zéró telemetria',
-      cardTelemetryBody: 'Nincs analitika, nincs követés, nincs szerverhívás',
-      cardOfflineTitle: 'Működik offline',
-      cardOfflineBody: 'PWA service worker gyorsítótárazással',
-      cardExportTitle: 'Exportálj bármikor',
-      cardExportBody: 'EPUB, DOCX, PDF, Markdown, JSON, Fountain',
+        'Az adatvédelem itt architektúra, nem szabályzat. A kézirat a gépeden él. A modell mellette fut, egy worker-ben. Az alkalmazás nem hív haza, és nincs is hová hívnia.',
+      stanza1Label: 'Nincs telemetria',
+      stanza1Body:
+        'Semmi nem hagyja el az oldalt, hacsak nem kéred. Nincs analitikai hívás, nincs hibajelző, nincs használati ping — még anonim sem. A kódbázis nyílt; a csend ellenőrizhető.',
+      stanza2Label: 'Offline alapból',
+      stanza2Body:
+        'A regény az IndexedDB-ben él ezen a gépen. Bontsd a kapcsolatot, és az InkMirror tovább ír veled. PWA-ként telepíthető — a tegnap esti alkalmazás a holnapi vonatozás alkalmazása.',
+      stanza3Label: 'A tiéd, hogy elvidd',
+      stanza3Body:
+        'Markdown, EPUB, PDF, Fountain, DOCX, JSON — hat export, parancsra. A mű olyan formában távozik, amilyenben szükséged van rá, akkor, amikor kell. A biztonsági mentések sima JSON-csomagként utaznak a saját böngészőid között.',
     },
     more: {
       heading: 'És még…',

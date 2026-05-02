@@ -423,15 +423,19 @@ export const en = {
       closing: 'Two hearts, one soul. The writer creates. The story speaks back.',
     },
     privacy: {
+      kicker: 'How privacy works here',
       heading: 'Your novel never leaves your browser',
       body:
-        "Everything runs locally. Your text is stored in IndexedDB, not on a server, not in the cloud, not anywhere that isn't your machine. The AI model downloads once and runs in a Web Worker. The app is installable as a PWA and works fully offline.",
-      cardTelemetryTitle: 'Zero telemetry',
-      cardTelemetryBody: 'No analytics, no tracking, no server calls',
-      cardOfflineTitle: 'Works offline',
-      cardOfflineBody: 'PWA with service worker caching',
-      cardExportTitle: 'Export anytime',
-      cardExportBody: 'EPUB, DOCX, PDF, Markdown, JSON, Fountain',
+        "Privacy is architecture, not policy. The manuscript lives in your machine. The model runs in a worker beside it. The app does not call home, and there is no home for it to call.",
+      stanza1Label: 'No telemetry',
+      stanza1Body:
+        "Nothing leaves the page unless you ask it to. There is no analytics call, no error beacon, no usage ping — not even an anonymous one. The codebase is open; the silence is verifiable.",
+      stanza2Label: 'Offline by design',
+      stanza2Body:
+        "The novel lives in IndexedDB on this device. Drop the connection and InkMirror keeps writing with you. Installable as a PWA, the app you used last night is the app you have tomorrow on the train.",
+      stanza3Label: 'Yours to take',
+      stanza3Body:
+        "Markdown, EPUB, PDF, Fountain, DOCX, JSON — six exports, on demand. The work exits in any shape you need, the moment you need it. Backups travel as plain JSON bundles between your own browsers.",
     },
     more: {
       heading: 'And also…',
