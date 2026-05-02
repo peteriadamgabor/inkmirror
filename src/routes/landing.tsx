@@ -356,17 +356,17 @@ export const LandingRoute = () => {
 
     {/* --- CTA --- */}
     <section class="py-32 px-6 text-center">
-      <h2 class="font-serif text-4xl md:text-5xl mb-4">
+      <h2 class="font-serif text-4xl md:text-5xl mb-4 text-stone-900 dark:text-stone-100">
         {t('landing.cta.heading')}
       </h2>
-      <p class="text-stone-500 mb-10 text-lg">
+      <p class="text-stone-600 dark:text-stone-400 mb-10 text-lg font-serif">
         {t('landing.cta.subheading')}
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
         <a
           href="/"
           onClick={() => markVisited()}
-          class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+          class="inline-block px-10 py-4 rounded-xl bg-violet-500 text-white text-xl font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/15"
         >
           {t('landing.cta.button')}
         </a>
@@ -374,7 +374,7 @@ export const LandingRoute = () => {
           type="button"
           onClick={handleDemo}
           disabled={demoLoading()}
-          class="text-base text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+          class="text-base text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 underline underline-offset-4 decoration-stone-300 dark:decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
           {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
         </button>
@@ -382,9 +382,9 @@ export const LandingRoute = () => {
     </section>
 
     {/* --- Footer --- */}
-      <footer class="py-8 px-6 border-t border-stone-800 text-center text-xs text-stone-600">
-        {t('landing.footer')}
-      </footer>
+    <footer class="py-10 px-6 border-t border-stone-300/50 dark:border-stone-800 text-center text-xs text-stone-500 dark:text-stone-600">
+      {t('landing.footer')}
+    </footer>
     </div>
   );
 };

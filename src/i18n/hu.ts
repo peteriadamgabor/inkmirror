@@ -791,11 +791,11 @@ export const hu: Messages = {
       g4Item5: 'Világos és sötét mód, mindkettő melegen tolva',
     },
     cta: {
-      heading: 'Készen állsz az írásra?',
-      subheading: 'Nincs regisztráció. Nincs letöltés. Csak nyisd meg és kezdj.',
-      button: 'InkMirror megnyitása',
+      heading: 'Amikor csak készen állsz',
+      subheading: 'Nincs regisztráció. Nincs letöltés. Nyisd meg az oldalt és írj.',
+      button: 'Nyisd meg az InkMirrort',
     },
-    footer: 'InkMirror · Offline-első regényírás · Solid.js + Tailwind',
+    footer: 'InkMirror · Offline-first regényírás · Csendben építve Solid.js + Tailwind segítségével',
   },
   nav: {
     home: 'InkMirror',

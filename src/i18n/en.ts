@@ -469,11 +469,11 @@ export const en = {
       g4Item5: 'Light and dark mode, both warm-shifted',
     },
     cta: {
-      heading: 'Ready to write?',
-      subheading: 'No sign-up. No download. Just open and start.',
+      heading: 'Ready when you are',
+      subheading: 'No sign-up. No download. Just open the page and start.',
       button: 'Open InkMirror',
     },
-    footer: 'InkMirror · Offline-first novel writing · Built with Solid.js + Tailwind',
+    footer: 'InkMirror · Offline-first novel writing · Built quietly with Solid.js + Tailwind',
   },
   nav: {
     // Shared top-nav (landing + roadmap + privacy). Tiny sans-serif, low-contrast.
