@@ -378,12 +378,12 @@ export const en = {
   },
   landing: {
     hero: {
-      title1: 'Two hearts, one soul,',
-      title2: "the writer's and the story's pulse.",
+      title1: 'Two hearts, one soul —',
+      title2: "the writer's pulse, and the story's.",
       subtitle:
-        "An AI-assisted novel writing app that runs entirely in your browser. Offline-first, privacy-first. The AI doesn't write for you. It holds a mirror up to you.",
-      cta: 'Start writing',
-      smallPrint: 'Free. No account. No install. Works in any modern browser.',
+        "An offline-first novel-writing app that runs in your browser. The AI never writes for you. It listens, reflects, and tells you what your prose is doing.",
+      cta: 'Open the app',
+      smallPrint: 'No account, no install, no telemetry. Free, and yours.',
     },
     features: {
       heading: 'Everything a writer needs',

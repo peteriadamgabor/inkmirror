@@ -68,41 +68,44 @@ export const LandingRoute = () => {
   };
 
   return (
-    <div class="bg-stone-950 text-stone-100 font-sans scroll-smooth">
+    <div class="inkmirror-public-page inkmirror-paper scroll-smooth">
       <SiteNav current="/landing" />
       <FeedbackHost />
       <ConfirmHost />
       <ToastHost />
     {/* --- Hero --- */}
-    <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-violet-950/40 via-stone-950 to-stone-950 pointer-events-none" />
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden pt-24 pb-16">
       <div class="relative z-10 max-w-2xl">
-        {/* Two hearts icon */}
+        {/* Two hearts — kept as-is, recalibrated for cream */}
         <div class="flex items-center justify-center gap-3 mb-8">
-          <div class="w-16 h-16 rounded-full bg-violet-500/20 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-violet-500/15 flex items-center justify-center">
             <div class="w-8 h-8 rounded-full bg-violet-500" />
           </div>
-          <div class="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-orange-500/15 flex items-center justify-center">
             <div class="w-8 h-8 rounded-full bg-orange-600" />
           </div>
         </div>
+
         <div class="relative mb-4">
-          <h1 class="font-serif text-5xl md:text-7xl tracking-tight">
+          <h1 class="font-serif text-5xl md:text-7xl tracking-tight text-stone-900 dark:text-stone-100">
             InkMirror
           </h1>
-          {/* Mirror surface line */}
+          {/* Mirror surface line — existing motif, retuned opacity for cream */}
           <div
             class="w-48 h-px mx-auto mt-2 mb-1"
             style={{
-              background: 'linear-gradient(to right, transparent, rgba(127,119,221,0.6), transparent)',
+              background:
+                'linear-gradient(to right, transparent, rgba(127,119,221,0.55), transparent)',
             }}
           />
-          {/* Mirror reflection */}
+          {/* Mirror reflection — slightly stronger violet so it reads on cream */}
           <div
-            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-300 inkmirror-mirror-breath"
+            class="font-serif text-5xl md:text-7xl tracking-tight select-none pointer-events-none text-violet-400 dark:text-violet-300 inkmirror-mirror-breath"
             style={{
-              'mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
-              '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 80%)',
+              'mask-image':
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
+              '-webkit-mask-image':
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 80%)',
               'line-height': '1',
               filter: 'blur(0.5px)',
             }}
@@ -111,18 +114,20 @@ export const LandingRoute = () => {
             InkMirror
           </div>
         </div>
-        <p class="text-xl md:text-2xl text-stone-400 leading-relaxed mb-3">
+
+        <p class="text-xl md:text-2xl text-stone-700 dark:text-stone-300 leading-relaxed mb-3 font-serif">
           {t('landing.hero.title1')}<br />
           {t('landing.hero.title2')}
         </p>
-        <p class="text-base text-stone-500 max-w-lg mx-auto mb-10">
+        <p class="text-base text-stone-500 dark:text-stone-500 max-w-lg mx-auto mb-10">
           {t('landing.hero.subtitle')}
         </p>
+
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           <a
             href="/"
             onClick={() => markVisited()}
-            class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/25"
+            class="inline-block px-8 py-3 rounded-xl bg-violet-500 text-white text-lg font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/15"
           >
             {t('landing.hero.cta')}
           </a>
@@ -130,18 +135,16 @@ export const LandingRoute = () => {
             type="button"
             onClick={handleDemo}
             disabled={demoLoading()}
-            class="text-sm text-stone-400 hover:text-violet-300 underline underline-offset-4 decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
+            class="text-sm text-stone-600 dark:text-stone-400 hover:text-violet-600 dark:hover:text-violet-300 underline underline-offset-4 decoration-stone-300 dark:decoration-stone-700 hover:decoration-violet-400 transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
             {demoLoading() ? `${t('demo.ctaLanding')}…` : t('demo.ctaLanding')}
           </button>
         </div>
-        <p class="mt-4 text-xs text-stone-600">
+        <p class="mt-4 text-xs text-stone-500 dark:text-stone-600">
           {t('landing.hero.smallPrint')}
         </p>
       </div>
-      <div class="absolute bottom-8 text-stone-600 animate-bounce">
-        ↓
-      </div>
+      {/* Bouncy ↓ arrow removed intentionally. */}
     </section>
 
     {/* --- Features --- */}

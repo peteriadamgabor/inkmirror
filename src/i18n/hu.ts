@@ -700,12 +700,12 @@ export const hu: Messages = {
   },
   landing: {
     hero: {
-      title1: 'Két szív, egy lélek,',
+      title1: 'Két szív, egy lélek —',
       title2: 'az íróé és a történeté.',
       subtitle:
-        'Egy AI-asszisztált regényíró alkalmazás, ami teljes egészében a böngésződben fut. Offline-első, adatvédelem-első. Az AI nem ír helyetted. Tükröt tart eléd.',
-      cta: 'Kezdj írni',
-      smallPrint: 'Ingyenes. Nincs fiók. Nincs telepítés. Bármilyen modern böngészőben működik.',
+        'Egy offline-first regényírású alkalmazás, ami a böngésződben fut. Az AI sosem ír helyetted. Hallgat, tükröz, és elmondja, mit csinál a prózád.',
+      cta: 'Nyisd meg az appot',
+      smallPrint: 'Nincs fiók, nincs telepítés, nincs telemetria. Ingyen, és a tiéd.',
     },
     features: {
       heading: 'Minden, amire egy írónak szüksége van',
