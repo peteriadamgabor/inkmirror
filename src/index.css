@@ -1,6 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tell Tailwind v4 which files to scan for utility usage. */
+@source "../index.html";
+@source "./**/*.{ts,tsx}";
+
+/* Class-based dark mode (was darkMode: 'class' in Tailwind 3). */
+@custom-variant dark (&:where(.dark, .dark *));
 
 html, body, #root {
   height: 100%;
