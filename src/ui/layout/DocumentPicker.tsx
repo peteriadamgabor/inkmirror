@@ -2,7 +2,7 @@ import { createResource, createSignal, For, Show } from 'solid-js';
 import * as repo from '@/db/repository';
 import type { Document } from '@/types';
 import type { DocumentRow } from '@/db/connection';
-import { askConfirm, askConfirmChoice } from '@/ui/shared/confirm';
+import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { useTheme } from '@/ui/theme';
 import {
@@ -12,11 +12,7 @@ import {
   exportDatabaseBackup,
   exportDocumentBundle,
 } from '@/backup/export';
-import {
-  importDatabaseBackup,
-  importDocumentBundle,
-  parseBundle,
-} from '@/backup/import';
+import { importBridge } from '@/store/import-bridge';
 import { openDemo } from '@/backup/demo';
 import { DEMO_DOC_ID } from '@/backup/demo-bundle';
 import { downloadBlob } from '@/exporters';
@@ -190,47 +186,7 @@ export const DocumentPicker = (props: Props) => {
   };
 
   const handleImportFile = async (file: File) => {
-    try {
-      const bundle = await parseBundle(file);
-      if (bundle.kind === 'inkmirror.document') {
-        const existing = await repo.loadDocument(bundle.document.id);
-        let strategy: 'copy' | 'replace' = 'copy';
-        if (existing) {
-          const title = existing.document.title || t('common.untitled');
-          const choice = await askConfirmChoice({
-            title: t('picker.collisionTitle', { title }),
-            message: t('picker.collisionBody'),
-            confirmLabel: t('picker.collisionReplace'),
-            neutralLabel: t('picker.collisionKeepBoth'),
-            cancelLabel: t('common.cancel'),
-            danger: true,
-          });
-          if (choice === 'cancel') return; // user aborted
-          strategy = choice === 'confirm' ? 'replace' : 'copy';
-        }
-        const result = await importDocumentBundle(bundle, strategy);
-        const resultTitle = result.documentTitles[0];
-        if (result.replaced) {
-          toast.success(t('picker.replacedToast', { title: resultTitle }));
-        } else {
-          toast.success(t('picker.importedToast', { title: resultTitle }));
-        }
-      } else {
-        const result = await importDatabaseBackup(bundle);
-        const parts = [t('picker.restoreAdded', { n: result.documentsAdded })];
-        if (result.documentsSkipped > 0) {
-          parts.push(t('picker.restoreSkipped', { n: result.documentsSkipped }));
-        }
-        toast.success(t('picker.restoreComplete', { detail: parts.join(', ') }));
-      }
-      refetch();
-    } catch (err) {
-      toast.error(
-        t('toast.importFailed', {
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
-    }
+    await importBridge(file, { onAfterImport: refetch });
   };
 
   const triggerImport = () => {
