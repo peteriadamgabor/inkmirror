@@ -3,6 +3,8 @@ import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 import { openFeedback } from '@/ui/shared/feedback';
 import { useTheme } from '@/ui/theme';
 import { IconSun, IconMoon } from '@/ui/shared/icons';
+import { InstallButton } from '@/ui/shared/InstallButton';
+import { installPromptAvailable } from '@/ui/shared/pwa-install';
 import { t } from '@/i18n';
 
 interface Props {
@@ -95,6 +97,7 @@ export const SiteNav = (props: Props) => {
             >
               {t('nav.feedback')}
             </button>
+            <InstallButton />
             <button
               type="button"
               onClick={toggleTheme}
@@ -170,6 +173,12 @@ export const SiteNav = (props: Props) => {
           >
             {t('nav.feedback')}
           </button>
+          <Show when={installPromptAvailable()}>
+            <div class="flex items-center justify-between pb-1 border-b border-stone-300/60 dark:border-stone-800">
+              <span class="text-lg font-serif text-stone-800 dark:text-stone-100">{t('pwa.install')}</span>
+              <InstallButton />
+            </div>
+          </Show>
           <button
             type="button"
             onClick={(e) => {
