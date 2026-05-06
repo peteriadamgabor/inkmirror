@@ -74,7 +74,15 @@ export default defineConfig({
       // src/ui/shared/sw-update.ts.
       registerType: 'prompt',
       injectRegister: false,
-      workbox: {
+      // injectManifest: author a custom SW (src/sw.ts) so we can intercept
+      // share_target POSTs and stash the shared file in the browser Cache
+      // API — the only place the page can read it back from. The Cloudflare
+      // Worker (src/worker.ts) is server-side and can't write to the browser
+      // Cache, so this has to be a browser SW.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png}'],
         // Heavy chunks are fetched on demand — don't precache them.
