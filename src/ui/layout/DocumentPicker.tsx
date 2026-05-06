@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from 'solid-js';
+import { createEffect, createResource, createSignal, For, onMount, Show } from 'solid-js';
 import * as repo from '@/db/repository';
 import type { Document } from '@/types';
 import type { DocumentRow } from '@/db/connection';
@@ -222,6 +222,42 @@ export const DocumentPicker = (props: Props) => {
       );
     }
   };
+
+  // PWA manifest shortcuts (?action=new / ?action=last) land here on launch.
+  // We detect the param once on mount, clean the URL so a refresh doesn't
+  // re-fire, then drive the same code paths as the in-app buttons.
+  let lastActionPending = false;
+  onMount(() => {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    if (!action) return;
+    params.delete('action');
+    const remaining = params.toString();
+    window.history.replaceState(null, '', remaining ? `/?${remaining}` : '/');
+
+    if (action === 'new') {
+      // Same path as the "New document" button: open the inline form.
+      setShowNewForm(true);
+    } else if (action === 'last') {
+      // Defer until the docs resource resolves.
+      lastActionPending = true;
+    }
+  });
+
+  createEffect(() => {
+    if (!lastActionPending) return;
+    const list = docs();
+    if (!list) return;
+    lastActionPending = false;
+    if (list.length > 0) {
+      const sorted = [...list].sort(
+        (a, b) =>
+          new Date(b.updated_at ?? 0).getTime() -
+          new Date(a.updated_at ?? 0).getTime(),
+      );
+      props.onSelect(sorted[0].id);
+    }
+  });
 
   return (
     <div class="h-full w-full bg-stone-100 dark:bg-stone-900 flex items-center justify-center">
