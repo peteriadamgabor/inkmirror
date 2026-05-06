@@ -25,4 +25,6 @@ export {
   TbOutlineEye as IconEye,
   TbOutlineEyeOff as IconEyeOff,
   TbOutlineSparkles as IconSparkles,
+  TbOutlineDownload as IconInstall,
+  TbOutlineClockHour3 as IconClock,
 } from 'solid-icons/tb';
