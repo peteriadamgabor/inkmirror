@@ -377,6 +377,7 @@ export const en = {
     },
   },
   landing: {
+    pageTitle: 'InkMirror — Two hearts, one soul',
     hero: {
       title1: 'Two hearts, one soul —',
       title2: "the writer's pulse, and the story's.",

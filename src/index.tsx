@@ -1,6 +1,6 @@
 /* @refresh reload */
 import { render } from 'solid-js/web';
-import { createSignal, Match, Switch } from 'solid-js';
+import { createSignal, createEffect, createRoot, Match, Switch } from 'solid-js';
 import { Router, Route } from '@solidjs/router';
 import { EditorRoute } from '@/routes/editor';
 import { PerfHarnessRoute } from '@/routes/perf-harness';
@@ -38,13 +38,22 @@ import { SettingsModal } from '@/ui/features/SettingsModal';
 import { WhatsNewModal } from '@/ui/features/WhatsNewModal';
 import { daysSinceLastExport } from '@/exporters';
 import { toast } from '@/ui/shared/toast';
-import { t } from '@/i18n';
+import { t, lang } from '@/i18n';
 import { cancelPreviewIfDocMatches } from '@/store/preview';
 import type { UUID } from '@/types';
 import './index.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('#root not found');
+
+// Keep <html lang> in sync with the active i18n locale so screen readers
+// and crawlers see the right language. Lives outside the render tree so
+// it survives route swaps.
+createRoot(() => {
+  createEffect(() => {
+    document.documentElement.lang = lang();
+  });
+});
 
 type AppState =
   | { kind: 'loading' }

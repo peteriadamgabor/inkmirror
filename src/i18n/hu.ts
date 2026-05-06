@@ -699,6 +699,7 @@ export const hu: Messages = {
     },
   },
   landing: {
+    pageTitle: 'InkMirror — Két szív, egy lélek',
     hero: {
       title1: 'Két szív, egy lélek —',
       title2: 'az íróé és a történeté.',

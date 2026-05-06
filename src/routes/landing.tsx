@@ -1,4 +1,4 @@
-import { createSignal, For } from 'solid-js';
+import { createSignal, For, onCleanup, onMount } from 'solid-js';
 import { SiteNav } from '@/ui/layout/SiteNav';
 import { markVisited } from '@/ui/shared/first-visit';
 import { FeedbackHost } from '@/ui/shared/FeedbackHost';
@@ -88,6 +88,14 @@ const MORE_GROUPS: readonly MoreGroup[] = [
 
 export const LandingRoute = () => {
   const [demoLoading, setDemoLoading] = createSignal(false);
+
+  onMount(() => {
+    const prev = document.title;
+    document.title = t('landing.pageTitle');
+    onCleanup(() => {
+      document.title = prev;
+    });
+  });
 
   /**
    * "Try the demo" click handler. Imports the demo bundle (or triggers

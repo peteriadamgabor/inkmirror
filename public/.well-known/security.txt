@@ -1,0 +1,4 @@
+Contact: mailto:security@inkmirror.cc
+Expires: 2027-05-06T00:00:00.000Z
+Preferred-Languages: en, hu
+Canonical: https://inkmirror.cc/.well-known/security.txt
