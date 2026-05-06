@@ -42,6 +42,26 @@ html, body, #root {
      the eye find the next section without color or weight. Used above
      sidebar chapter heads and at the ECG strip's bottom edge. */
   --rule-hairline: rgba(120, 113, 108, 0.16);
+
+  /* iOS / Android safe-area insets — surface env() so JSX inline styles
+     can read them without sprinkling env() at every call site. Applied
+     to SiteNav top padding (so iPhone notches don't crop nav links) and
+     reserved for any future fixed-bottom chrome on iPad. */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+}
+
+/* Display-mode utilities — used by the public-surface chrome to suppress
+   external-CTA links when the app is running standalone (otherwise tap
+   bounces the user out of the app shell). The utility is currently
+   unused — there's no app-shell-breaking link in SiteNav today — but
+   ships ready for future affordances. ≤30 bytes of CSS, dead-but-cheap. */
+@media (display-mode: standalone) {
+  .standalone-hide {
+    display: none !important;
+  }
 }
 
 /* Sidebar chapter list: hairline rules between chapters, Penguin-style.

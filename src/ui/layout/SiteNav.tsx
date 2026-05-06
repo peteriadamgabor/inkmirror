@@ -67,7 +67,10 @@ export const SiteNav = (props: Props) => {
           'bg-transparent border-b border-transparent': !scrolled(),
         }}
       >
-        <div class="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+        <div
+          class="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between"
+          style={{ 'padding-top': 'var(--safe-area-top)' }}
+        >
           {/* Left: wordmark */}
           <a
             href="/landing"
