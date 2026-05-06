@@ -191,6 +191,13 @@ export const en = {
     message: 'A new version of InkMirror is available.',
     reload: 'Reload',
   },
+  pwa: {
+    install: 'Install InkMirror',
+    installed: 'InkMirror installed.',
+    installFailed: 'Install failed.',
+    sharedImported: 'Shared bundle imported.',
+    sharedNotFound: 'No shared file to import.',
+  },
   colorPicker: {
     label: 'Color',
     customLabel: 'Pick a custom color',

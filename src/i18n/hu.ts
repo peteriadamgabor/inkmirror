@@ -192,6 +192,13 @@ export const hu: Messages = {
     message: 'Elérhető az InkMirror új verziója.',
     reload: 'Újratöltés',
   },
+  pwa: {
+    install: 'InkMirror telepítése',
+    installed: 'InkMirror telepítve.',
+    installFailed: 'A telepítés nem sikerült.',
+    sharedImported: 'Megosztott csomag betöltve.',
+    sharedNotFound: 'Nincs megosztott fájl a betöltéshez.',
+  },
   colorPicker: {
     label: 'Szín',
     customLabel: 'Egyedi szín választása',
