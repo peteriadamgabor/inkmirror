@@ -76,7 +76,7 @@ export default defineConfig({
       injectRegister: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg}'],
+        globPatterns: ['**/*.{js,css,html,svg,png}'],
         // Heavy chunks are fetched on demand — don't precache them.
         globIgnores: [
           '**/ai-worker-*.js',
@@ -90,24 +90,91 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'InkMirror',
+        id: '/?source=pwa',
+        name: 'InkMirror — Two hearts, one soul',
         short_name: 'InkMirror',
         description:
           'Offline-first novel writing app. Two hearts, one soul — the writer and the story.',
+        lang: 'en',
+        dir: 'ltr',
+        categories: ['productivity', 'books', 'utilities'],
         theme_color: '#7F77DD',
         background_color: '#f5f5f4',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
-        start_url: '/',
+        start_url: '/?source=pwa',
         scope: '/',
         icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           {
-            src: 'icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any',
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: 'icons/icon-monochrome-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'monochrome',
+          },
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        ],
+        screenshots: [
+          {
+            src: 'screenshots/picker-wide.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'InkMirror — two hearts, one soul',
+          },
+          {
+            src: 'screenshots/editor-wide.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Editor with sentiment-aware right panel',
+          },
+          {
+            src: 'screenshots/editor-narrow.png',
+            sizes: '720x1280',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Editor on mobile',
           },
         ],
+        shortcuts: [
+          {
+            name: 'New document',
+            short_name: 'New',
+            url: '/?action=new',
+            icons: [{ src: 'icons/shortcut-new.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Open last document',
+            short_name: 'Last',
+            url: '/?action=last',
+            icons: [{ src: 'icons/shortcut-last.png', sizes: '96x96', type: 'image/png' }],
+          },
+        ],
+        file_handlers: [
+          {
+            action: '/',
+            accept: {
+              'application/json': ['.json', '.inkmirror.json', '.inkmirror.backup.json'],
+            },
+          },
+        ],
+        share_target: {
+          action: '/',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            files: [{ name: 'files', accept: ['application/json', '.json'] }],
+          },
+        },
       },
     }),
   ],
