@@ -27,6 +27,11 @@ import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
 import { installSwUpdatePrompt } from '@/ui/shared/sw-update';
+import { installPwaInstallCapture } from '@/ui/shared/pwa-install';
+import {
+  installPwaLaunchHandler,
+  consumeShareTargetIfPresent,
+} from '@/ui/shared/pwa-launch';
 import { installAnnouncementsScheduler } from '@/announcements/scheduler';
 import { initGlitchTip } from '@/utils/glitchtip';
 import { CriticalAnnouncementModal } from '@/ui/features/CriticalAnnouncementModal';
@@ -206,6 +211,8 @@ if (isKnownPath) {
   // non-opt-in users pay zero bytes for it.
   void initGlitchTip();
   installSwUpdatePrompt();
+  installPwaInstallCapture();
+  installPwaLaunchHandler();
   // Operator → user announcements channel: anonymous pull, no per-user
   // identifier server-side. Preview path lets the operator verify
   // rendering before publishing live.
@@ -245,6 +252,11 @@ if (isKnownPath && !isStaticPage) {
       } else {
         setAppState({ kind: 'picker' });
       }
+      // Drain any pending share_target POST after the picker is mounted —
+      // the bridge raises a ConfirmHost-backed modal on collision, so it
+      // can't run before the host exists. Fire-and-forget; never blocks
+      // the boot path.
+      void consumeShareTargetIfPresent();
     })
     .catch((err) => {
       setAppState({
