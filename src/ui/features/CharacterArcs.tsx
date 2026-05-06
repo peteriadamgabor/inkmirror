@@ -118,9 +118,9 @@ export const CharacterArcs = () => {
       >
         <div class="px-3 py-3 rounded-lg border border-stone-200 dark:border-stone-700">
           <svg
-            width={WIDTH}
-            height={HEIGHT}
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+            class="block w-full h-auto"
             role="img"
             aria-label={t('characterArcs.title')}
           >
