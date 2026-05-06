@@ -23,6 +23,17 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-05-06',
+    title: 'v0.8.0 — Install InkMirror',
+    items: [
+      "Install InkMirror as a desktop or mobile app — there's an Install button on the landing page when your browser supports it (Chrome, Edge, Android Chrome). Once installed, it lives on your home screen / Dock / Start menu like a native app.",
+      'Open `.inkmirror.json` bundles by double-clicking them in your file manager — installed InkMirror handles them natively, with the same Replace / Keep both / Cancel modal you already know.',
+      'Share `.inkmirror.json` from another app to InkMirror via the system share sheet (Android, iOS 16+) — the bundle imports straight into your library.',
+      'Right-click the installed app on Windows / long-press on Android for "New document" and "Open last document" jumplist shortcuts.',
+      "New iOS splash screens for current iPhones and iPads, plus respect for notches and home indicators when you're running InkMirror standalone.",
+    ],
+  },
+  {
     id: '2026-05-02e',
     title: 'v0.7.1: Theme toggle on the public pages',
     items: [
@@ -142,6 +153,17 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-05-06',
+    title: 'v0.8.0 — InkMirror telepítése',
+    items: [
+      'Telepítsd az InkMirror-t asztali vagy mobil alkalmazásként — a Telepítés gomb megjelenik a kezdőlapon, ha a böngésződ támogatja (Chrome, Edge, Android Chrome). Telepítés után úgy él a kezdőképernyődön / Dockodban / Start-menüben, mint egy natív alkalmazás.',
+      'Nyiss meg `.inkmirror.json` csomagokat dupla kattintással a fájlkezelőből — a telepített InkMirror natívan kezeli őket, ugyanazzal a Csere / Mindkettő megtartása / Mégsem párbeszédablakkal, amit már ismersz.',
+      'Oszd meg a `.inkmirror.json` fájlokat más alkalmazásokból az InkMirror-ral a rendszer megosztó-paneljén keresztül (Android, iOS 16+) — a csomag egyenesen a könyvtáradba importálódik.',
+      'Jobb gomb a telepített Windows-alkalmazáson / hosszú érintés Androidon: „Új dokumentum" és „Utolsó dokumentum megnyitása" gyorsmenü-bejegyzések.',
+      'Új iOS indítóképek aktuális iPhone- és iPad-modellekhez, valamint figyelem a kameranyílásokra és a home-indikátorokra, amikor az InkMirror önálló módban fut.',
+    ],
+  },
   {
     id: '2026-05-02e',
     title: 'v0.7.1: Témaválasztó a nyilvános oldalakon',
