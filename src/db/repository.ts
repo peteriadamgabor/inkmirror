@@ -100,15 +100,21 @@ export async function repointDeletedBlocksForDeletedChapter(
   if (deletedChapterId === fallbackChapterId) return;
   try {
     const idb = await getDb();
-    const rows = await idb.getAllFromIndex('blocks', 'by_document', documentId);
     const now = new Date().toISOString();
-    for (const row of rows) {
-      if (row.deleted_at === null) continue;
-      if (row.chapter_id !== deletedChapterId) continue;
-      row.chapter_id = fallbackChapterId;
-      row.updated_at = now;
-      await idb.put('blocks', row);
-    }
+    // Single transaction: atomic and one IDB round per row instead of a
+    // serialized one-transaction-per-put loop.
+    const tx = idb.transaction('blocks', 'readwrite');
+    const rows = await tx.store.index('by_document').getAll(documentId);
+    await Promise.all(
+      rows
+        .filter((row) => row.deleted_at !== null && row.chapter_id === deletedChapterId)
+        .map((row) => {
+          row.chapter_id = fallbackChapterId;
+          row.updated_at = now;
+          return tx.store.put(row);
+        }),
+    );
+    await tx.done;
   } catch (err) {
     logDbError('repository.repointDeletedBlocksForDeletedChapter', err);
     throw err;
@@ -316,19 +322,43 @@ export interface LoadedDocument {
 export async function deleteDocumentAllRows(documentId: UUID): Promise<void> {
   try {
     const idb = await getDb();
-    const chapters = await idb.getAllFromIndex('chapters', 'by_document', documentId);
-    const blocks = await idb.getAllFromIndex('blocks', 'by_document', documentId);
-    const sentiments = await idb.getAllFromIndex('sentiments', 'by_document', documentId);
-    const characters = await idb.getAllFromIndex('characters', 'by_document', documentId);
-    for (const c of chapters) await idb.delete('chapters', c.id);
-    for (const b of blocks) {
-      const revs = await idb.getAllFromIndex('block_revisions', 'by_block', b.id);
-      for (const r of revs) await idb.delete('block_revisions', r.id);
-      await idb.delete('blocks', b.id);
-    }
-    for (const s of sentiments) await idb.delete('sentiments', s.block_id);
-    for (const c of characters) await idb.delete('characters', c.id);
-    await idb.delete('documents', documentId);
+    // One readwrite transaction across every store: the delete is atomic
+    // (no half-deleted document if something fails mid-way) and avoids
+    // the prior per-row await pattern that serialized hundreds of
+    // single-operation transactions on large documents.
+    const tx = idb.transaction(
+      ['documents', 'chapters', 'blocks', 'block_revisions', 'sentiments', 'characters', 'inconsistencies'],
+      'readwrite',
+    );
+    const blocksStore = tx.objectStore('blocks');
+    const revisionsStore = tx.objectStore('block_revisions');
+    const chaptersStore = tx.objectStore('chapters');
+    const sentimentsStore = tx.objectStore('sentiments');
+    const charactersStore = tx.objectStore('characters');
+    const inconsistenciesStore = tx.objectStore('inconsistencies');
+
+    const [blockKeys, chapterKeys, sentimentKeys, characterKeys, inconsistencyKeys] =
+      await Promise.all([
+        blocksStore.index('by_document').getAllKeys(documentId),
+        chaptersStore.index('by_document').getAllKeys(documentId),
+        sentimentsStore.index('by_document').getAllKeys(documentId),
+        charactersStore.index('by_document').getAllKeys(documentId),
+        inconsistenciesStore.index('by_document').getAllKeys(documentId),
+      ]);
+
+    await Promise.all([
+      ...blockKeys.map(async (blockKey) => {
+        const revKeys = await revisionsStore.index('by_block').getAllKeys(blockKey);
+        await Promise.all(revKeys.map((r) => revisionsStore.delete(r)));
+        await blocksStore.delete(blockKey);
+      }),
+      ...chapterKeys.map((k) => chaptersStore.delete(k)),
+      ...sentimentKeys.map((k) => sentimentsStore.delete(k)),
+      ...characterKeys.map((k) => charactersStore.delete(k)),
+      ...inconsistencyKeys.map((k) => inconsistenciesStore.delete(k)),
+      tx.objectStore('documents').delete(documentId),
+    ]);
+    await tx.done;
   } catch (err) {
     logDbError('repository.deleteDocumentAllRows', err);
     throw err;
