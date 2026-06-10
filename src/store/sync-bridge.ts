@@ -15,19 +15,15 @@
  */
 
 import { getDb } from '@/db/connection';
-import type { DocumentRow } from '@/db/connection';
-import {
-  saveChapter,
-  saveBlock,
-  saveCharacter,
-  saveSentiment,
-  disambiguateTitle,
-  type SentimentEntry,
-} from '@/db/repository';
+import type { DocumentRow, SentimentRow } from '@/db/connection';
+import { disambiguateTitle } from '@/db/repository';
 import {
   rowToCharacter,
   rowToChapter,
   rowToBlock,
+  blockToRow,
+  chapterToRow,
+  characterToRow,
 } from '@/db/repository-rows';
 import { serializeForSync, parseFromSync, type SyncBundle } from '@/sync/format';
 import type { Block, Chapter, Character, UUID } from '@/types';
@@ -185,29 +181,18 @@ export async function applySyncBundleToDocument(
         last_sync_revision: 0,
         last_synced_at: null,
       };
-  await idb.put('documents', newRow);
-
-  // ── 1. Chapters: delete existing, insert from bundle ──────────────────────
-  const existingChapters = await idb.getAllFromIndex('chapters', 'by_document', docId);
-  for (const row of existingChapters) {
-    await idb.delete('chapters', row.id);
-  }
-  for (const raw of bundle.chapters) {
+  // ── 1. Build every replacement row in memory (round-tripped through the
+  // domain converters so normalization matches the old save* path) ──────────
+  const chapterRows = bundle.chapters.map((raw) => {
     const r = raw as {
       id: string; document_id: string; title: string; order_idx: number;
       kind?: string; created_at: string; updated_at: string;
     };
     const chapter: Chapter = rowToChapter(r);
-    await saveChapter(chapter);
-  }
+    return chapterToRow(chapter);
+  });
 
-  // ── 2. Blocks: delete existing, insert from bundle (NO block_revisions) ───
-  const existingBlocks = await idb.getAllFromIndex('blocks', 'by_document', docId);
-  for (const row of existingBlocks) {
-    // Delete associated sentiments first (FK-like cleanup)
-    await idb.delete('blocks', row.id);
-  }
-  for (const raw of bundle.blocks) {
+  const blockRows = bundle.blocks.map((raw) => {
     const r = raw as {
       id: string; document_id: string; chapter_id: string; type: string;
       content: string; marks?: unknown; order_idx: number; metadata: unknown;
@@ -228,43 +213,75 @@ export async function applySyncBundleToDocument(
       created_at: r.created_at,
       updated_at: r.updated_at,
     });
-    await saveBlock(block, docId);
-  }
+    return blockToRow(block, docId);
+  });
 
-  // ── 3. Characters: delete existing, insert from bundle ────────────────────
-  const existingCharacters = await idb.getAllFromIndex('characters', 'by_document', docId);
-  for (const row of existingCharacters) {
-    await idb.delete('characters', row.id);
-  }
-  for (const raw of bundle.characters) {
+  const characterRows = bundle.characters.map((raw) => {
     const r = raw as {
       id: string; document_id: string; name: string; aliases: string[];
       notes: string; color: string; description?: string;
       created_at: string; updated_at: string;
     };
     const character: Character = rowToCharacter(r);
-    await saveCharacter(character);
-  }
+    return characterToRow(character);
+  });
 
-  // ── 4. Sentiments: delete existing, insert from bundle ────────────────────
-  const existingSentiments = await idb.getAllFromIndex('sentiments', 'by_document', docId);
-  for (const row of existingSentiments) {
-    await idb.delete('sentiments', row.block_id);
-  }
-  for (const raw of bundle.sentiments) {
+  const sentimentRows: SentimentRow[] = bundle.sentiments.map((raw) => {
     const r = raw as {
       block_id: string; document_id?: string; label: string; score: number;
       content_hash: string; analyzed_at: string; source?: 'light' | 'deep';
     };
-    const entry: SentimentEntry = {
-      blockId: r.block_id,
+    return {
+      block_id: r.block_id,
+      document_id: docId,
       label: r.label,
       score: r.score,
-      contentHash: r.content_hash,
-      analyzedAt: r.analyzed_at,
+      content_hash: r.content_hash,
+      analyzed_at: r.analyzed_at,
       source: r.source,
     };
-    await saveSentiment(docId, entry);
+  });
+
+  // ── 2. Delete-then-insert in ONE transaction. The old per-row await
+  // version could fail after deleting chapters but before inserting the
+  // replacements, corrupting the local document; now a failure anywhere
+  // rolls everything back (NO block_revisions — undo history is local). ─────
+  const tx = idb.transaction(
+    ['documents', 'chapters', 'blocks', 'characters', 'sentiments'],
+    'readwrite',
+  );
+  const writes: Promise<unknown>[] = [];
+  try {
+    const [chapterKeys, blockKeys, characterKeys, sentimentKeys] = await Promise.all([
+      tx.objectStore('chapters').index('by_document').getAllKeys(docId),
+      tx.objectStore('blocks').index('by_document').getAllKeys(docId),
+      tx.objectStore('characters').index('by_document').getAllKeys(docId),
+      tx.objectStore('sentiments').index('by_document').getAllKeys(docId),
+    ]);
+    await Promise.all([
+      ...chapterKeys.map((k) => tx.objectStore('chapters').delete(k)),
+      ...blockKeys.map((k) => tx.objectStore('blocks').delete(k)),
+      ...characterKeys.map((k) => tx.objectStore('characters').delete(k)),
+      ...sentimentKeys.map((k) => tx.objectStore('sentiments').delete(k)),
+    ]);
+    writes.push(tx.objectStore('documents').put(newRow));
+    for (const r of chapterRows) writes.push(tx.objectStore('chapters').put(r));
+    for (const r of blockRows) writes.push(tx.objectStore('blocks').put(r));
+    for (const r of characterRows) writes.push(tx.objectStore('characters').put(r));
+    for (const r of sentimentRows) writes.push(tx.objectStore('sentiments').put(r));
+    await Promise.all([...writes, tx.done]);
+  } catch (err) {
+    // Absorb tx.done first (it rejects the moment the abort lands), then
+    // abort explicitly — a synchronous put() throw would otherwise let
+    // the deletes commit without their replacement inserts.
+    tx.done.catch(() => undefined);
+    try {
+      tx.abort();
+    } catch {
+      /* transaction already aborted or finished */
+    }
+    await Promise.allSettled(writes);
+    throw err;
   }
 }
 
