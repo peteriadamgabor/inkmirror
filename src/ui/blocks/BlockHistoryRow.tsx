@@ -1,23 +1,10 @@
 import { For, Show } from 'solid-js';
 import { diffWords, countSegments, type WordDiffSegment } from '@/utils/word-diff';
 import { t } from '@/i18n';
+import { formatEditedTimestamp } from '@/utils/block-timestamp';
 import type { BlockRevision } from '@/db/repository-revisions';
 
 const MAJOR_REWRITE_THRESHOLD = 10;
-
-function formatRelative(iso: string, now: number): string {
-  const ms = new Date(iso).getTime();
-  if (Number.isNaN(ms)) return iso;
-  const diff = Math.max(0, now - ms);
-  const s = Math.round(diff / 1000);
-  if (s < 5) return 'just now';
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 /**
  * Elide equal segments to "…" except for ~3 words of context around any
@@ -101,7 +88,7 @@ export function BlockHistoryRow(props: Props) {
           class="text-[10px] text-stone-500 dark:text-stone-400"
           classList={{ 'text-violet-500 font-medium': isLive() || props.isPreviewing }}
         >
-          {formatRelative(props.rev.snapshotAt, now())}
+          {formatEditedTimestamp(props.rev.snapshotAt, { now: now() })}
           {isLive() && ' · current'}
         </span>
         <Show when={!isLive() && props.prev}>

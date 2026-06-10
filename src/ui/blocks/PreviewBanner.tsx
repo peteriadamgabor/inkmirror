@@ -2,23 +2,12 @@ import { onCleanup, onMount } from 'solid-js';
 import { previewState, exitPreview, commitPreview } from '@/store/preview';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
-
-function formatRelative(iso: string, now: number): string {
-  const ms = new Date(iso).getTime();
-  if (Number.isNaN(ms)) return iso;
-  const s = Math.round(Math.max(0, now - ms) / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+import { formatEditedTimestamp } from '@/utils/block-timestamp';
 
 export function PreviewBanner() {
   const ago = () => {
     const s = previewState();
-    return s ? formatRelative(s.snapshotAt, Date.now()) : '';
+    return s ? formatEditedTimestamp(s.snapshotAt) : '';
   };
 
   const onRestore = async () => {

@@ -53,6 +53,7 @@ export const en = {
       docx: 'DOCX',
       pdf: 'PDF',
     },
+    noChapters: 'No chapters',
     newChapter: 'New chapter',
     chapterKinds: {
       cover: 'Cover',
@@ -197,6 +198,8 @@ export const en = {
     installFailed: 'Install failed.',
     sharedImported: 'Shared bundle imported.',
     sharedNotFound: 'No shared file to import.',
+    sharedImportFailed: 'Importing the shared file failed.',
+    launchFileFailed: 'Could not open "{{name}}".',
   },
   colorPicker: {
     label: 'Color',
@@ -233,6 +236,7 @@ export const en = {
     hideStoryPanel: 'Hide story panel',
   },
   misc: {
+    noDocumentLoaded: 'No document loaded',
     blockActions: 'Block actions',
     chapterActions: 'Chapter actions',
     characterActions: 'Character actions',
@@ -591,6 +595,8 @@ export const en = {
       note: 'Private notes. Not exported, not counted in word count.',
     },
     dragToReorder: 'Drag to reorder',
+    slashTitle: 'Block type',
+    slashNoMatch: 'No match',
     changeType: 'click to change type',
     speaker: 'speaker',
     speakerChange: 'Change speaker',
@@ -874,6 +880,7 @@ export const en = {
     replaceAllTitle: 'Replace every match (Shift+Enter)',
   },
   toast: {
+    unexpectedError: 'Something went wrong in the background. Your text is safe — consider exporting a backup.',
     exportFailed: 'Export failed: {{error}}',
     exportSuccess: 'Exported ({{n}} {{unit}})',
     exportUnitSingular: 'document',

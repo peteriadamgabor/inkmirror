@@ -1,6 +1,9 @@
 import { importBridge } from '@/store/import-bridge';
+import { toast } from '@/ui/shared/toast';
+import { t } from '@/i18n';
 
 interface FileSystemFileHandleLite {
+  name?: string;
   getFile(): Promise<File>;
 }
 
@@ -41,6 +44,10 @@ export async function consumeShareTargetIfPresent(): Promise<void> {
     await importBridge(file);
   } catch {
     window.history.replaceState(null, '', '/');
+    // The user shared a file into the app and it never arrived — say so
+    // instead of silently landing on the picker (cache quota errors and
+    // malformed bundles both end up here).
+    toast.error(t('pwa.sharedImportFailed'));
   }
 }
 
@@ -60,8 +67,9 @@ export function installPwaLaunchHandler(): void {
         const file = await handle.getFile();
         await importBridge(file, {});
       } catch {
-        // Skip unreadable handles silently — there is no UI surface to
-        // report into at boot time.
+        // launchQueue consumers fire after boot, so the toast host is up
+        // by the time a handle turns out to be unreadable.
+        toast.error(t('pwa.launchFileFailed', { name: handle.name ?? 'file' }));
       }
     }
   });

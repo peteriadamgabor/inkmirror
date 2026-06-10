@@ -32,6 +32,7 @@ import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
 import { installSwUpdatePrompt } from '@/ui/shared/sw-update';
+import { installGlobalErrorSurface } from '@/ui/shared/global-errors';
 import { installPwaInstallCapture } from '@/ui/shared/pwa-install';
 import {
   installPwaLaunchHandler,
@@ -216,6 +217,7 @@ if (isKnownPath) {
   // when the user has flipped the toggle in Settings → Privacy, so
   // non-opt-in users pay zero bytes for it.
   void initGlitchTip();
+  installGlobalErrorSurface();
   installSwUpdatePrompt();
   installPwaInstallCapture();
   installPwaLaunchHandler();

@@ -6,7 +6,7 @@
  * contenteditable below it.
  */
 
-import { Show } from 'solid-js';
+import { For, Show } from 'solid-js';
 import {
   store,
   createBlockAfter,
@@ -280,23 +280,25 @@ export const BlockHeader = (props: Props) => {
       </Show>
       <Show when={mentionedChars().length > 0}>
         <span class="flex items-center gap-0.5">
-          {mentionedChars().map((c) => (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openCharacterPage(c.id);
-              }}
-              class="w-2 h-2 rounded-full hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-stone-800 transition-[box-shadow]"
-              style={{
-                'background-color': c.color,
-                '--tw-ring-color': c.color,
-              }}
-              title={c.name}
-              aria-label={c.name}
-              data-mention-character-id={c.id}
-            />
-          ))}
+          <For each={mentionedChars()}>
+            {(c) => (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCharacterPage(c.id);
+                }}
+                class="w-2 h-2 rounded-full hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-stone-800 transition-[box-shadow]"
+                style={{
+                  'background-color': c.color,
+                  '--tw-ring-color': c.color,
+                }}
+                title={c.name}
+                aria-label={c.name}
+                data-mention-character-id={c.id}
+              />
+            )}
+          </For>
         </span>
       </Show>
       <span class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 focus-within:opacity-100 transition-opacity">

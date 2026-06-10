@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from 'solid-js';
+import { createSignal, onCleanup, onMount, For, Show } from 'solid-js';
 import { LANGUAGES, lang, setLang, t } from '@/i18n';
 
 interface Props {
@@ -46,23 +46,25 @@ export const LanguagePicker = (props: Props) => {
   if (variant() === 'inline') {
     return (
       <div class={`flex items-center gap-1.5 ${props.class ?? ''}`}>
-        {LANGUAGES.map((l) => {
-          const active = () => lang() === l.code;
-          return (
-            <button
-              type="button"
-              onClick={() => setLang(l.code)}
-              class="px-2.5 py-1 text-[11px] rounded-lg border transition-colors"
-              classList={{
-                'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-200':
-                  active(),
-                [buttonToneClass()]: !active(),
-              }}
-            >
-              {l.label}
-            </button>
-          );
-        })}
+        <For each={LANGUAGES}>
+          {(l) => {
+            const active = () => lang() === l.code;
+            return (
+              <button
+                type="button"
+                onClick={() => setLang(l.code)}
+                class="px-2.5 py-1 text-[11px] rounded-lg border transition-colors"
+                classList={{
+                  'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-200':
+                    active(),
+                  [buttonToneClass()]: !active(),
+                }}
+              >
+                {l.label}
+              </button>
+            );
+          }}
+        </For>
       </div>
     );
   }
@@ -84,31 +86,33 @@ export const LanguagePicker = (props: Props) => {
           class="absolute right-0 top-full mt-1.5 min-w-[140px] rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg overflow-hidden z-50"
           role="listbox"
         >
-          {LANGUAGES.map((l) => {
-            const active = () => lang() === l.code;
-            return (
-              <button
-                type="button"
-                onClick={() => {
-                  setLang(l.code);
-                  setOpen(false);
-                }}
-                role="option"
-                aria-selected={active()}
-                class="w-full text-left px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center justify-between gap-2 transition-colors"
-                classList={{
-                  'text-violet-700 dark:text-violet-200 bg-violet-50/50 dark:bg-violet-900/20':
-                    active(),
-                  'text-stone-700 dark:text-stone-200': !active(),
-                }}
-              >
-                <span>{l.label}</span>
-                <Show when={active()}>
-                  <span class="text-[10px] text-violet-500">●</span>
-                </Show>
-              </button>
-            );
-          })}
+          <For each={LANGUAGES}>
+            {(l) => {
+              const active = () => lang() === l.code;
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLang(l.code);
+                    setOpen(false);
+                  }}
+                  role="option"
+                  aria-selected={active()}
+                  class="w-full text-left px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center justify-between gap-2 transition-colors"
+                  classList={{
+                    'text-violet-700 dark:text-violet-200 bg-violet-50/50 dark:bg-violet-900/20':
+                      active(),
+                    'text-stone-700 dark:text-stone-200': !active(),
+                  }}
+                >
+                  <span>{l.label}</span>
+                  <Show when={active()}>
+                    <span class="text-[10px] text-violet-500">●</span>
+                  </Show>
+                </button>
+              );
+            }}
+          </For>
         </div>
       </Show>
     </div>

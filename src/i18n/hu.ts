@@ -54,6 +54,7 @@ export const hu: Messages = {
       docx: 'DOCX',
       pdf: 'PDF',
     },
+    noChapters: 'Nincsenek fejezetek',
     newChapter: 'Új fejezet',
     chapterKinds: {
       cover: 'Borító',
@@ -198,6 +199,8 @@ export const hu: Messages = {
     installFailed: 'A telepítés nem sikerült.',
     sharedImported: 'Megosztott csomag betöltve.',
     sharedNotFound: 'Nincs megosztott fájl a betöltéshez.',
+    sharedImportFailed: 'A megosztott fájl importálása nem sikerült.',
+    launchFileFailed: 'A(z) "{{name}}" fájlt nem sikerült megnyitni.',
   },
   colorPicker: {
     label: 'Szín',
@@ -234,6 +237,7 @@ export const hu: Messages = {
     hideStoryPanel: 'Történet panel elrejtése',
   },
   misc: {
+    noDocumentLoaded: 'Nincs betöltött dokumentum',
     blockActions: 'Blokk műveletek',
     chapterActions: 'Fejezet műveletek',
     characterActions: 'Karakter műveletek',
@@ -271,6 +275,8 @@ export const hu: Messages = {
       note: 'Saját jegyzetek. Nem kerül exportálásra, nem számít a szószámba.',
     },
     dragToReorder: 'Húzd az átrendezéshez',
+    slashTitle: 'Blokk típusa',
+    slashNoMatch: 'Nincs találat',
     changeType: 'kattints a típusváltáshoz',
     speaker: 'beszélő',
     speakerChange: 'Beszélő váltása',
@@ -554,6 +560,7 @@ export const hu: Messages = {
     replaceAllTitle: 'Minden találat cseréje (Shift+Enter)',
   },
   toast: {
+    unexpectedError: 'Valami hiba történt a háttérben. A szöveged biztonságban van — érdemes lehet biztonsági mentést exportálni.',
     exportFailed: 'Export hiba: {{error}}',
     exportSuccess: 'Exportálva ({{n}} {{unit}})',
     exportUnitSingular: 'dokumentum',

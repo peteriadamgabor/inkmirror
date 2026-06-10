@@ -14,6 +14,7 @@ import type {
   UUID,
 } from '@/types';
 import * as repo from '@/db/repository';
+import { debounce } from '@/utils/debounce';
 import {
   canPersist,
   rescanAllCharacterMentions,
@@ -22,6 +23,12 @@ import {
   track,
   uuid,
 } from './document';
+
+// Rename/alias edits arrive per keystroke from the character card inputs;
+// each rescan walks every block in the document, so batch them. Create /
+// delete stay immediate — they're single events and the mention dots
+// should react instantly.
+const rescanMentionsDebounced = debounce(rescanAllCharacterMentions, 200);
 
 const DEFAULT_CHARACTER_COLORS = [
   '#7F77DD', // violet-500 (writer)
@@ -72,7 +79,7 @@ export function updateCharacter(
     updated_at: now,
   }));
   if (nameChanged) {
-    rescanAllCharacterMentions();
+    rescanMentionsDebounced();
     // Dialogue blocks derive their speaker label from the character
     // card on read, so renames are automatic — no propagation needed.
   }

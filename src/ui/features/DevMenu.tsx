@@ -220,7 +220,7 @@ const DevMenu = () => {
                 type="button"
                 onClick={requestClose}
                 class="w-7 h-7 rounded text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-                aria-label="close"
+                aria-label={t('common.close')}
               >
                 ×
               </button>

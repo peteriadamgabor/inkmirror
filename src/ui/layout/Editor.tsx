@@ -1,4 +1,14 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+  untrack,
+} from 'solid-js';
+import { debounce } from '@/utils/debounce';
 import { BlockView } from '@/ui/blocks/BlockView';
 import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
@@ -56,28 +66,51 @@ export const Editor = () => {
   // INITIAL_BLOCK_HEIGHT estimate so the scrollbar starts too big rather
   // than too small. ResizeObserver then shrinks measurements to match the
   // real rendered DOM. Shrinkage is visually less jarring than growth.
-  createEffect(() => {
-    const order = store.blockOrder;
-    for (const id of order) {
-      const block = store.blocks[id];
-      if (!block) continue;
-      const hash = contentHash(block.content);
-      const cached = store.measurements[id];
-      if (cached && cached.contentHash === hash) continue;
-      let estimate = INITIAL_BLOCK_HEIGHT;
-      try {
-        const result = measurer.measure({
-          text: block.content,
-          font: EDITOR_FONT,
-          width: EDITOR_WIDTH,
-          lineHeight: LINE_HEIGHT,
-        });
-        estimate = Math.max(INITIAL_BLOCK_HEIGHT, result.height + BLOCK_CHROME_PX);
-      } catch {
-        /* fall through to INITIAL_BLOCK_HEIGHT */
+  // The pass itself runs untracked and debounced: hashing + measuring every
+  // stale block synchronously on each content commit blocks the main thread
+  // on long documents (rule: debounce pretext measurements). Unmeasured
+  // blocks fall back to INITIAL_BLOCK_HEIGHT in the meantime and
+  // ResizeObserver corrects the visible ones, so a short delay is invisible.
+  const measurePass = () =>
+    untrack(() => {
+      for (const id of store.blockOrder) {
+        const block = store.blocks[id];
+        if (!block) continue;
+        const hash = contentHash(block.content);
+        const cached = store.measurements[id];
+        if (cached && cached.contentHash === hash) continue;
+        let estimate = INITIAL_BLOCK_HEIGHT;
+        try {
+          const result = measurer.measure({
+            text: block.content,
+            font: EDITOR_FONT,
+            width: EDITOR_WIDTH,
+            lineHeight: LINE_HEIGHT,
+          });
+          estimate = Math.max(INITIAL_BLOCK_HEIGHT, result.height + BLOCK_CHROME_PX);
+        } catch {
+          /* fall through to INITIAL_BLOCK_HEIGHT */
+        }
+        setMeasurement(id, { height: estimate, contentHash: hash });
       }
-      setMeasurement(id, { height: estimate, contentHash: hash });
+    });
+  const measureDebounced = debounce(measurePass, 150);
+
+  let firstMeasure = true;
+  createEffect(() => {
+    // Cheap tracking sweep — touch order + each block's content so the
+    // effect re-arms on edits, then defer the real work.
+    for (const id of store.blockOrder) {
+      void store.blocks[id]?.content;
     }
+    if (firstMeasure) {
+      // Initial pass runs synchronously so the virtualizer starts from
+      // real estimates instead of flat INITIAL_BLOCK_HEIGHT guesses.
+      firstMeasure = false;
+      measurePass();
+      return;
+    }
+    measureDebounced();
   });
 
   // Find which block currently sits at the top of the viewport and at what
@@ -401,7 +434,7 @@ export const Editor = () => {
           }}
         >
           <div style={{ transform: `translateY(${visible().offsetTop}px)` }}>
-            <For each={visibleBlocks()} fallback={<div class="p-8 text-stone-500">No document loaded</div>}>
+            <For each={visibleBlocks()} fallback={<div class="p-8 text-stone-500">{t('misc.noDocumentLoaded')}</div>}>
               {(block) => <BlockView block={block} />}
             </For>
           </div>

@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { pendingSlashMenu, resolveSlashMenu } from './slashMenu';
 import { slashMenuItems, filterSlashItems } from '@/ui/blocks/slash-menu-items';
+import { t } from '@/i18n';
 
 const MENU_WIDTH = 260;
 
@@ -125,7 +126,7 @@ export const SlashMenuHost = () => {
         onClick={(e) => e.stopPropagation()}
       >
         <div class="px-2 pt-2 pb-1 text-[10px] inkmirror-smallcaps text-stone-400 flex items-center gap-2">
-          <span>Block type</span>
+          <span>{t('block.slashTitle')}</span>
           <Show when={filter()}>
             <span class="font-mono text-stone-500 normal-case">/{filter()}</span>
           </Show>
@@ -133,7 +134,7 @@ export const SlashMenuHost = () => {
         <Show
           when={visible().length > 0}
           fallback={
-            <div class="px-2 py-3 text-xs text-stone-400 italic">No match</div>
+            <div class="px-2 py-3 text-xs text-stone-400 italic">{t('block.slashNoMatch')}</div>
           }
         >
           <For each={visible()}>
