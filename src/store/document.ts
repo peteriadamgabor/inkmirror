@@ -150,6 +150,11 @@ export function track<T>(p: Promise<T>): Promise<T> {
       setSaveState('saved');
       saveStateTimer = setTimeout(() => setSaveState('idle'), 2000);
     }
+  }).catch(() => {
+    // The caller owns p's rejection — this derived bookkeeping chain must
+    // not re-surface it as an unhandledrejection (it reached the global
+    // error toast in production and tripped vitest's unhandled-error
+    // detector in preview.test.ts).
   });
   return p;
 }
