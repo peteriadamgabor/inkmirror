@@ -6,7 +6,8 @@
  * the rest so callers can keep using `import * as repo from '@/db/repository'`.
  */
 
-import { getDb } from './connection';
+import type { IDBPTransaction } from 'idb';
+import { getDb, type InkMirrorSchema } from './connection';
 import type {
   Block,
   Chapter,
@@ -105,16 +106,16 @@ export async function repointDeletedBlocksForDeletedChapter(
     // serialized one-transaction-per-put loop.
     const tx = idb.transaction('blocks', 'readwrite');
     const rows = await tx.store.index('by_document').getAll(documentId);
-    await Promise.all(
-      rows
+    await Promise.all([
+      ...rows
         .filter((row) => row.deleted_at !== null && row.chapter_id === deletedChapterId)
         .map((row) => {
           row.chapter_id = fallbackChapterId;
           row.updated_at = now;
           return tx.store.put(row);
         }),
-    );
-    await tx.done;
+      tx.done,
+    ]);
   } catch (err) {
     logDbError('repository.repointDeletedBlocksForDeletedChapter', err);
     throw err;
@@ -319,6 +320,64 @@ export interface LoadedDocument {
  * NOTE: bypasses the DbLike test-injection layer because it spans
  * stores; test setup must use the real fake-indexeddb.
  */
+export const DOCUMENT_ROW_STORES = [
+  'documents',
+  'chapters',
+  'blocks',
+  'block_revisions',
+  'sentiments',
+  'characters',
+  'inconsistencies',
+] as const;
+
+/** A readwrite transaction spanning every store a document owns rows in. */
+export type DocumentRowsTx = IDBPTransaction<
+  InkMirrorSchema,
+  (typeof DOCUMENT_ROW_STORES)[number][],
+  'readwrite'
+>;
+
+/**
+ * Delete a document's rows inside a caller-provided transaction. Lets the
+ * replace-strategy import and the sync apply path wipe-and-rewrite in ONE
+ * transaction, so a failed rewrite rolls back to the original document
+ * instead of leaving a wiped library. Does not await tx.done — the caller
+ * owns the transaction lifecycle.
+ */
+export async function deleteDocumentRowsWithin(
+  tx: DocumentRowsTx,
+  documentId: UUID,
+): Promise<void> {
+  const blocksStore = tx.objectStore('blocks');
+  const revisionsStore = tx.objectStore('block_revisions');
+  const chaptersStore = tx.objectStore('chapters');
+  const sentimentsStore = tx.objectStore('sentiments');
+  const charactersStore = tx.objectStore('characters');
+  const inconsistenciesStore = tx.objectStore('inconsistencies');
+
+  const [blockKeys, chapterKeys, sentimentKeys, characterKeys, inconsistencyKeys] =
+    await Promise.all([
+      blocksStore.index('by_document').getAllKeys(documentId),
+      chaptersStore.index('by_document').getAllKeys(documentId),
+      sentimentsStore.index('by_document').getAllKeys(documentId),
+      charactersStore.index('by_document').getAllKeys(documentId),
+      inconsistenciesStore.index('by_document').getAllKeys(documentId),
+    ]);
+
+  await Promise.all([
+    ...blockKeys.map(async (blockKey) => {
+      const revKeys = await revisionsStore.index('by_block').getAllKeys(blockKey);
+      await Promise.all(revKeys.map((r) => revisionsStore.delete(r)));
+      await blocksStore.delete(blockKey);
+    }),
+    ...chapterKeys.map((k) => chaptersStore.delete(k)),
+    ...sentimentKeys.map((k) => sentimentsStore.delete(k)),
+    ...characterKeys.map((k) => charactersStore.delete(k)),
+    ...inconsistencyKeys.map((k) => inconsistenciesStore.delete(k)),
+    tx.objectStore('documents').delete(documentId),
+  ]);
+}
+
 export async function deleteDocumentAllRows(documentId: UUID): Promise<void> {
   try {
     const idb = await getDb();
@@ -326,39 +385,11 @@ export async function deleteDocumentAllRows(documentId: UUID): Promise<void> {
     // (no half-deleted document if something fails mid-way) and avoids
     // the prior per-row await pattern that serialized hundreds of
     // single-operation transactions on large documents.
-    const tx = idb.transaction(
-      ['documents', 'chapters', 'blocks', 'block_revisions', 'sentiments', 'characters', 'inconsistencies'],
-      'readwrite',
-    );
-    const blocksStore = tx.objectStore('blocks');
-    const revisionsStore = tx.objectStore('block_revisions');
-    const chaptersStore = tx.objectStore('chapters');
-    const sentimentsStore = tx.objectStore('sentiments');
-    const charactersStore = tx.objectStore('characters');
-    const inconsistenciesStore = tx.objectStore('inconsistencies');
-
-    const [blockKeys, chapterKeys, sentimentKeys, characterKeys, inconsistencyKeys] =
-      await Promise.all([
-        blocksStore.index('by_document').getAllKeys(documentId),
-        chaptersStore.index('by_document').getAllKeys(documentId),
-        sentimentsStore.index('by_document').getAllKeys(documentId),
-        charactersStore.index('by_document').getAllKeys(documentId),
-        inconsistenciesStore.index('by_document').getAllKeys(documentId),
-      ]);
-
-    await Promise.all([
-      ...blockKeys.map(async (blockKey) => {
-        const revKeys = await revisionsStore.index('by_block').getAllKeys(blockKey);
-        await Promise.all(revKeys.map((r) => revisionsStore.delete(r)));
-        await blocksStore.delete(blockKey);
-      }),
-      ...chapterKeys.map((k) => chaptersStore.delete(k)),
-      ...sentimentKeys.map((k) => sentimentsStore.delete(k)),
-      ...characterKeys.map((k) => charactersStore.delete(k)),
-      ...inconsistencyKeys.map((k) => inconsistenciesStore.delete(k)),
-      tx.objectStore('documents').delete(documentId),
-    ]);
-    await tx.done;
+    const tx = idb.transaction([...DOCUMENT_ROW_STORES], 'readwrite');
+    // tx.done joins the same Promise.all: if a delete fails the
+    // transaction aborts and tx.done rejects — awaiting it separately
+    // would leave that rejection unobserved.
+    await Promise.all([deleteDocumentRowsWithin(tx, documentId), tx.done]);
   } catch (err) {
     logDbError('repository.deleteDocumentAllRows', err);
     throw err;

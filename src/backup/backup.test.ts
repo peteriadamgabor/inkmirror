@@ -562,3 +562,52 @@ describe('backup roundtrip', () => {
     ).toBe(0);
   });
 });
+
+describe('import atomicity (rollback on mid-transaction failure)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  /** A row value structured-clone cannot serialize — put() rejects/throws. */
+  const POISON = (() => {}) as unknown as string;
+
+  it('replace-strategy import that fails mid-write leaves the original document intact', async () => {
+    await seed('doc-1');
+    const bundle = await exportDocumentBundle('doc-1');
+    bundle.document.title = 'Sabotaged Replacement';
+    bundle.sentiments.push({
+      blockId: 'blk-1',
+      label: POISON,
+      score: 0.5,
+      contentHash: 'h',
+      analyzedAt: new Date().toISOString(),
+    });
+
+    await expect(importDocumentBundle(bundle, 'replace')).rejects.toThrow();
+
+    // The wipe shares the import's transaction, so the failed import must
+    // roll the wipe back too — original rows all survive.
+    const loaded = await loadDocument('doc-1');
+    expect(loaded?.document.title).toBe('Test Novel');
+    expect(loaded?.blocks.length).toBe(1);
+    expect(loaded?.characters.length).toBe(1);
+    const db = await getDb();
+    expect((await db.getAllFromIndex('blocks', 'by_document', 'doc-1')).length).toBe(2);
+    expect((await db.getAllFromIndex('chapters', 'by_document', 'doc-1')).length).toBe(1);
+  });
+
+  it('database restore that fails mid-write lands nothing (no orphaned rows)', async () => {
+    await seed('doc-1');
+    const backup = await exportDatabaseBackup();
+    await resetDb();
+    backup.stores.blocks[0] = { ...backup.stores.blocks[0], content: POISON };
+
+    await expect(importDatabaseBackup(backup)).rejects.toThrow();
+
+    const db = await getDb();
+    expect((await db.getAll('documents')).length).toBe(0);
+    expect((await db.getAll('chapters')).length).toBe(0);
+    expect((await db.getAll('blocks')).length).toBe(0);
+    expect((await db.getAll('characters')).length).toBe(0);
+  });
+});

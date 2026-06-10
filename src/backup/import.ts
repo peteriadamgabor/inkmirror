@@ -1,14 +1,21 @@
 import type { Block, Chapter, Character, Document, UUID } from '@/types';
-import { getDb, type BlockRevisionRow, type InkMirrorDb } from '@/db/connection';
 import {
-  deleteDocumentAllRows,
+  getDb,
+  type BlockRevisionRow,
+  type InkMirrorDb,
+  type SentimentRow,
+} from '@/db/connection';
+import {
+  DOCUMENT_ROW_STORES,
+  deleteDocumentRowsWithin,
   disambiguateTitle,
-  saveBlock,
-  saveChapter,
-  saveCharacter,
-  saveDocument,
-  saveSentiment,
 } from '@/db/repository';
+import {
+  blockToRow,
+  chapterToRow,
+  characterToRow,
+  documentToRow,
+} from '@/db/repository-rows';
 import {
   isDatabaseBackup,
   isDocumentBundle,
@@ -103,10 +110,6 @@ export async function importDocumentBundle(
   const existing = await db.get('documents', bundle.document.id);
   const collides = !!existing;
 
-  if (collides && strategy === 'replace') {
-    await deleteDocumentAllRows(bundle.document.id);
-  }
-
   const remap = collides && strategy === 'copy';
 
   // Build an id-map; identity when we're not remapping.
@@ -152,25 +155,26 @@ export async function importDocumentBundle(
       : null,
     updated_at: new Date().toISOString(),
   };
-  await saveDocument(importedDoc);
 
-  for (const ch of bundle.chapters) {
-    const imported: Chapter = {
+  // Build every row in memory first; all IDB writes (including the
+  // replace-strategy wipe) happen in ONE transaction at the end, so a
+  // failure anywhere rolls the whole import back — the pre-import
+  // document survives a botched replace.
+  const chapterRows = bundle.chapters.map((ch) =>
+    chapterToRow({
       ...ch,
       id: mapId(chapterIdMap, ch.id),
       document_id: newDocId,
-    };
-    await saveChapter(imported);
-  }
+    } satisfies Chapter),
+  );
 
-  for (const c of bundle.characters) {
-    const imported: Character = {
+  const characterRows = bundle.characters.map((c) =>
+    characterToRow({
       ...c,
       id: mapId(characterIdMap, c.id),
       document_id: newDocId,
-    };
-    await saveCharacter(imported);
-  }
+    } satisfies Character),
+  );
 
   // Soft-deleted blocks may carry a stale live `chapter_id` (or even a
   // stale `deleted_from.chapter_id`) when their original chapter was
@@ -181,7 +185,7 @@ export async function importDocumentBundle(
       ? mapId(chapterIdMap, bundle.chapters[0].id)
       : null;
 
-  for (const b of bundle.blocks) {
+  const blockRows = bundle.blocks.map((b) => {
     const deletedFromRaw = b.deleted_from;
     const deletedFrom = deletedFromRaw
       ? {
@@ -241,12 +245,50 @@ export async function importDocumentBundle(
       deleted_from: deletedFrom,
       metadata,
     };
-    await saveBlock(imported, newDocId);
-  }
+    return blockToRow(imported, newDocId);
+  });
 
-  for (const s of bundle.sentiments) {
-    const remappedBlockId = mapId(blockIdMap, s.blockId);
-    await saveSentiment(newDocId, { ...s, blockId: remappedBlockId });
+  const sentimentRows: SentimentRow[] = bundle.sentiments.map((s) => ({
+    block_id: mapId(blockIdMap, s.blockId),
+    document_id: newDocId,
+    label: s.label,
+    score: s.score,
+    content_hash: s.contentHash,
+    analyzed_at: s.analyzedAt,
+    source: s.source,
+  }));
+
+  const tx = db.transaction([...DOCUMENT_ROW_STORES], 'readwrite');
+  // Collect write promises one by one so that when put() throws
+  // synchronously (un-cloneable row), every already-issued request is in
+  // `writes` and can be settled on the failure path — otherwise they
+  // reject unobserved once the transaction aborts.
+  const writes: Promise<unknown>[] = [];
+  try {
+    if (collides && strategy === 'replace') {
+      // Same transaction as the writes below: if any insert fails, the
+      // wipe rolls back too and the original document is untouched.
+      await deleteDocumentRowsWithin(tx, bundle.document.id);
+    }
+    writes.push(tx.objectStore('documents').put(documentToRow(importedDoc)));
+    for (const r of chapterRows) writes.push(tx.objectStore('chapters').put(r));
+    for (const r of characterRows) writes.push(tx.objectStore('characters').put(r));
+    for (const r of blockRows) writes.push(tx.objectStore('blocks').put(r));
+    for (const r of sentimentRows) writes.push(tx.objectStore('sentiments').put(r));
+    await Promise.all([...writes, tx.done]);
+  } catch (err) {
+    // Absorb tx.done FIRST — it rejects as soon as the abort lands,
+    // before the individual write promises settle.
+    tx.done.catch(() => undefined);
+    // Explicit abort: a synchronous put() throw would otherwise let the
+    // already-issued wipe commit.
+    try {
+      tx.abort();
+    } catch {
+      /* transaction already aborted or finished */
+    }
+    await Promise.allSettled(writes);
+    throw err;
   }
 
   return {
@@ -278,34 +320,54 @@ export async function importDatabaseBackup(
   let skipped = 0;
   const addedTitles: string[] = [];
 
-  for (const d of backup.stores.documents) {
+  const docsToImport = backup.stores.documents.filter((d) => {
     if (existingDocIds.has(d.id)) {
       skipped++;
-      continue;
+      return false;
     }
     importableDocIds.add(d.id);
     added++;
     addedTitles.push(d.title || 'Untitled');
-    await db.put('documents', d);
-  }
+    return true;
+  });
 
   const within = (docId: string | undefined | null) =>
     !!docId && importableDocIds.has(docId);
 
-  for (const row of backup.stores.chapters) {
-    if (within(row.document_id)) await db.put('chapters', row);
-  }
-  for (const row of backup.stores.blocks) {
-    if (within(row.document_id)) await db.put('blocks', row);
-  }
-  for (const row of backup.stores.sentiments) {
-    if (within(row.document_id)) await db.put('sentiments', row);
-  }
-  for (const row of backup.stores.characters) {
-    if (within(row.document_id)) await db.put('characters', row);
-  }
-  for (const row of backup.stores.block_revisions as BlockRevisionRow[]) {
-    if (within(row.document_id)) await db.put('block_revisions', row);
+  // All writes in one transaction: a restore either lands completely or
+  // not at all — no orphaned chapters/blocks if IDB fails mid-restore.
+  const tx = db.transaction(
+    ['documents', 'chapters', 'blocks', 'sentiments', 'characters', 'block_revisions'],
+    'readwrite',
+  );
+  const writes: Promise<unknown>[] = [];
+  try {
+    for (const d of docsToImport) writes.push(tx.objectStore('documents').put(d));
+    for (const row of backup.stores.chapters) {
+      if (within(row.document_id)) writes.push(tx.objectStore('chapters').put(row));
+    }
+    for (const row of backup.stores.blocks) {
+      if (within(row.document_id)) writes.push(tx.objectStore('blocks').put(row));
+    }
+    for (const row of backup.stores.sentiments) {
+      if (within(row.document_id)) writes.push(tx.objectStore('sentiments').put(row));
+    }
+    for (const row of backup.stores.characters) {
+      if (within(row.document_id)) writes.push(tx.objectStore('characters').put(row));
+    }
+    for (const row of backup.stores.block_revisions as BlockRevisionRow[]) {
+      if (within(row.document_id)) writes.push(tx.objectStore('block_revisions').put(row));
+    }
+    await Promise.all([...writes, tx.done]);
+  } catch (err) {
+    tx.done.catch(() => undefined);
+    try {
+      tx.abort();
+    } catch {
+      /* transaction already aborted or finished */
+    }
+    await Promise.allSettled(writes);
+    throw err;
   }
 
   return {
