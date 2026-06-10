@@ -51,8 +51,13 @@ function isFilePath(pathname: string): boolean {
 }
 
 async function serveIndex(request: Request, env: Env, status = 200): Promise<Response> {
+  // Fetch `/`, NOT `/index.html`: the asset layer's default html_handling
+  // normalizes `/index.html` to `/` with a 307, and incoming Worker
+  // requests carry redirect mode "manual" — so asking for /index.html
+  // hands the browser a raw 307 instead of the shell. That 307 turned the
+  // first-visit `/` → `/landing` redirect into an infinite loop.
   const url = new URL(request.url);
-  const indexReq = new Request(new URL('/index.html', url.origin), request);
+  const indexReq = new Request(new URL('/', url.origin), request);
   const res = await env.ASSETS.fetch(indexReq);
   if (status === 200) return res;
   // Replay the body with the desired status (404 for unknown paths so

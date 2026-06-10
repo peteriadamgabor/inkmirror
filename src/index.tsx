@@ -8,7 +8,12 @@ import { LandingRoute } from '@/routes/landing';
 import { RoadmapRoute } from '@/routes/roadmap';
 import { PrivacyRoute } from '@/routes/privacy';
 import { NotFoundRoute } from '@/routes/not-found';
-import { hasVisited, markVisited } from '@/ui/shared/first-visit';
+import {
+  hasVisited,
+  markVisited,
+  landingRedirectBounced,
+  markLandingRedirect,
+} from '@/ui/shared/first-visit';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
 import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
@@ -140,7 +145,8 @@ const isKnownPath = KNOWN_PATHS.has(currentPath);
 // never even flashes the boot splash — they land on /landing first.
 // Only redirects from `/` (the editor entry); /roadmap, /landing, /perf
 // are self-contained and always reachable directly.
-if (currentPath === '/' && !hasVisited()) {
+if (currentPath === '/' && !hasVisited() && !landingRedirectBounced()) {
+  markLandingRedirect();
   window.location.replace('/landing');
 } else if (currentPath === '/') {
   // Ensure the marker is set for returning visitors who entered via
