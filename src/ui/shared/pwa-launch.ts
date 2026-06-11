@@ -1,5 +1,6 @@
 import { importBridge } from '@/store/import-bridge';
 import { importBridgeUi } from '@/ui/shared/import-ui';
+import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
@@ -42,6 +43,16 @@ export async function consumeShareTargetIfPresent(): Promise<void> {
     const file = new File([blob], name, { type: blob.type || 'application/json' });
     await cache.delete(`/__share/${id}`);
     window.history.replaceState(null, '', '/');
+    // Second CSRF layer (the SW's Sec-Fetch-Site check is the first):
+    // never import silently. The user must confirm the share by name —
+    // declining discards it (the cache entry is already deleted above).
+    const ok = await askConfirm({
+      title: t('pwa.shareConfirmTitle'),
+      message: t('pwa.shareConfirmBody', { name }),
+      confirmLabel: t('pwa.shareConfirmAction'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (!ok) return;
     await importBridge(file, importBridgeUi);
   } catch {
     window.history.replaceState(null, '', '/');

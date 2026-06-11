@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const importBridgeMock = vi.hoisted(() => vi.fn());
+const askConfirmMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/store/import-bridge', () => ({
   importBridge: importBridgeMock,
+}));
+vi.mock('@/ui/shared/confirm', () => ({
+  askConfirm: askConfirmMock,
+  // import-ui.ts (pulled in transitively) needs this export to exist.
+  askConfirmChoice: vi.fn(),
 }));
 
 let module: typeof import('./pwa-launch');
@@ -20,6 +26,8 @@ const mockCache: MockCache = {
 beforeEach(async () => {
   vi.resetModules();
   importBridgeMock.mockReset();
+  askConfirmMock.mockReset();
+  askConfirmMock.mockResolvedValue(true);
   mockCache.match.mockReset();
   mockCache.delete.mockReset();
   Object.defineProperty(globalThis, 'caches', {
@@ -31,20 +39,28 @@ beforeEach(async () => {
   module = await import('./pwa-launch');
 });
 
+function stubShareEntry(): void {
+  history.replaceState(null, '', '/?share=abc-123-def-456-7890-abcdefabcdef');
+  mockCache.match.mockResolvedValue(
+    new Response('{}', {
+      headers: {
+        'content-type': 'application/json',
+        'x-share-name': encodeURIComponent('shared.json'),
+      },
+    }),
+  );
+}
+
 describe('pwa-launch — ?share=<uuid>', () => {
-  it('reads cache, calls importBridge, deletes entry, replaces URL', async () => {
-    history.replaceState(null, '', '/?share=abc-123-def-456-7890-abcdefabcdef');
-    mockCache.match.mockResolvedValue(
-      new Response('{}', {
-        headers: {
-          'content-type': 'application/json',
-          'x-share-name': encodeURIComponent('shared.json'),
-        },
-      }),
-    );
+  it('asks for confirmation, then reads cache, calls importBridge, deletes entry, replaces URL', async () => {
+    stubShareEntry();
 
     await module.consumeShareTargetIfPresent();
 
+    expect(askConfirmMock).toHaveBeenCalledTimes(1);
+    // The prompt names the shared file so the user knows what they accept.
+    const [confirmOpts] = askConfirmMock.mock.calls[0];
+    expect(confirmOpts.message).toContain('shared.json');
     expect(importBridgeMock).toHaveBeenCalled();
     const [bridgeFile] = importBridgeMock.mock.calls[0];
     expect(bridgeFile).toBeInstanceOf(File);
@@ -53,9 +69,23 @@ describe('pwa-launch — ?share=<uuid>', () => {
     expect(location.search).toBe('');
   });
 
+  it('discards the cached share and skips import when the user declines', async () => {
+    stubShareEntry();
+    askConfirmMock.mockResolvedValue(false);
+
+    await module.consumeShareTargetIfPresent();
+
+    expect(askConfirmMock).toHaveBeenCalledTimes(1);
+    expect(importBridgeMock).not.toHaveBeenCalled();
+    // The cache entry is gone — the share cannot be replayed later.
+    expect(mockCache.delete).toHaveBeenCalled();
+    expect(location.search).toBe('');
+  });
+
   it('does nothing when there is no ?share=', async () => {
     history.replaceState(null, '', '/');
     await module.consumeShareTargetIfPresent();
+    expect(askConfirmMock).not.toHaveBeenCalled();
     expect(importBridgeMock).not.toHaveBeenCalled();
   });
 
@@ -63,6 +93,7 @@ describe('pwa-launch — ?share=<uuid>', () => {
     history.replaceState(null, '', '/?share=abc-123-def-456-7890-abcdefabcdef');
     mockCache.match.mockResolvedValue(undefined);
     await module.consumeShareTargetIfPresent();
+    expect(askConfirmMock).not.toHaveBeenCalled();
     expect(importBridgeMock).not.toHaveBeenCalled();
   });
 });
