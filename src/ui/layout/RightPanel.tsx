@@ -9,6 +9,7 @@ import { WordCount } from '@/ui/features/WordCount';
 import { CharacterSentiment } from '@/ui/features/CharacterSentiment';
 import { CharacterArcs } from '@/ui/features/CharacterArcs';
 import { ConsistencyPanel } from '@/ui/features/ConsistencyPanel';
+import { EchoesPanel } from '@/ui/features/EchoesPanel';
 import { SessionNotes } from '@/ui/features/SessionNotes';
 import { toggleRightPanel } from '@/store/ui-state';
 import { IconChevron } from '@/ui/shared/icons';
@@ -86,6 +87,8 @@ export const RightPanel = () => {
       <CharacterArcs />
 
       <ConsistencyPanel />
+
+      <EchoesPanel />
 
       <SessionNotes />
 

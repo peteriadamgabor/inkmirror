@@ -14,7 +14,7 @@ import {
 } from 'solid-js';
 import { setActiveChapter, store, updateBlockContent } from '@/store/document';
 import { allVisibleBlocks } from '@/store/selectors';
-import { uiState } from '@/store/ui-state';
+import { setSearchOpen, uiState } from '@/store/ui-state';
 import { shiftMarksForReplace } from '@/utils/replace-marks';
 import { t } from '@/i18n';
 import type { UUID } from '@/types';
@@ -229,6 +229,24 @@ function jumpTo(hit: SearchHit, onArrived?: () => void): void {
       }
     });
   });
+}
+
+/**
+ * Pre-fill channel: lets another feature (the Echoes panel) open the
+ * search bar already filled with a term, so every occurrence lights up
+ * with the existing highlight machinery. The bar consumes the value
+ * once; `null` means nothing pending.
+ */
+const [pendingSearchQuery, setPendingSearchQuery] = createSignal<string | null>(null);
+export { pendingSearchQuery };
+
+export function requestEditorSearch(query: string): void {
+  setSearchOpen(true);
+  setPendingSearchQuery(query);
+}
+
+export function consumePendingSearchQuery(): void {
+  setPendingSearchQuery(null);
 }
 
 export interface SearchHandle {

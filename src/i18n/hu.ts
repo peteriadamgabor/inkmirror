@@ -558,6 +558,26 @@ export const hu: Messages = {
       navigation: 'Navigáció',
     },
   },
+  echoes: {
+    title: 'Visszhangok',
+    scopeChapter: 'Fejezet',
+    scopeDocument: 'Dokumentum',
+    runNow: 'Vizsgálat',
+    scanning: 'Fülelek…',
+    empty: {
+      notYetRun: 'Még nem futott vizsgálat. A Visszhangok megtalálja a szavakat és kifejezéseket, amelyeket a próza ismétel.',
+      clean: 'Nincs visszhang — tisztán szól a szöveg.',
+    },
+    groups: {
+      overused: 'Túlhasznált szavak',
+      echoes: 'Közeli visszhangok',
+      phrases: 'Ismétlődő kifejezések',
+    },
+    perThousand: '{{n}}/1000 szó',
+    echoGap: '{{n}} szón belül',
+    scannedWords: '{{n}} szó átvizsgálva',
+    findHint: 'Minden előfordulás kiemelése a kéziratban',
+  },
   search: {
     placeholder: 'Keresés a dokumentumban…',
     counter: '{{current}} / {{total}}',

@@ -2,7 +2,12 @@ import { createEffect, Show } from 'solid-js';
 import { uiState, setSearchOpen } from '@/store/ui-state';
 import { t } from '@/i18n';
 import { IconChevron, IconClose, IconSearch } from '@/ui/shared/icons';
-import { useReplace, useSearch } from './editor-search-state';
+import {
+  consumePendingSearchQuery,
+  pendingSearchQuery,
+  useReplace,
+  useSearch,
+} from './editor-search-state';
 
 export const EditorSearch = () => {
   const search = useSearch();
@@ -16,6 +21,18 @@ export const EditorSearch = () => {
       replace.setReplacement('');
       queueMicrotask(() => inputEl?.focus());
     }
+  });
+
+  // Pre-filled open (Echoes panel): adopt the pending query whether the
+  // bar just opened or was already open. Runs after the reset effect
+  // (created later), so the adoption wins.
+  createEffect(() => {
+    const pending = pendingSearchQuery();
+    if (pending === null || !uiState.searchOpen) return;
+    search.setQuery(pending);
+    search.setCursor(0);
+    consumePendingSearchQuery();
+    queueMicrotask(() => inputEl?.focus());
   });
 
   const close = () => setSearchOpen(false);

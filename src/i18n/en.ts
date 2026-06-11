@@ -878,6 +878,26 @@ export const en = {
       navigation: 'Navigation',
     },
   },
+  echoes: {
+    title: 'Echoes',
+    scopeChapter: 'Chapter',
+    scopeDocument: 'Document',
+    runNow: 'Scan',
+    scanning: 'Listening…',
+    empty: {
+      notYetRun: 'Not scanned yet. Echoes finds the words and phrases your prose repeats.',
+      clean: 'No echoes — the prose reads clean.',
+    },
+    groups: {
+      overused: 'Overused words',
+      echoes: 'Close echoes',
+      phrases: 'Repeated phrases',
+    },
+    perThousand: '{{n}}/1000 words',
+    echoGap: 'within {{n}} words',
+    scannedWords: '{{n}} words scanned',
+    findHint: 'Highlight every occurrence in the manuscript',
+  },
   search: {
     placeholder: 'Search the document…',
     counter: '{{current}} / {{total}}',
