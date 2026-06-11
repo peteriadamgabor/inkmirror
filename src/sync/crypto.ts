@@ -91,8 +91,10 @@ const ENC_VERSION = 1 as const;
  * CryptoKey reference, but it cannot dump the key for later use or
  * exfiltrate it to an attacker-controlled server.
  *
- * The bytes still exist in IndexedDB — that's the L4 problem (storage-
- * layer wrapping), out of scope for this defensive layer.
+ * Since the keystore v2 row shape, the same non-extractable CryptoKey
+ * is what gets *persisted* to IndexedDB (CryptoKey is structured-
+ * clonable) — raw K_enc bytes no longer exist at rest either, which
+ * closes L4. Legacy base64 rows are migrated lazily on first load.
  */
 export async function importEncKey(rawBytes: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey(

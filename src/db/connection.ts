@@ -85,7 +85,12 @@ export interface DocumentRow {
   last_synced_at: number | null;
 }
 
-export interface SyncKeysRow {
+/**
+ * Legacy sync_keys row (pre-v2): K_enc persisted as plaintext base64
+ * (the old L4 accepted risk). Lazily migrated to v2 by
+ * `sync/keystore.loadKeys` — kept only so the migration can read it.
+ */
+export interface SyncKeysRowV1 {
   id: 'singleton';
   syncId: string;
   salt: string;       // base64url, 16 bytes
@@ -93,6 +98,26 @@ export interface SyncKeysRow {
   K_auth_b64: string; // base64url, 32 bytes
   createdAt: string;
 }
+
+/**
+ * sync_keys row, v2: K_enc is persisted as a non-extractable AES-GCM
+ * `CryptoKey` (CryptoKey objects are structured-clonable, so IDB stores
+ * them natively). The raw key bytes can never be read back out — same-
+ * origin XSS or local malware can no longer durably exfiltrate K_enc.
+ * K_auth stays base64: it is sent as a Bearer token on every request,
+ * so it is functionally exported and gains nothing from wrapping.
+ */
+export interface SyncKeysRowV2 {
+  id: 'singleton';
+  v: 2;
+  syncId: string;
+  salt: string;        // base64url, 16 bytes
+  K_enc_key: CryptoKey; // non-extractable, usages ['encrypt', 'decrypt']
+  K_auth_b64: string;  // base64url, 32 bytes
+  createdAt: string;
+}
+
+export type SyncKeysRow = SyncKeysRowV1 | SyncKeysRowV2;
 
 export interface InkMirrorSchema extends DBSchema {
   documents: {
