@@ -185,7 +185,7 @@ export function createBlockAfter(blockId: UUID, type: BlockType = 'text'): UUID 
   setStore('blockOrder', newOrder);
 
   if (canPersist() && store.document) {
-    track(repo.saveBlock(unwrap(newBlock), store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(newBlock), store.document.id));
   }
 
   return newId;
@@ -218,7 +218,7 @@ export function createBlockBefore(blockId: UUID, type: BlockType = 'text'): UUID
   setStore('blockOrder', newOrder);
 
   if (canPersist() && store.document) {
-    track(repo.saveBlock(unwrap(newBlock), store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(newBlock), store.document.id));
   }
 
   return newId;
@@ -293,8 +293,7 @@ export function duplicateBlock(blockId: UUID): UUID | null {
   if (canPersist() && store.document) {
     track(
       repo
-        .saveBlock(unwrap(store.blocks[newId]), store.document.id)
-        .catch(() => undefined),
+        .saveBlock(unwrap(store.blocks[newId]), store.document.id),
     );
   }
   return newId;
@@ -322,8 +321,7 @@ function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
       if (canPersist() && store.document) {
         track(
           repo
-            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id)
-            .catch(() => undefined),
+            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id),
         );
       }
       break;
@@ -348,8 +346,7 @@ function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
         if (canPersist()) {
           track(
             repo
-              .saveBlock(unwrap(store.blocks[restored.id]), entry.documentId)
-              .catch(() => undefined),
+              .saveBlock(unwrap(store.blocks[restored.id]), entry.documentId),
           );
         }
       }
@@ -371,8 +368,7 @@ function applyUndoEntry(entry: UndoEntry, isRedo: boolean): void {
       if (canPersist() && store.document) {
         track(
           repo
-            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id)
-            .catch(() => undefined),
+            .saveBlock(unwrap(store.blocks[entry.blockId]), store.document.id),
         );
       }
       break;
@@ -479,8 +475,7 @@ export function moveBlockToPosition(blockId: UUID, targetIndex: number): boolean
     // one single-put transaction per shifted block.
     track(
       repo
-        .saveBlocks(changedIds.map((id) => unwrap(store.blocks[id])), documentId)
-        .catch(() => undefined),
+        .saveBlocks(changedIds.map((id) => unwrap(store.blocks[id])), documentId),
     );
   }
   return true;
@@ -525,8 +520,8 @@ export function moveBlock(blockId: UUID, direction: 'up' | 'down'): boolean {
 
   if (canPersist() && store.document) {
     const documentId = store.document.id;
-    track(repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined));
-    track(repo.saveBlock(unwrap(store.blocks[neighborId]), documentId).catch(() => undefined));
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), documentId));
+    track(repo.saveBlock(unwrap(store.blocks[neighborId]), documentId));
   }
 
   return true;
@@ -578,7 +573,7 @@ export function updateBlockType(blockId: UUID, type: BlockType): void {
   });
 
   if (canPersist() && store.document) {
-    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id));
   }
 }
 
@@ -605,8 +600,7 @@ export function updateDialogueSpeaker(
   if (canPersist() && store.document) {
     track(
       repo
-        .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
-        .catch(() => undefined),
+        .saveBlock(unwrap(store.blocks[blockId]), store.document.id),
     );
   }
 }
@@ -630,8 +624,7 @@ export function updateDialogueParenthetical(
   if (canPersist() && store.document) {
     track(
       repo
-        .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
-        .catch(() => undefined),
+        .saveBlock(unwrap(store.blocks[blockId]), store.document.id),
     );
   }
 }
@@ -646,7 +639,7 @@ export function updateSceneMetadata(blockId: UUID, patch: Partial<SceneMetadata>
   };
   setStore('blocks', blockId, (b) => ({ ...b, metadata: next, updated_at: now }));
   if (canPersist() && store.document) {
-    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id));
   }
 }
 
@@ -723,7 +716,7 @@ export async function restoreBlock(blockId: UUID): Promise<void> {
   setStore('blocks', rehydrated.id, rehydrated);
   setStore('blockOrder', (order) => [...order, rehydrated.id]);
   // Persist the enriched row back so reloads see the recovered content.
-  track(repo.saveBlock(unwrap(store.blocks[rehydrated.id]), documentId).catch(() => undefined));
+  track(repo.saveBlock(unwrap(store.blocks[rehydrated.id]), documentId));
   await refreshGraveyard();
 }
 
@@ -766,6 +759,6 @@ export function deleteBlock(blockId: UUID, skipUndo = false): void {
     cancelPendingContentWrite(blockId);
     // Write content + deleted_at in one op so the graveyard preserves
     // whatever the user typed right up to the moment of deletion.
-    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id).catch(() => undefined));
+    track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id));
   }
 }

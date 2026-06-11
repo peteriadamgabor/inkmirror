@@ -81,8 +81,11 @@ export async function commitPreview(): Promise<void> {
     content: s.content,
     updated_at: nowIso,
   });
-  await track(
-    repo.saveBlock(unwrap(store.blocks[s.blockId]), documentId).catch(() => undefined),
+  // Swallow OUTSIDE track so the save-state machinery still observes a
+  // failed write (indicator → 'error' + notifier), while commitPreview
+  // itself keeps resolving — the restore already happened in the store.
+  await track(repo.saveBlock(unwrap(store.blocks[s.blockId]), documentId)).catch(
+    () => undefined,
   );
   setState(null);
 }

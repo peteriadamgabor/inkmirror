@@ -64,8 +64,8 @@ export function createChapter(
 
   if (canPersist() && store.document) {
     const documentId = store.document.id;
-    track(repo.saveChapter(unwrap(chapter)).catch(() => undefined));
-    track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+    track(repo.saveChapter(unwrap(chapter)));
+    track(repo.saveBlock(unwrap(block), documentId));
   }
 
   return { chapterId, blockId };
@@ -107,8 +107,7 @@ export function deleteChapter(chapterId: UUID): boolean {
     if (canPersist() && store.document) {
       track(
         repo
-          .saveBlock(unwrap(store.blocks[blockId]), store.document.id)
-          .catch(() => undefined),
+          .saveBlock(unwrap(store.blocks[blockId]), store.document.id),
       );
     }
   }
@@ -139,11 +138,10 @@ export function deleteChapter(chapterId: UUID): boolean {
             documentId,
             chapterId,
             fallbackChapterId,
-          )
-          .catch(() => undefined),
+          ),
       );
     }
-    track(repo.deleteChapterRow(chapterId).catch(() => undefined));
+    track(repo.deleteChapterRow(chapterId));
   }
   return true;
 }
@@ -170,7 +168,7 @@ export function moveChapter(chapterId: UUID, direction: 'up' | 'down'): boolean 
 
   if (canPersist()) {
     for (const c of [chapters[idx], chapters[swapIdx]]) {
-      track(repo.saveChapter(unwrap(c)).catch(() => undefined));
+      track(repo.saveChapter(unwrap(c)));
     }
   }
   return true;
@@ -186,6 +184,6 @@ export function renameChapter(chapterId: UUID, title: string): void {
 
   if (canPersist()) {
     const chapter = store.chapters[idx];
-    track(repo.saveChapter(unwrap(chapter)).catch(() => undefined));
+    track(repo.saveChapter(unwrap(chapter)));
   }
 }

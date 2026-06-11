@@ -11,6 +11,7 @@ export const hu: Messages = {
     save: 'Mentés',
     saved: 'Mentve',
     saving: 'Mentés…',
+    saveError: 'A mentés nem sikerült',
     delete: 'Törlés',
     close: 'Bezár',
     send: 'Küldés',
@@ -201,6 +202,9 @@ export const hu: Messages = {
     sharedNotFound: 'Nincs megosztott fájl a betöltéshez.',
     sharedImportFailed: 'A megosztott fájl importálása nem sikerült.',
     launchFileFailed: 'A(z) "{{name}}" fájlt nem sikerült megnyitni.',
+    shareConfirmTitle: 'Megosztott fájl importálása',
+    shareConfirmBody: 'Importálod a megosztott "{{name}}" fájlt a könyvtáradba?',
+    shareConfirmAction: 'Importálás',
   },
   colorPicker: {
     label: 'Szín',

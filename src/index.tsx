@@ -16,7 +16,11 @@ import {
 } from '@/ui/shared/first-visit';
 import { getDb } from '@/db/connection';
 import * as repo from '@/db/repository';
-import { hydrateFromLoaded, flushPendingWrites } from '@/store/document';
+import {
+  hydrateFromLoaded,
+  flushPendingWrites,
+  setPersistErrorNotifier,
+} from '@/store/document';
 import { clearUndoStack } from '@/store/undo';
 import { scheduleAiPreload } from '@/ai';
 import { installGlobalHotkeys } from '@/ui/shared/globalHotkeys';
@@ -237,6 +241,13 @@ if (isKnownPath) {
 }
 
 if (isKnownPath && !isStaticPage) {
+  // Failed IDB writes surface through here (store/ can't import ui/, so
+  // the store exposes an injection point — same pattern as ImportBridgeUi).
+  // The store rate-limits with its own cooldown; one toast per burst.
+  setPersistErrorNotifier(() => {
+    toast.error(t('toast.saveFailed'));
+  });
+
   void initDb()
     .then(async () => {
       // Preload last_sync_revision into the in-memory cache before startSync

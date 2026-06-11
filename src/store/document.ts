@@ -93,8 +93,9 @@ const initialState: AppState = {
 export const [store, setStore] = createStore<AppState>(initialState);
 
 // Reactive save-state indicator. Updated by the persistence plumbing
-// so the UI can show "Saving..." / "Saved".
-const [saveState, setSaveState] = createSignal<'idle' | 'saving' | 'saved'>('idle');
+// so the UI can show "Saving..." / "Saved" / "Save failed".
+export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+const [saveState, setSaveState] = createSignal<SaveState>('idle');
 export { saveState };
 
 // ---------- persistence plumbing ----------
@@ -136,6 +137,59 @@ export function setDocumentReplacedHook(hook: DocumentReplacedHook | null): void
 
 let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
 
+// ---------- persist-error surface (DI so store/ never imports ui/) ----------
+//
+// Mirrors the ImportBridgeUi / sentimentHook injection pattern: the UI
+// layer registers a callback at boot (index.tsx) that shows the translated
+// toast. A module-level cooldown keeps a burst of failing writes (e.g. IDB
+// quota exceeded rejecting every pending write at once) from spamming —
+// same idea as TOAST_COOLDOWN_MS in ui/shared/global-errors.ts.
+
+const PERSIST_ERROR_COOLDOWN_MS = 30_000;
+let lastPersistErrorAt = 0;
+
+type PersistErrorNotifier = (err: unknown) => void;
+let persistErrorNotifier: PersistErrorNotifier | null = null;
+
+export function setPersistErrorNotifier(notifier: PersistErrorNotifier | null): void {
+  persistErrorNotifier = notifier;
+}
+
+/** Test hook — reset the notifier cooldown + the per-batch error flag. */
+export function resetPersistErrorStateForTests(): void {
+  lastPersistErrorAt = 0;
+  batchHadWriteError = false;
+}
+
+function notifyPersistError(err: unknown): void {
+  // eslint-disable-next-line no-console
+  console.error('[inkmirror] persist failed:', err);
+  const now = Date.now();
+  if (now - lastPersistErrorAt < PERSIST_ERROR_COOLDOWN_MS) return;
+  lastPersistErrorAt = now;
+  persistErrorNotifier?.(err);
+}
+
+// True when any write in the currently-draining batch rejected; decides
+// whether the drain lands on 'saved' or 'error'. Reset at drain time so a
+// later all-successful batch returns the indicator to 'saved' (the toast
+// already informed the user about the earlier failure).
+let batchHadWriteError = false;
+
+function settleTrackedWrite(p: Promise<unknown>): void {
+  pendingWrites.delete(p);
+  if (pendingWrites.size !== 0) return;
+  if (batchHadWriteError) {
+    batchHadWriteError = false;
+    // Stay on 'error' — no auto-reset to idle. The indicator keeps the
+    // warning visible until a later batch persists cleanly.
+    setSaveState('error');
+  } else {
+    setSaveState('saved');
+    saveStateTimer = setTimeout(() => setSaveState('idle'), 2000);
+  }
+}
+
 export function track<T>(p: Promise<T>): Promise<T> {
   pendingWrites.add(p);
   setSaveState('saving');
@@ -144,18 +198,20 @@ export function track<T>(p: Promise<T>): Promise<T> {
   // markDirty is a no-op when sync isn't running, so this is always safe.
   const docId = store.document?.id;
   if (docId) markDirty(docId);
-  p.finally(() => {
-    pendingWrites.delete(p);
-    if (pendingWrites.size === 0) {
-      setSaveState('saved');
-      saveStateTimer = setTimeout(() => setSaveState('idle'), 2000);
-    }
-  }).catch(() => {
-    // The caller owns p's rejection — this derived bookkeeping chain must
-    // not re-surface it as an unhandledrejection (it reached the global
-    // error toast in production and tripped vitest's unhandled-error
-    // detector in preview.test.ts).
-  });
+  // Both callbacks are provided, so p counts as handled — a rejecting
+  // write must NOT re-surface as an unhandledrejection (it reached the
+  // global error toast in production and tripped vitest's unhandled-error
+  // detector in preview.test.ts). The failure is surfaced deliberately
+  // instead: the indicator flips to 'error' once the batch drains and the
+  // injected notifier fires (rate-limited by the cooldown above).
+  p.then(
+    () => settleTrackedWrite(p),
+    (err: unknown) => {
+      batchHadWriteError = true;
+      notifyPersistError(err);
+      settleTrackedWrite(p);
+    },
+  );
   return p;
 }
 
@@ -170,14 +226,13 @@ export function persistBlockNow(blockId: UUID): void {
   const documentId = store.document?.id;
   const block = store.blocks[blockId];
   if (!documentId || !block) return;
-  track(repo.saveBlock(unwrap(block), documentId).catch(() => undefined));
+  track(repo.saveBlock(unwrap(block), documentId));
   if (shouldSnapshot(blockId, block.content)) {
     const snapshotAt = block.updated_at;
     recordSnapshot(blockId, block.content, Date.parse(snapshotAt));
     track(
       repo
-        .saveRevision({ blockId, documentId, content: block.content, snapshotAt })
-        .catch(() => undefined),
+        .saveRevision({ blockId, documentId, content: block.content, snapshotAt }),
     );
   }
   rescanBlockMentions(blockId);
@@ -331,7 +386,7 @@ export function setSentiment(blockId: UUID, sentiment: BlockSentiment): void {
       analyzedAt: sentiment.analyzedAt,
       source: sentiment.source,
     };
-    track(repo.saveSentiment(store.document.id, entry).catch(() => undefined));
+    track(repo.saveSentiment(store.document.id, entry));
   }
 }
 
@@ -340,7 +395,7 @@ export function setSentiment(blockId: UUID, sentiment: BlockSentiment): void {
 export function setInconsistencyFlag(flag: InconsistencyFlag): void {
   setStore('inconsistencyFlags', flag.id, flag);
   if (persistEnabled) {
-    track(repo.saveInconsistencyFlag(unwrap(flag) as InconsistencyFlag).catch(() => undefined));
+    track(repo.saveInconsistencyFlag(unwrap(flag) as InconsistencyFlag));
   }
 }
 
@@ -352,7 +407,7 @@ export function removeInconsistencyFlag(id: string): void {
     }),
   );
   if (persistEnabled) {
-    track(repo.deleteInconsistencyFlag(id).catch(() => undefined));
+    track(repo.deleteInconsistencyFlag(id));
   }
 }
 
@@ -369,7 +424,7 @@ export function setInconsistencyFlagStatus(
   };
   setStore('inconsistencyFlags', id, next);
   if (persistEnabled) {
-    track(repo.setInconsistencyFlagStatus(id, status).catch(() => undefined));
+    track(repo.setInconsistencyFlagStatus(id, status));
   }
 }
 
@@ -415,7 +470,7 @@ export function updateDocumentMeta(
   setStore('document', (d) => (d ? { ...d, ...patch, updated_at: now } : d));
   if (persistEnabled) {
     const doc = unwrap(store.document);
-    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+    if (doc) track(repo.saveDocument(doc));
   }
 }
 
@@ -434,7 +489,7 @@ export function updateDocumentSettings(
   );
   if (persistEnabled) {
     const doc = unwrap(store.document);
-    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+    if (doc) track(repo.saveDocument(doc));
   }
 }
 
@@ -453,7 +508,7 @@ export function setPovCharacter(characterId: UUID | null): void {
   );
   if (persistEnabled) {
     const doc = unwrap(store.document);
-    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+    if (doc) track(repo.saveDocument(doc));
   }
 }
 

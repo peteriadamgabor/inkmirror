@@ -59,7 +59,7 @@ export function createCharacter(name: string): Character | null {
   rescanAllCharacterMentions();
 
   if (canPersist()) {
-    track(repo.saveCharacter(unwrap(character)).catch(() => undefined));
+    track(repo.saveCharacter(unwrap(character)));
   }
   return character;
 }
@@ -85,7 +85,7 @@ export function updateCharacter(
   }
 
   if (canPersist()) {
-    track(repo.saveCharacter(unwrap(store.characters[idx])).catch(() => undefined));
+    track(repo.saveCharacter(unwrap(store.characters[idx])));
   }
 }
 
@@ -101,11 +101,11 @@ export function deleteCharacter(id: UUID): void {
   if (store.document && store.document.pov_character_id === id) {
     setStore('document', 'pov_character_id', null);
     const doc = unwrap(store.document);
-    if (doc) track(repo.saveDocument(doc).catch(() => undefined));
+    if (doc) track(repo.saveDocument(doc));
   }
 
   if (canPersist()) {
-    track(repo.deleteCharacter(id).catch(() => undefined));
+    track(repo.deleteCharacter(id));
   }
 }
 
@@ -132,7 +132,7 @@ function propagateCharacterDelete(characterId: UUID): void {
     setStore('blocks', blockId, (b) => ({ ...b, metadata: next }));
     if (canPersist()) {
       track(
-        repo.saveBlock(unwrap(store.blocks[blockId]), documentId).catch(() => undefined),
+        repo.saveBlock(unwrap(store.blocks[blockId]), documentId),
       );
     }
   }

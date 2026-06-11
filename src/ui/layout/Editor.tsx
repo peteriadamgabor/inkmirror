@@ -402,8 +402,18 @@ export const Editor = () => {
         {/* Right: save state + What's new + language picker — same width as left for centering */}
         <div class="w-[160px] flex items-center justify-end gap-2 shrink-0">
           <Show when={saveState() !== 'idle'}>
-            <span class="text-[10px] text-stone-400">
-              {saveState() === 'saving' ? t('common.saving') : t('common.saved')}
+            <span
+              class={
+                saveState() === 'error'
+                  ? 'text-[10px] font-medium text-red-600 dark:text-red-400'
+                  : 'text-[10px] text-stone-400'
+              }
+            >
+              {saveState() === 'saving'
+                ? t('common.saving')
+                : saveState() === 'error'
+                  ? t('common.saveError')
+                  : t('common.saved')}
             </span>
           </Show>
           <WhatsNewButton tone="muted" />

@@ -10,6 +10,7 @@ export const en = {
     save: 'Save',
     saved: 'Saved',
     saving: 'Saving…',
+    saveError: 'Save failed',
     delete: 'Delete',
     close: 'Close',
     send: 'Send',
@@ -200,6 +201,9 @@ export const en = {
     sharedNotFound: 'No shared file to import.',
     sharedImportFailed: 'Importing the shared file failed.',
     launchFileFailed: 'Could not open "{{name}}".',
+    shareConfirmTitle: 'Import shared file',
+    shareConfirmBody: 'Import the shared file "{{name}}" into your library?',
+    shareConfirmAction: 'Import',
   },
   colorPicker: {
     label: 'Color',
