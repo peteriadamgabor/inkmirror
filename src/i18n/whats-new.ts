@@ -23,6 +23,18 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-06-11',
+    title: 'v0.9.0 — Sync that keeps its word',
+    items: [
+      'The per-document sync switch now does exactly what it says: turning it on pushes the document right away (including edits made while it was off), turning it off stops syncing immediately. Documents sync only when their box is ticked in Settings → Sync — check your list after updating.',
+      'Edits arriving from another device now appear immediately in the open editor and the document list — no more reloading the page to see them, and no more accidentally overwriting them.',
+      'Setting up sync or connecting a new device now works on the spot — previously nothing actually synced until the next page reload.',
+      "Sync recovers on its own after hitting the server's rate limit or losing connectivity, and re-checks the moment you're back online.",
+      'Polish across the sync settings: a live "N of M documents synced" counter, last-activity time, a copy button for the pair code, an "Add another device" flow that goes straight to the code, and clear feedback for "Sync now". Also, the "Encrypting your documents…" message no longer renders upside-down — sorry about that one.',
+      'Safety net underneath: importing a backup or applying a sync update is now all-or-nothing — a failure mid-way rolls everything back instead of leaving a half-written library.',
+    ],
+  },
+  {
     id: '2026-06-10',
     title: 'v0.8.0 — Install InkMirror',
     items: [
@@ -155,6 +167,18 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-06-11',
+    title: 'v0.9.0 — Szinkron, ami állja a szavát',
+    items: [
+      'A dokumentumonkénti szinkron-kapcsoló mostantól pontosan azt teszi, amit ígér: bekapcsoláskor azonnal feltölti a dokumentumot (a kikapcsolt állapotban írt változásokkal együtt), kikapcsoláskor azonnal leáll. Csak azok a dokumentumok szinkronizálódnak, amelyeknél be van pipálva a Beállítások → Szinkronizálás listában — frissítés után érdemes átnézni.',
+      'A másik eszközről érkező változások azonnal megjelennek a nyitott szerkesztőben és a dokumentumlistában — nem kell többé újratölteni az oldalt, és nem írod felül őket véletlenül.',
+      'A szinkron beállítása és egy új eszköz csatlakoztatása azonnal működik — korábban a következő oldalújratöltésig valójában semmi sem szinkronizálódott.',
+      'A szinkron magától helyreáll, ha a kiszolgáló forgalomkorlátjába ütközik vagy megszakad a kapcsolat, és abban a pillanatban újra ellenőriz, amint visszatér a net.',
+      'Csiszolás a szinkron-beállításokban: élő „N/M dokumentum szinkronizálva" számláló, utolsó aktivitás időpontja, másoló gomb a párosítókódhoz, az „Új eszköz hozzáadása" egyből a kódot mutatja, a „Szinkronizálás most" pedig világos visszajelzést ad. És a „Titkosítás folyamatban…" üzenet sem jelenik meg többé fejjel lefelé — ezt elnézést kérjük.',
+      'Biztonsági háló alul: a biztonsági mentés importálása és a szinkron-frissítés alkalmazása mostantól mindent-vagy-semmit művelet — egy menet közbeni hiba mindent visszagörget, nem hagy félig megírt könyvtárat.',
+    ],
+  },
   {
     id: '2026-06-10',
     title: 'v0.8.0 — InkMirror telepítése',
