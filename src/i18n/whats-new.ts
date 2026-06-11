@@ -23,6 +23,19 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-06-11b',
+    title: 'v0.10.0 — A book-shaped book, and saves you can trust',
+    items: [
+      'Cover, dedication, epigraph, acknowledgments and afterword chapters now export where they belong in every format — front matter before the story, back matter after, no chapter numbering, centered where a book would center them. EPUBs no longer ship two covers, and a Hungarian novel is finally tagged as Hungarian inside the EPUB.',
+      'If a save ever fails (full disk, private-mode storage limits), InkMirror now tells you immediately with a red indicator and a notification — previously it could quietly claim "Saved". Nothing changed about how often it saves; it just stopped being capable of lying about it.',
+      'Edits made offline now sync by themselves the moment you are back online — no more documents stuck in an error state until the next edit. Sync also stopped re-uploading documents whose content has not changed, which saves data and battery on every device in your circle.',
+      'Exporting and the writing-mood AI now keep working offline once you have used them — and the landing, roadmap and privacy pages open offline too.',
+      'Keyboard polish: Tab now stays inside open dialogs and returns you to where you were when they close — long overdue for screen-reader and keyboard-first writers.',
+      'Importing a file shared from another app now asks for confirmation first, so nothing can slip into your library without you saying yes.',
+      'Under the hood, a security hardening round: your encryption key is now stored in a form the browser cannot hand back out to anyone, the sync server enforces per-circle storage limits, and a handful of smaller server-side protections landed alongside.',
+    ],
+  },
+  {
     id: '2026-06-11',
     title: 'v0.9.0 — Sync that keeps its word',
     items: [
@@ -167,6 +180,19 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-06-11b',
+    title: 'v0.10.0 — Könyv alakú könyv, és mentés, amiben megbízhatsz',
+    items: [
+      'A borító, ajánlás, mottó, köszönetnyilvánítás és utószó fejezetek mostantól minden formátumban oda kerülnek exportáláskor, ahová valók — az előzékoldalak a történet elé, a zárszavak utána, fejezetszámozás nélkül, középre igazítva ott, ahol egy könyv is középre tenné. Az EPUB nem tartalmaz többé két borítót, és egy magyar regény végre magyarként van megjelölve az EPUB belsejében is.',
+      'Ha egy mentés valaha meghiúsul (megtelt lemez, privát mód tárhelykorlátja), az InkMirror azonnal szól: piros jelzés és értesítés — korábban előfordulhatott, hogy csendben „Mentve" feliratot mutatott. A mentések gyakorisága nem változott; csak hazudni nem tud többé róla.',
+      'Az offline írt változások mostantól maguktól szinkronizálódnak, amint visszatér a net — nincs többé hibaállapotban ragadt dokumentum a következő szerkesztésig. A szinkron ráadásul nem tölti fel újra a változatlan tartalmú dokumentumokat, ami adatot és akkumulátort spórol a kör minden eszközén.',
+      'Az exportálás és az írói hangulat-AI offline is működik, ha egyszer már használtad őket — és a kezdő-, ütemterv- és adatvédelmi oldalak is megnyílnak net nélkül.',
+      'Billentyűzet-csiszolás: a Tab mostantól a megnyitott párbeszédablakokon belül marad, bezárásukkor pedig oda visz vissza, ahol voltál — régóta esedékes a felolvasóprogramot és billentyűzetet használó íróknak.',
+      'Egy másik alkalmazásból megosztott fájl importálása mostantól megerősítést kér, így semmi sem csusszanhat be a könyvtáradba a beleegyezésed nélkül.',
+      'A motorháztető alatt biztonsági megerősítő kör: a titkosítókulcsod mostantól olyan formában tárolódik, amit a böngésző senkinek sem tud kiadni, a szinkron-kiszolgáló köröként tárhelykorlátot érvényesít, és emellett több kisebb kiszolgálóoldali védelem is érkezett.',
+    ],
+  },
   {
     id: '2026-06-11',
     title: 'v0.9.0 — Szinkron, ami állja a szavát',
