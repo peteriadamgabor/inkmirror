@@ -1,4 +1,18 @@
 {
   "version": 1,
-  "announcements": []
+  "announcements": [
+    {
+      "id": "2026-06-11-sync-backend-upgrade",
+      "severity": "info",
+      "minVersion": "0.9.0",
+      "title": {
+        "en": "Sync backend upgraded",
+        "hu": "Szinkron-háttér frissítve"
+      },
+      "body": {
+        "en": "We've upgraded how the sync server checks document versions, closing a rare window where two devices saving at the same moment could silently overwrite each other. Nothing to do on your side — your documents stay end-to-end encrypted and unreadable to the server. If a document shows a sync conflict in the coming days, that's the new safety net doing its job: pick the version you want to keep.",
+        "hu": "Frissítettük, ahogyan a szinkron-kiszolgáló a dokumentumverziókat ellenőrzi: bezártuk azt a ritka rést, ahol két eszköz egyidejű mentése csendben felülírhatta egymást. Teendőd nincs — a dokumentumaid továbbra is végpontok közt titkosítottak, a kiszolgáló nem tudja olvasni őket. Ha a következő napokban szinkron-ütközést jelez egy dokumentum, az az új védőháló működése: válaszd ki, melyik változatot tartod meg."
+      }
+    }
+  ]
 }

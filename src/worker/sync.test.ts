@@ -35,37 +35,80 @@ function makeKVStub(): KVNamespace & { _store: Map<string, KVEntry> } {
   } as unknown as KVNamespace & { _store: Map<string, KVEntry> };
 }
 
-function makeR2Stub(): R2Bucket & { _store: Map<string, string> } {
-  const _store = new Map<string, string>();
+interface R2StubEntry {
+  text: string;
+  etag: string;
+  customMetadata: Record<string, string>;
+  uploaded: Date;
+}
+
+/**
+ * Faithful-enough R2 fake: per-write etags, head(), conditional puts
+ * (onlyIf etagMatches / etagDoesNotMatch — returns null on a failed
+ * precondition, like real R2), and prefix list() with customMetadata.
+ * The conditional-put semantics are what the revision CAS tests rely on.
+ */
+function makeR2Stub(): R2Bucket & { _store: Map<string, R2StubEntry> } {
+  const _store = new Map<string, R2StubEntry>();
+  let etagCounter = 0;
+
+  const toObject = (key: string, e: R2StubEntry): R2Object =>
+    ({
+      key,
+      version: 'v1',
+      size: e.text.length,
+      etag: e.etag,
+      httpEtag: `"${e.etag}"`,
+      uploaded: e.uploaded,
+      checksums: {} as R2Checksums,
+      httpMetadata: {},
+      customMetadata: e.customMetadata,
+    }) as unknown as R2Object;
+
   return {
     _store,
-    async put(key: string, body: string | ArrayBuffer | Uint8Array | ReadableStream, _opts?: R2PutOptions) {
+    async put(
+      key: string,
+      body: string | ArrayBuffer | Uint8Array | ReadableStream,
+      opts?: R2PutOptions,
+    ) {
+      const onlyIf = opts?.onlyIf as
+        | { etagMatches?: string; etagDoesNotMatch?: string }
+        | undefined;
+      const existing = _store.get(key);
+      if (onlyIf?.etagMatches !== undefined) {
+        if (!existing || existing.etag !== onlyIf.etagMatches) return null;
+      }
+      if (onlyIf?.etagDoesNotMatch === '*' && existing) return null;
+
       const text = typeof body === 'string' ? body
         : body instanceof Uint8Array ? new TextDecoder().decode(body)
         : body instanceof ArrayBuffer ? new TextDecoder().decode(body)
         : '';
-      _store.set(key, text);
-      return { key, version: 'v1', size: text.length, etag: 'mock', httpEtag: 'mock', uploaded: new Date(), checksums: {} as R2Checksums, httpMetadata: {}, customMetadata: {} } as R2Object;
+      const entry: R2StubEntry = {
+        text,
+        etag: `etag-${++etagCounter}`,
+        customMetadata: { ...(opts?.customMetadata as Record<string, string> | undefined) },
+        uploaded: new Date('2026-06-11T10:00:00Z'),
+      };
+      _store.set(key, entry);
+      return toObject(key, entry);
+    },
+    async head(key: string) {
+      const e = _store.get(key);
+      return e ? toObject(key, e) : null;
     },
     async get(key: string) {
-      const text = _store.get(key);
-      if (text === undefined) return null;
+      const e = _store.get(key);
+      if (!e) return null;
       return {
-        key,
-        version: 'v1',
-        size: text.length,
-        etag: 'mock',
-        httpEtag: 'mock',
-        uploaded: new Date(),
-        checksums: {} as R2Checksums,
-        httpMetadata: {},
-        customMetadata: {},
-        async json<T>() { return JSON.parse(text) as T; },
-        async text() { return text; },
-        async arrayBuffer() { return new TextEncoder().encode(text).buffer; },
+        ...toObject(key, e),
+        async json<T>() { return JSON.parse(e.text) as T; },
+        async text() { return e.text; },
+        async arrayBuffer() { return new TextEncoder().encode(e.text).buffer; },
         body: null as unknown as ReadableStream,
         bodyUsed: false,
-        async blob() { return new Blob([text]); },
+        async blob() { return new Blob([e.text]); },
         writeHttpMetadata: () => {},
       } as unknown as R2ObjectBody;
     },
@@ -73,7 +116,14 @@ function makeR2Stub(): R2Bucket & { _store: Map<string, string> } {
       if (Array.isArray(key)) key.forEach(k => _store.delete(k));
       else _store.delete(key);
     },
-  } as unknown as R2Bucket & { _store: Map<string, string> };
+    async list(opts?: { prefix?: string; cursor?: string; include?: string[] }) {
+      const prefix = opts?.prefix ?? '';
+      const objects = Array.from(_store.entries())
+        .filter(([k]) => k.startsWith(prefix))
+        .map(([k, e]) => toObject(k, e));
+      return { objects, truncated: false, delimitedPrefixes: [] };
+    },
+  } as unknown as R2Bucket & { _store: Map<string, R2StubEntry> };
 }
 
 function makeRateLimit(): { limit(opts: { key: string }): Promise<{ success: boolean }> } {
@@ -303,13 +353,12 @@ describe('GET /sync/list/:syncId', () => {
     expect(await res.json()).toEqual([]);
   });
 
-  it('returns the meta records for docs that have been put', async () => {
+  it('lists docs that have been put, with revisions from R2 metadata', async () => {
     const env = makeEnv();
     const { syncId, K_auth_b64 } = await createCircle(env);
-    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
-    // Pre-populate two meta records directly into the stub
-    kv._store.set(`meta:${syncId}:doc-1`, { value: JSON.stringify({ revision: 3, updatedAt: '2026-04-27T12:00:00Z' }) });
-    kv._store.set(`meta:${syncId}:doc-2`, { value: JSON.stringify({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' }) });
+    await putDocAs(env, syncId, K_auth_b64, 'doc-1', 0);
+    await putDocAs(env, syncId, K_auth_b64, 'doc-2', 0);
+    await putDocAs(env, syncId, K_auth_b64, 'doc-2', 1);
 
     const res = await handleSync(
       new Request(`http://x/sync/list/${syncId}`, {
@@ -320,8 +369,32 @@ describe('GET /sync/list/:syncId', () => {
     expect(res.status).toBe(200);
     const list = (await res.json()) as Array<{ docId: string; revision: number; updatedAt: string }>;
     expect(list).toHaveLength(2);
-    expect(list.find(x => x.docId === 'doc-1')).toMatchObject({ revision: 3, updatedAt: '2026-04-27T12:00:00Z' });
-    expect(list.find(x => x.docId === 'doc-2')).toMatchObject({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' });
+    expect(list.find(x => x.docId === 'doc-1')).toMatchObject({ revision: 1 });
+    expect(list.find(x => x.docId === 'doc-2')).toMatchObject({ revision: 2 });
+  });
+
+  it('lists legacy blobs (no R2 revision metadata) with the KV mirror revision', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // Legacy state: blob without customMetadata + KV meta record.
+    const r2 = env.INKMIRROR_SYNC_R2 as R2Bucket & { _store: Map<string, unknown> };
+    await r2.put(`${syncId}/doc-legacy`, JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'ct' }));
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
+    kv._store.set(`meta:${syncId}:doc-legacy`, {
+      value: JSON.stringify({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' }),
+    });
+
+    const res = await handleSync(
+      new Request(`http://x/sync/list/${syncId}`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const list = (await res.json()) as Array<{ docId: string; revision: number; updatedAt: string }>;
+    expect(list).toEqual([
+      { docId: 'doc-legacy', revision: 7, updatedAt: '2026-04-27T13:00:00Z' },
+    ]);
   });
 
   it('returns 401 without auth', async () => {
@@ -345,6 +418,24 @@ function authedJsonRequest(url: string, K_auth_b64: string, method: string, body
     },
     body: JSON.stringify(body),
   });
+}
+
+async function putDocAs(
+  env: Env,
+  syncId: string,
+  K_auth_b64: string,
+  docId: string,
+  expectedRevision: number,
+): Promise<Response> {
+  return handleSync(
+    authedJsonRequest(`http://x/sync/doc/${syncId}/${docId}`, K_auth_b64, 'PUT', {
+      v: 1,
+      iv: toBase64Url(crypto.getRandomValues(new Uint8Array(12))),
+      ciphertext: toBase64Url(new Uint8Array([1, 2, 3, 4])),
+      expectedRevision,
+    }),
+    env,
+  );
 }
 
 describe('PUT /sync/doc/:syncId/:docId', () => {
@@ -652,5 +743,110 @@ describe('auth response indistinguishability', () => {
       env,
     );
     expect(res.status).toBe(401);
+  });
+});
+
+// ---------- R2-authoritative revisions (KV consistency redesign) ----------
+
+describe('revision CAS on R2 (lost-update protection)', () => {
+  it('ignores a stale KV mirror — R2 metadata is authoritative', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    await putDocAs(env, syncId, K_auth_b64, 'doc-1', 0); // revision 1
+    await putDocAs(env, syncId, K_auth_b64, 'doc-1', 1); // revision 2
+
+    // Simulate an eventually-consistent KV edge that still shows rev 1.
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
+    kv._store.set(`meta:${syncId}:doc-1`, {
+      value: JSON.stringify({ revision: 1, updatedAt: '2026-06-11T09:00:00Z' }),
+    });
+
+    // Old design: this push would pass the stale-KV check and silently
+    // overwrite revision 2 (lost update). New design: 409.
+    const res = await putDocAs(env, syncId, K_auth_b64, 'doc-1', 1);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ currentRevision: 2 });
+  });
+
+  it('returns 409 with fresh revision when the conditional put loses a race', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    await putDocAs(env, syncId, K_auth_b64, 'doc-1', 0); // revision 1
+
+    // Interleave a competing write between head and put: patch put to
+    // first let a "rival" write land, restoring the real put afterwards.
+    const r2 = env.INKMIRROR_SYNC_R2;
+    const realPut = r2.put.bind(r2);
+    let intercepted = false;
+    (r2 as { put: typeof r2.put }).put = (async (key, body, opts) => {
+      if (!intercepted) {
+        intercepted = true;
+        // Rival write bumps the object (new etag + revision 2)...
+        await realPut(key, JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'rival' }), {
+          customMetadata: { revision: '2', updatedAt: '2026-06-11T09:30:00Z' },
+        });
+        // ...then the original conditional put runs and must fail.
+        return realPut(key, body, opts);
+      }
+      return realPut(key, body, opts);
+    }) as typeof r2.put;
+
+    const res = await putDocAs(env, syncId, K_auth_b64, 'doc-1', 1);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ currentRevision: 2 });
+  });
+
+  it('migrates a legacy blob lazily: KV revision honored once, R2 metadata after the push', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // Legacy state: blob without customMetadata, revision only in KV.
+    await env.INKMIRROR_SYNC_R2.put(
+      `${syncId}/doc-old`,
+      JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'old' }),
+    );
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, { value: string }> };
+    kv._store.set(`meta:${syncId}:doc-old`, {
+      value: JSON.stringify({ revision: 7, updatedAt: '2026-04-27T13:00:00Z' }),
+    });
+
+    // GET serves the legacy revision from the mirror.
+    const getRes = await handleSync(
+      new Request(`http://x/sync/doc/${syncId}/doc-old`, {
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(getRes.status).toBe(200);
+    expect(((await getRes.json()) as { revision: number }).revision).toBe(7);
+
+    // Push against the legacy revision succeeds and migrates.
+    const putRes = await putDocAs(env, syncId, K_auth_b64, 'doc-old', 7);
+    expect(putRes.status).toBe(200);
+    expect(((await putRes.json()) as { revision: number }).revision).toBe(8);
+
+    const head = await env.INKMIRROR_SYNC_R2.head(`${syncId}/doc-old`);
+    expect(head?.customMetadata?.revision).toBe('8');
+  });
+
+  it('deleteCircle removes blobs even when their KV mirror is missing (orphan cleanup)', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // Orphaned blob: exists in R2, no meta record (old partial-failure leftover).
+    await env.INKMIRROR_SYNC_R2.put(
+      `${syncId}/doc-orphan`,
+      JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'orphan' }),
+    );
+
+    const res = await handleSync(
+      new Request(`http://x/sync/circles/${syncId}`, {
+        method: 'DELETE',
+        headers: { 'authorization': `Bearer ${K_auth_b64}` },
+      }),
+      env,
+    );
+    expect(res.status).toBe(204);
+    expect(await env.INKMIRROR_SYNC_R2.head(`${syncId}/doc-orphan`)).toBeNull();
+    const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, unknown> };
+    expect(kv._store.has(`circle:${syncId}`)).toBe(false);
   });
 });

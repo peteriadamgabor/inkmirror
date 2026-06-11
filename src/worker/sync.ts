@@ -200,9 +200,17 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   if (typeof body.expectedRevision !== 'number') return jsonError(400, 'invalid_body');
   if (body.ciphertext.length > MAX_BLOB_BYTES) return jsonError(413, 'too_large');
 
+  const objKey = `${syncId}/${docId}`;
   const metaKey = `meta:${syncId}:${docId}`;
-  const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
-  const currentRevision = rawMeta ? (JSON.parse(rawMeta) as { revision: number }).revision : 0;
+
+  // Revision authority lives in R2 object metadata (strongly consistent),
+  // NOT in KV: KV is eventually consistent across edges, so two devices
+  // hitting different locations could both pass a KV-based check and
+  // silently overwrite each other. Legacy objects (uploaded before this
+  // scheme) carry no revision metadata and fall back to the KV mirror
+  // once — their next successful push migrates them.
+  const head = await env.INKMIRROR_SYNC_R2.head(objKey);
+  const currentRevision = await resolveRevision(env, head, metaKey);
 
   if (body.expectedRevision !== currentRevision) {
     return Response.json({ currentRevision }, { status: 409 });
@@ -212,12 +220,45 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   const updatedAt = new Date().toISOString();
   const blob = JSON.stringify({ v: body.v, iv: body.iv, ciphertext: body.ciphertext });
 
-  await env.INKMIRROR_SYNC_R2.put(`${syncId}/${docId}`, blob, {
+  // Atomic compare-and-swap: this put succeeds only if the object is
+  // still exactly the version we just read (or still absent). A racing
+  // writer makes it fail cleanly instead of clobbering.
+  const written = await env.INKMIRROR_SYNC_R2.put(objKey, blob, {
     httpMetadata: { contentType: 'application/json' },
+    customMetadata: { revision: String(newRevision), updatedAt },
+    onlyIf: head ? { etagMatches: head.etag } : { etagDoesNotMatch: '*' },
   });
+  if (!written) {
+    // Lost the race — report the revision the winner left behind.
+    const freshHead = await env.INKMIRROR_SYNC_R2.head(objKey);
+    const freshRevision = await resolveRevision(env, freshHead, metaKey);
+    return Response.json({ currentRevision: freshRevision }, { status: 409 });
+  }
+
+  // KV stays as a NON-authoritative mirror: legacy list entries read it,
+  // and rolling back to the previous Worker keeps revision continuity.
+  // Correctness no longer depends on it.
   await env.INKMIRROR_SYNC_KV.put(metaKey, JSON.stringify({ revision: newRevision, updatedAt }));
 
   return Response.json({ revision: newRevision, updatedAt }, { status: 200 });
+}
+
+/**
+ * Current revision for a doc: R2 customMetadata when present (authoritative),
+ * otherwise the KV mirror (legacy objects + orphaned-mirror edge), else 0.
+ */
+async function resolveRevision(
+  env: Env,
+  head: R2Object | null,
+  metaKey: string,
+): Promise<number> {
+  const fromMeta = head?.customMetadata?.revision;
+  if (fromMeta !== undefined) {
+    const n = Number(fromMeta);
+    if (Number.isFinite(n)) return n;
+  }
+  const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
+  return rawMeta ? (JSON.parse(rawMeta) as { revision: number }).revision : 0;
 }
 
 async function getDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
@@ -226,19 +267,34 @@ async function getDoc(request: Request, env: Env, syncId: string, docId: string)
   const rl = await rateLimit(env.RL_SYNC_READ, syncId);
   if (rl) return rl;
 
-  const metaKey = `meta:${syncId}:${docId}`;
-  const rawMeta = await env.INKMIRROR_SYNC_KV.get(metaKey);
-  if (!rawMeta) return jsonError(404, 'doc_missing');
-  const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
-
+  // The blob is authoritative; its metadata carries the revision. Reading
+  // KV first (the old order) could pair stale metadata with a newer blob.
   const r2obj = await env.INKMIRROR_SYNC_R2.get(`${syncId}/${docId}`);
   if (!r2obj) return jsonError(404, 'doc_missing');
   const blob = await r2obj.json() as { v: 1; iv: string; ciphertext: string };
 
-  return Response.json(
-    { ...blob, revision: meta.revision, updatedAt: meta.updatedAt },
-    { status: 200 },
-  );
+  let revision: number;
+  let updatedAt: string;
+  const fromMeta = r2obj.customMetadata?.revision;
+  if (fromMeta !== undefined && Number.isFinite(Number(fromMeta))) {
+    revision = Number(fromMeta);
+    updatedAt = r2obj.customMetadata?.updatedAt ?? r2obj.uploaded.toISOString();
+  } else {
+    // Legacy blob — revision still lives only in the KV mirror. A missing
+    // mirror degrades to revision 0 so the doc stays reachable and the
+    // next push migrates it, instead of 404ing a blob that exists.
+    const rawMeta = await env.INKMIRROR_SYNC_KV.get(`meta:${syncId}:${docId}`);
+    if (rawMeta) {
+      const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
+      revision = meta.revision;
+      updatedAt = meta.updatedAt;
+    } else {
+      revision = 0;
+      updatedAt = r2obj.uploaded.toISOString();
+    }
+  }
+
+  return Response.json({ ...blob, revision, updatedAt }, { status: 200 });
 }
 
 async function deleteDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
@@ -258,17 +314,44 @@ async function deleteCircle(request: Request, env: Env, syncId: string): Promise
   const rl = await rateLimit(env.RL_SYNC_WRITE, syncId);
   if (rl) return rl;
 
-  const prefix = `meta:${syncId}:`;
-  let cursor: string | undefined;
+  // Walk R2 (the blobs themselves), not the KV mirror: a mirror write
+  // that failed in the past must not leave an encrypted blob orphaned on
+  // the server forever. Per-item try/catch so one failure doesn't strand
+  // the rest; any failure returns 503 WITHOUT deleting the circle key, so
+  // the client's pending-deletion retry loop can finish the job later.
+  let failed = false;
+  const blobPrefix = `${syncId}/`;
+  let r2Cursor: string | undefined;
   do {
-    const page = await env.INKMIRROR_SYNC_KV.list({ prefix, cursor });
-    for (const k of page.keys) {
-      const docId = k.name.slice(prefix.length);
-      await env.INKMIRROR_SYNC_R2.delete(`${syncId}/${docId}`);
-      await env.INKMIRROR_SYNC_KV.delete(k.name);
+    const page = await env.INKMIRROR_SYNC_R2.list({ prefix: blobPrefix, cursor: r2Cursor });
+    for (const obj of page.objects) {
+      const docId = obj.key.slice(blobPrefix.length);
+      try {
+        await env.INKMIRROR_SYNC_R2.delete(obj.key);
+        await env.INKMIRROR_SYNC_KV.delete(`meta:${syncId}:${docId}`);
+      } catch {
+        failed = true;
+      }
     }
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
+    r2Cursor = page.truncated ? page.cursor : undefined;
+  } while (r2Cursor);
+
+  // Sweep KV mirrors whose blob is already gone (orphaned metadata).
+  const metaPrefix = `meta:${syncId}:`;
+  let kvCursor: string | undefined;
+  do {
+    const page = await env.INKMIRROR_SYNC_KV.list({ prefix: metaPrefix, cursor: kvCursor });
+    for (const k of page.keys) {
+      try {
+        await env.INKMIRROR_SYNC_KV.delete(k.name);
+      } catch {
+        failed = true;
+      }
+    }
+    kvCursor = page.list_complete ? undefined : page.cursor;
+  } while (kvCursor);
+
+  if (failed) return jsonError(503, 'partial_delete');
 
   await env.INKMIRROR_SYNC_KV.delete(`circle:${syncId}`);
   return new Response(null, { status: 204 });
@@ -280,19 +363,37 @@ async function getList(request: Request, env: Env, syncId: string): Promise<Resp
   const rl = await rateLimit(env.RL_SYNC_READ, syncId);
   if (rl) return rl;
 
-  const prefix = `meta:${syncId}:`;
+  // List from R2 with metadata included — one strongly-consistent pass
+  // instead of the old KV list + per-key KV get (eventually consistent
+  // AND a read per doc). Legacy objects without revision metadata fall
+  // back to the KV mirror until their next push migrates them.
+  const prefix = `${syncId}/`;
   const items: Array<{ docId: string; revision: number; updatedAt: string }> = [];
   let cursor: string | undefined;
   do {
-    const page = await env.INKMIRROR_SYNC_KV.list({ prefix, cursor });
-    for (const k of page.keys) {
-      const docId = k.name.slice(prefix.length);
-      const rawMeta = await env.INKMIRROR_SYNC_KV.get(k.name);
-      if (!rawMeta) continue;
-      const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
-      items.push({ docId, revision: meta.revision, updatedAt: meta.updatedAt });
+    // Note: with our compatibility date, list() returns customMetadata on
+    // every object by default (the legacy `include` option is gone).
+    const page = await env.INKMIRROR_SYNC_R2.list({ prefix, cursor });
+    for (const obj of page.objects) {
+      const docId = obj.key.slice(prefix.length);
+      const fromMeta = obj.customMetadata?.revision;
+      if (fromMeta !== undefined && Number.isFinite(Number(fromMeta))) {
+        items.push({
+          docId,
+          revision: Number(fromMeta),
+          updatedAt: obj.customMetadata?.updatedAt ?? obj.uploaded.toISOString(),
+        });
+        continue;
+      }
+      const rawMeta = await env.INKMIRROR_SYNC_KV.get(`meta:${syncId}:${docId}`);
+      if (rawMeta) {
+        const meta = JSON.parse(rawMeta) as { revision: number; updatedAt: string };
+        items.push({ docId, revision: meta.revision, updatedAt: meta.updatedAt });
+      } else {
+        items.push({ docId, revision: 0, updatedAt: obj.uploaded.toISOString() });
+      }
     }
-    cursor = page.list_complete ? undefined : page.cursor;
+    cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
   return Response.json(items, { status: 200 });
