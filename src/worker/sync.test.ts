@@ -40,6 +40,8 @@ interface R2StubEntry {
   etag: string;
   customMetadata: Record<string, string>;
   uploaded: Date;
+  /** Quota tests fake huge objects without allocating huge strings. */
+  sizeOverride?: number;
 }
 
 /**
@@ -56,7 +58,7 @@ function makeR2Stub(): R2Bucket & { _store: Map<string, R2StubEntry> } {
     ({
       key,
       version: 'v1',
-      size: e.text.length,
+      size: e.sizeOverride ?? e.text.length,
       etag: e.etag,
       httpEtag: `"${e.etag}"`,
       uploaded: e.uploaded,
@@ -848,5 +850,90 @@ describe('revision CAS on R2 (lost-update protection)', () => {
     expect(await env.INKMIRROR_SYNC_R2.head(`${syncId}/doc-orphan`)).toBeNull();
     const kv = env.INKMIRROR_SYNC_KV as KVNamespace & { _store: Map<string, unknown> };
     expect(kv._store.has(`circle:${syncId}`)).toBe(false);
+  });
+});
+
+// ---------- per-circle quotas ----------
+
+describe('per-circle quotas', () => {
+  it('rejects a NEW doc once the circle holds the max doc count', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // Seed the circle to the 100-doc cap directly in R2 (cheap, no auth loop).
+    const r2 = env.INKMIRROR_SYNC_R2;
+    for (let i = 0; i < 100; i++) {
+      await r2.put(`${syncId}/seed-${i}`, JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'ct' }));
+    }
+
+    const res = await putDocAs(env, syncId, K_auth_b64, 'one-too-many', 0);
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: 'doc_limit' });
+  });
+
+  it('still allows overwriting an EXISTING doc at the doc cap', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // 99 seeds + 1 real push = exactly at the cap.
+    const r2 = env.INKMIRROR_SYNC_R2;
+    for (let i = 0; i < 99; i++) {
+      await r2.put(`${syncId}/seed-${i}`, JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'ct' }));
+    }
+    const first = await putDocAs(env, syncId, K_auth_b64, 'doc-real', 0);
+    expect(first.status).toBe(200);
+
+    // Overwrite must skip the quota scan and succeed.
+    const overwrite = await putDocAs(env, syncId, K_auth_b64, 'doc-real', 1);
+    expect(overwrite.status).toBe(200);
+    expect(((await overwrite.json()) as { revision: number }).revision).toBe(2);
+  });
+
+  it('rejects a NEW doc that would push the circle past the byte cap', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    // One fake 200 MB object — sizeOverride avoids allocating the string.
+    const r2 = env.INKMIRROR_SYNC_R2 as R2Bucket & { _store: Map<string, R2StubEntry> };
+    await r2.put(`${syncId}/doc-fat`, JSON.stringify({ v: 1, iv: 'iv', ciphertext: 'ct' }));
+    r2._store.get(`${syncId}/doc-fat`)!.sizeOverride = 200 * 1024 * 1024;
+
+    const res = await putDocAs(env, syncId, K_auth_b64, 'doc-new', 0);
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: 'storage_limit' });
+  });
+});
+
+// ---------- path-segment length bounds ----------
+
+describe('path-segment length bounds', () => {
+  it('404s a syncId longer than 64 chars before any KV/R2 access', async () => {
+    const env = makeEnv();
+    const hugeSyncId = 'a'.repeat(65);
+    const res = await handleSync(
+      new Request(`http://x/sync/list/${hugeSyncId}`, {
+        headers: { 'authorization': 'Bearer ' + toBase64Url(crypto.getRandomValues(new Uint8Array(32))) },
+      }),
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('404s a docId longer than 128 chars (route never matches)', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const hugeDocId = 'a'.repeat(129);
+    // 404 (no route), NOT 401 — proof the request never reached the handler.
+    const res = await handleSync(
+      authedJsonRequest(`http://x/sync/doc/${syncId}/${hugeDocId}`, K_auth_b64, 'PUT', {
+        v: 1, iv: 'iv', ciphertext: 'ct', expectedRevision: 0,
+      }),
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('accepts a UUID-shaped docId (the real client shape)', async () => {
+    const env = makeEnv();
+    const { syncId, K_auth_b64 } = await createCircle(env);
+    const res = await putDocAs(env, syncId, K_auth_b64, crypto.randomUUID(), 0);
+    expect(res.status).toBe(200);
   });
 });

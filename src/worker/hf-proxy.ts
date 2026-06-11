@@ -3,6 +3,16 @@ const HF_BASE = 'https://huggingface.co';
 /** Only paths matching `org/model/resolve/rev/file...` are proxied. */
 const HF_PATH_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/resolve\/[A-Za-z0-9._\-/]+$/;
 
+/**
+ * Exactly the repos the app downloads through the proxy — keep in sync
+ * with MODELS in src/workers/ai-worker.ts. Anything else 403s so the
+ * Worker can't be used as a free CDN for arbitrary HF-hosted files.
+ */
+const HF_ALLOWED_REPOS = new Set([
+  'Xenova/distilbert-base-multilingual-cased-sentiments-student', // sentiment (Story Pulse)
+  'Xenova/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7',          // zero-shot NLI (rich moods + inconsistency)
+]);
+
 /** Maximum model asset content-type the proxy will return. */
 const HF_ALLOWED_CONTENT_TYPES = new Set([
   'application/json',
@@ -66,6 +76,13 @@ export async function handleHfProxy(request: Request): Promise<Response> {
     !HF_PATH_RE.test(rawPath)
   ) {
     return new Response('Not found', { status: 404 });
+  }
+
+  // Org/repo allowlist — the shape check above keeps the path inside HF's
+  // model namespace; this keeps it inside OUR models.
+  const [org, repo] = rawPath.split('/');
+  if (!HF_ALLOWED_REPOS.has(`${org}/${repo}`)) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const hfUrl = `${HF_BASE}/${rawPath}`;

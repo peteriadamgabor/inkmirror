@@ -33,6 +33,9 @@ const CSP =
 /** Baseline security headers applied to every Worker-generated response. */
 const BASE_SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': CSP,
+  // inkmirror.cc is HTTPS-only behind Cloudflare; a year of HSTS keeps
+  // first-hop downgrade attacks away from returning visitors.
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',

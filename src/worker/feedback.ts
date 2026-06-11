@@ -76,6 +76,21 @@ function sanitizeMarkdown(s: string): string {
   return s.replace(/[\\*_~`>|[\]()#@]/g, '\\$&');
 }
 
+/**
+ * Slice an already-escaped string to `max` chars without cutting an
+ * escape sequence in half: a slice landing between `\` and its escaped
+ * character would leave a dangling backslash that re-arms the next char.
+ * Every backslash in sanitizeMarkdown output is part of a `\x` pair, so
+ * an odd-length trailing backslash run means the last one is orphaned.
+ */
+function sliceEscaped(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const out = s.slice(0, max);
+  let i = out.length;
+  while (i > 0 && out[i - 1] === '\\') i--;
+  return (out.length - i) % 2 === 1 ? out.slice(0, -1) : out;
+}
+
 function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     ...(init ?? {}),
@@ -176,7 +191,11 @@ export async function handleFeedback(request: Request, env: Env): Promise<Respon
     content: '**New InkMirror feedback**',
     embeds: [
       {
-        description: sanitizeMarkdown(message.slice(0, FEEDBACK_MAX_MESSAGE)),
+        // Slice AFTER escaping: sanitizeMarkdown can double the length,
+        // and Discord caps embed descriptions at 4096 chars — exceeding
+        // it turns the webhook call into a 400 and the user's submission
+        // into a spurious 502.
+        description: sliceEscaped(sanitizeMarkdown(message), FEEDBACK_MAX_MESSAGE),
         color: 0x7f77dd,
         fields: [
           { name: 'Contact', value: sanitizeMarkdown(contact) || '_not provided_', inline: false },

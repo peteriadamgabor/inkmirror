@@ -17,26 +17,31 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     return await postPairRedeem(request, env);
   }
 
+  // Path-segment bounds: a real syncId is 22 chars (16 bytes base64url)
+  // and a real docId is a 36-char UUID. The caps leave generous headroom
+  // while keeping hostile multi-KB path segments from ever reaching the
+  // KV/R2 key layer.
+
   // /sync/circles/:syncId/paircode
-  const paircodeMatch = path.match(/^\/sync\/circles\/([A-Za-z0-9_-]+)\/paircode$/);
+  const paircodeMatch = path.match(/^\/sync\/circles\/([A-Za-z0-9_-]{1,64})\/paircode$/);
   if (paircodeMatch && method === 'POST') {
     return await postIssuePaircode(request, env, paircodeMatch[1]);
   }
 
   // /sync/list/:syncId
-  const listMatch = path.match(/^\/sync\/list\/([A-Za-z0-9_-]+)$/);
+  const listMatch = path.match(/^\/sync\/list\/([A-Za-z0-9_-]{1,64})$/);
   if (listMatch && method === 'GET') {
     return await getList(request, env, listMatch[1]);
   }
 
   // /sync/circles/:syncId  (strict end — no /paircode suffix)
-  const circleDeleteMatch = path.match(/^\/sync\/circles\/([A-Za-z0-9_-]+)$/);
+  const circleDeleteMatch = path.match(/^\/sync\/circles\/([A-Za-z0-9_-]{1,64})$/);
   if (circleDeleteMatch && method === 'DELETE') {
     return await deleteCircle(request, env, circleDeleteMatch[1]);
   }
 
   // /sync/doc/:syncId/:docId
-  const docMatch = path.match(/^\/sync\/doc\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/);
+  const docMatch = path.match(/^\/sync\/doc\/([A-Za-z0-9_-]{1,64})\/([A-Za-z0-9_-]{1,128})$/);
   if (docMatch) {
     const [, syncId, docId] = docMatch;
     if (method === 'PUT')    return await putDoc(request, env, syncId, docId);
@@ -176,6 +181,8 @@ async function postPairRedeem(request: Request, env: Env): Promise<Response> {
 }
 
 const MAX_BLOB_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_DOCS_PER_CIRCLE = 100;
+const MAX_CIRCLE_BYTES = 200 * 1024 * 1024; // 200 MB
 
 async function putDoc(request: Request, env: Env, syncId: string, docId: string): Promise<Response> {
   const a = await authenticateCircle(request, env, syncId);
@@ -220,6 +227,17 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   const updatedAt = new Date().toISOString();
   const blob = JSON.stringify({ v: body.v, iv: body.iv, ciphertext: body.ciphertext });
 
+  // Per-circle quotas, enforced only when this PUT would create a NEW doc
+  // (head === null): circle creation is unauthenticated, so without a cap
+  // one circle could hoard unbounded distinct docIds of 10 MB each.
+  // Overwrites skip the check — they can't grow the doc count and the
+  // per-doc cap above already bounds their size — so the R2 prefix scan
+  // (same cost as getList) stays off the steady-state push path.
+  if (!head) {
+    const quota = await checkCircleQuota(env, syncId, blob.length);
+    if (quota) return quota;
+  }
+
   // Atomic compare-and-swap: this put succeeds only if the object is
   // still exactly the version we just read (or still absent). A racing
   // writer makes it fail cleanly instead of clobbering.
@@ -241,6 +259,34 @@ async function putDoc(request: Request, env: Env, syncId: string, docId: string)
   await env.INKMIRROR_SYNC_KV.put(metaKey, JSON.stringify({ revision: newRevision, updatedAt }));
 
   return Response.json({ revision: newRevision, updatedAt }, { status: 200 });
+}
+
+/**
+ * Doc-count + total-bytes quota for one circle, derived from a single R2
+ * prefix list. Returns a 413 response when adding `incomingBytes` as a new
+ * doc would breach either cap, null when the write may proceed.
+ */
+async function checkCircleQuota(
+  env: Env,
+  syncId: string,
+  incomingBytes: number,
+): Promise<Response | null> {
+  const prefix = `${syncId}/`;
+  let docCount = 0;
+  let totalBytes = 0;
+  let cursor: string | undefined;
+  do {
+    const page = await env.INKMIRROR_SYNC_R2.list({ prefix, cursor });
+    for (const obj of page.objects) {
+      docCount++;
+      totalBytes += obj.size;
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  if (docCount >= MAX_DOCS_PER_CIRCLE) return jsonError(413, 'doc_limit');
+  if (totalBytes + incomingBytes > MAX_CIRCLE_BYTES) return jsonError(413, 'storage_limit');
+  return null;
 }
 
 /**
