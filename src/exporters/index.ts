@@ -1,6 +1,7 @@
 import type {
   Block,
   Chapter,
+  ChapterKind,
   Character,
   DialogueMetadata,
   DialogueStyle,
@@ -77,6 +78,50 @@ export interface Exporter {
 
 export type ExportFormat = 'json' | 'markdown' | 'fountain' | 'epub' | 'docx' | 'pdf';
 
+/**
+ * Spine rank for a chapter kind: front matter (cover → dedication →
+ * epigraph), then the story, then back matter (acknowledgments →
+ * afterword). Unknown / missing kinds rank with standard chapters so
+ * imported documents from older bundles never get reshuffled.
+ */
+const KIND_RANK: Record<ChapterKind, number> = {
+  cover: 0,
+  dedication: 1,
+  epigraph: 2,
+  standard: 3,
+  acknowledgments: 4,
+  afterword: 5,
+};
+
+export function chapterKindOf(chapter: Chapter): ChapterKind {
+  return chapter.kind && chapter.kind in KIND_RANK ? chapter.kind : 'standard';
+}
+
+export function isFrontMatterKind(kind: ChapterKind): boolean {
+  return kind === 'cover' || kind === 'dedication' || kind === 'epigraph';
+}
+
+export function isBackMatterKind(kind: ChapterKind): boolean {
+  return kind === 'acknowledgments' || kind === 'afterword';
+}
+
+/**
+ * Order chapters the way a printed book is bound: front matter first
+ * (cover, dedication, epigraph), then standard chapters, then back
+ * matter (acknowledgments, afterword). The sidebar `order` is
+ * preserved *within* each kind, so two epigraphs keep their relative
+ * position. Every exporter routes through this instead of sorting on
+ * `order` alone.
+ */
+export function orderChaptersForExport(chapters: readonly Chapter[]): Chapter[] {
+  return chapters
+    .slice()
+    .sort(
+      (a, b) =>
+        KIND_RANK[chapterKindOf(a)] - KIND_RANK[chapterKindOf(b)] || a.order - b.order,
+    );
+}
+
 export function visibleChapterBlocks(
   chapter: Chapter,
   blocks: Block[],
@@ -129,35 +174,6 @@ export function daysSinceLastExport(): number | null {
  */
 export function resolveDialogueStyle(document: Document): DialogueStyle {
   return document.settings.dialogue_style ?? DEFAULT_DIALOGUE_STYLE;
-}
-
-/**
- * Wrap a single dialogue paragraph for prose export according to the
- * document's dialogue style. Newlines inside the content are preserved
- * (soft line breaks); the wrapper is applied once around the whole run.
- *
- * Used by PDF / DOCX / EPUB — Fountain has its own speaker-cue layout
- * and does not call this.
- */
-export function formatDialogueProse(
-  content: string,
-  style: DialogueStyle,
-): string {
-  const trimmed = content.trim();
-  if (!trimmed) return '';
-  switch (style) {
-    case 'curly':
-      return `“${trimmed}”`;
-    case 'hu_dash':
-      // En-dash + NBSP so the dash stays visually attached to the
-      // opening word. No closing punctuation — Hungarian convention
-      // lets the sentence end naturally with the narrator's prose that
-      // follows (which, per the novel-first plan, the writer authors).
-      return `– ${trimmed}`;
-    case 'straight':
-    default:
-      return `"${trimmed}"`;
-  }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

@@ -247,6 +247,13 @@ export const en = {
     downloadAs: 'Download as {{format}}',
     exportAs: 'Export as {{format}}',
   },
+  exporters: {
+    contents: 'Contents',
+    cover: 'Cover',
+    unknownAuthor: 'Unknown',
+    by: 'by {{author}}',
+    characters: 'Characters',
+  },
   aria: {
     storyPulse: 'Story pulse: sentiment across blocks',
     toggleTheme: 'Toggle theme',

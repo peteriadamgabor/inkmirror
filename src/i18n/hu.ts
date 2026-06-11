@@ -248,6 +248,13 @@ export const hu: Messages = {
     downloadAs: 'Letöltés {{format}} formátumban',
     exportAs: 'Exportálás {{format}} formátumban',
   },
+  exporters: {
+    contents: 'Tartalom',
+    cover: 'Borító',
+    unknownAuthor: 'Ismeretlen',
+    by: 'írta: {{author}}',
+    characters: 'Szereplők',
+  },
   aria: {
     storyPulse: 'Történet pulzus: hangulat blokkonként',
     toggleTheme: 'Téma váltása',

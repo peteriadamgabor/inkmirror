@@ -3,8 +3,8 @@ import { renderJson } from './json';
 import { renderMarkdown } from './markdown';
 import { renderFountain } from './fountain';
 import { __test as pdfInternals } from './pdf';
-import type { Block, Chapter, Character, Document } from '@/types';
-import type { ExportInput } from './index';
+import type { Block, Chapter, ChapterKind, Character, Document } from '@/types';
+import { orderChaptersForExport, type ExportInput } from './index';
 
 function makeInput(): ExportInput {
   const now = '2026-04-15T00:00:00.000Z';
@@ -212,6 +212,174 @@ describe('pdfExporter — novel-first flatten', () => {
     expect(text).toContain('Ő');
     expect(text).toContain('Ű');
     expect(text).not.toMatch(/[QqPp](?![a-zü])/); // no stray Q/q/P/p that would indicate truncation
+  });
+});
+
+// ---------- chapter kinds: front / back matter ----------
+
+function makeKindedInput(): ExportInput {
+  const base = makeInput();
+  const now = '2026-04-15T00:00:00.000Z';
+  const mk = (id: string, title: string, order: number, kind: ChapterKind): Chapter => ({
+    id, document_id: 'd1', title, order, kind, created_at: now, updated_at: now,
+  });
+  // Sidebar order deliberately scrambles the book-binding order.
+  const chapters: Chapter[] = [
+    mk('k-epi', 'Epigraph', 0, 'epigraph'),
+    mk('k-std1', 'Chapter One', 1, 'standard'),
+    mk('k-ack', 'Acknowledgments', 2, 'acknowledgments'),
+    mk('k-cov', 'Cover Page', 3, 'cover'),
+    mk('k-std2', 'Chapter Two', 4, 'standard'),
+    mk('k-ded', 'Dedication', 5, 'dedication'),
+    mk('k-aft', 'Afterword', 6, 'afterword'),
+  ];
+  const textBlock = (id: string, chapterId: string, content: string): Block => ({
+    id, chapter_id: chapterId, type: 'text', content, order: 0,
+    metadata: { type: 'text' }, deleted_at: null, deleted_from: null,
+    created_at: now, updated_at: now,
+  });
+  const blocks: Block[] = [
+    textBlock('kb-epi', 'k-epi', 'All happy families are alike.'),
+    textBlock('kb-std1', 'k-std1', 'The story begins.'),
+    textBlock('kb-ack', 'k-ack', 'Thanks to everyone.'),
+    textBlock('kb-cov', 'k-cov', 'The Long Night'),
+    textBlock('kb-std2', 'k-std2', 'The story ends.'),
+    textBlock('kb-ded', 'k-ded', 'For my mother.'),
+    textBlock('kb-aft', 'k-aft', 'A note on sources.'),
+  ];
+  return { ...base, chapters, blocks };
+}
+
+describe('orderChaptersForExport', () => {
+  it('binds front matter, story, back matter — preserving order within a kind', () => {
+    const ordered = orderChaptersForExport(makeKindedInput().chapters);
+    expect(ordered.map((c) => c.id)).toEqual([
+      'k-cov', 'k-ded', 'k-epi', 'k-std1', 'k-std2', 'k-ack', 'k-aft',
+    ]);
+  });
+
+  it('keeps relative sidebar order between two chapters of the same kind', () => {
+    const input = makeKindedInput();
+    const extra: Chapter = {
+      ...input.chapters[0], id: 'k-epi2', title: 'Second Epigraph', order: 5.5,
+    };
+    const ordered = orderChaptersForExport([...input.chapters, extra]);
+    const epiIds = ordered.filter((c) => c.kind === 'epigraph').map((c) => c.id);
+    expect(epiIds).toEqual(['k-epi', 'k-epi2']);
+  });
+});
+
+describe('jsonExporter — chapter kinds', () => {
+  const out = JSON.parse(renderJson(makeKindedInput()));
+  it('includes kind in every chapter payload', () => {
+    const kinds = out.chapters.map((c: { kind: string }) => c.kind);
+    expect(kinds).toEqual([
+      'cover', 'dedication', 'epigraph', 'standard', 'standard',
+      'acknowledgments', 'afterword',
+    ]);
+  });
+  it('keeps the original order field so the payload stays lossless', () => {
+    const cover = out.chapters.find((c: { kind: string }) => c.kind === 'cover');
+    expect(cover.order).toBe(3);
+  });
+});
+
+describe('markdownExporter — chapter kinds', () => {
+  const out = renderMarkdown(makeKindedInput());
+  it('orders front matter before the story and back matter after', () => {
+    const idx = (s: string) => out.indexOf(s);
+    expect(idx('The Long Night')).toBeGreaterThan(-1);
+    expect(idx('The Long Night')).toBeLessThan(idx('For my mother.'));
+    expect(idx('For my mother.')).toBeLessThan(idx('All happy families are alike.'));
+    expect(idx('All happy families are alike.')).toBeLessThan(idx('## Chapter One'));
+    expect(idx('## Chapter Two')).toBeLessThan(idx('## Acknowledgments'));
+    expect(idx('## Acknowledgments')).toBeLessThan(idx('A note on sources.'));
+  });
+  it('renders cover / dedication / epigraph without a ## chapter heading', () => {
+    expect(out).not.toContain('## Cover Page');
+    expect(out).not.toContain('## Dedication');
+    expect(out).not.toContain('## Epigraph');
+  });
+  it('keeps the title heading for acknowledgments and afterword', () => {
+    expect(out).toContain('## Acknowledgments');
+    expect(out).toContain('## Afterword');
+  });
+});
+
+describe('fountainExporter — chapter kinds', () => {
+  const out = renderFountain(makeKindedInput());
+  it('puts front matter before the first section heading', () => {
+    expect(out.indexOf('For my mother.')).toBeLessThan(out.indexOf('# Chapter One'));
+    expect(out.indexOf('All happy families are alike.')).toBeLessThan(out.indexOf('# Chapter One'));
+  });
+  it('renders front matter without section headings, back matter with them', () => {
+    expect(out).not.toContain('# Cover Page');
+    expect(out).not.toContain('# Dedication');
+    expect(out).not.toContain('# Epigraph');
+    expect(out).toContain('# Acknowledgments');
+    expect(out).toContain('# Afterword');
+    expect(out.indexOf('# Chapter Two')).toBeLessThan(out.indexOf('# Acknowledgments'));
+  });
+});
+
+// ---------- markdown escaping ----------
+
+describe('markdownExporter — metacharacter escaping', () => {
+  const now = '2026-04-15T00:00:00.000Z';
+  function makeEscapeInput(): ExportInput {
+    const base = makeInput();
+    const chapters: Chapter[] = [
+      {
+        id: 'e1', document_id: 'd1', title: '# Not a heading *really*',
+        order: 0, kind: 'standard', created_at: now, updated_at: now,
+      },
+    ];
+    const blocks: Block[] = [
+      {
+        id: 'eb1', chapter_id: 'e1', type: 'text',
+        content: 'Stars *not italic* and _underscores_ and [brackets].',
+        order: 0, metadata: { type: 'text' },
+        deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+      },
+      {
+        id: 'eb2', chapter_id: 'e1', type: 'text',
+        content: '> not a blockquote\n# not a heading',
+        order: 1, metadata: { type: 'text' },
+        deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+      },
+      {
+        id: 'eb3', chapter_id: 'e1', type: 'text',
+        content: 'emphasis survives',
+        order: 2, metadata: { type: 'text' },
+        marks: [{ type: 'italic', start: 0, end: 8 }],
+        deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+      },
+    ];
+    return {
+      ...base,
+      document: { ...base.document, title: 'Stars *and* _Bars_' },
+      chapters,
+      blocks,
+    };
+  }
+  const out = renderMarkdown(makeEscapeInput());
+
+  it('escapes metacharacters in the document title', () => {
+    expect(out).toContain('# Stars \\*and\\* \\_Bars\\_');
+  });
+  it('escapes metacharacters in chapter titles', () => {
+    expect(out).toContain('## \\# Not a heading \\*really\\*');
+  });
+  it('escapes inline metacharacters in prose', () => {
+    expect(out).toContain('Stars \\*not italic\\* and \\_underscores\\_ and \\[brackets\\].');
+  });
+  it('escapes line-leading > and # in prose', () => {
+    expect(out).toContain('\\> not a blockquote');
+    expect(out).toContain('\\# not a heading');
+  });
+  it('does not escape the emphasis markers the exporter emits from marks', () => {
+    expect(out).toContain('*emphasis*');
+    expect(out).not.toContain('\\*emphasis');
   });
 });
 

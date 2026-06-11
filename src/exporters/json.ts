@@ -1,4 +1,11 @@
-import { textBlob, type Exporter, type ExportInput } from './index';
+import type { ChapterKind } from '@/types';
+import {
+  chapterKindOf,
+  orderChaptersForExport,
+  textBlob,
+  type Exporter,
+  type ExportInput,
+} from './index';
 
 interface JsonExport {
   format_version: 1;
@@ -13,6 +20,7 @@ interface JsonExport {
     id: string;
     title: string;
     order: number;
+    kind: ChapterKind;
     blocks: Array<{
       id: string;
       type: string;
@@ -50,13 +58,15 @@ export function renderJson(input: ExportInput): string {
         author: input.document.author,
         synopsis: input.document.synopsis,
       },
-      chapters: input.chapters
-        .slice()
-        .sort((a, b) => a.order - b.order)
+      // Book-binding order (front matter → story → back matter). The
+      // sidebar `order` field is preserved per chapter so the payload
+      // stays lossless either way.
+      chapters: orderChaptersForExport(input.chapters)
         .map((chapter) => ({
           id: chapter.id,
           title: chapter.title,
           order: chapter.order,
+          kind: chapterKindOf(chapter),
           blocks: input.blocks
             .filter((b) => b.chapter_id === chapter.id && b.type !== 'note' && b.deleted_at === null)
             .sort((a, b) => a.order - b.order)

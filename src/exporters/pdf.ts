@@ -1,8 +1,10 @@
 import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import type { jsPDF } from 'jspdf';
 import {
+  chapterKindOf,
   contentToRuns,
   exportableBlocks,
+  orderChaptersForExport,
   resolveDialogueStyle,
   type Exporter,
   type ExportInput,
@@ -269,9 +271,31 @@ export const pdfExporter: Exporter = {
     }
     newPage();
 
-    const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+    const sortedChapters = orderChaptersForExport(input.chapters);
     const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
+      const kind = chapterKindOf(chapter);
+      if (kind === 'cover' || kind === 'dedication' || kind === 'epigraph') {
+        // Front matter mirrors the editor: no chapter heading, the text
+        // itself centered on its own page. Dedication / epigraph keep
+        // their italic plaque treatment; the cover page is enlarged.
+        newPage();
+        y = PAGE_H / 3;
+        const style = kind === 'cover' ? 'normal' : 'italic';
+        const size = kind === 'cover' ? 18 : BODY_FONT_SIZE + 1;
+        for (const block of exportableBlocks(chapter, input.blocks)) {
+          for (const p of clampBlockContent(block.content).split(/\n{2,}/)) {
+            const trimmed = p.trim();
+            if (!trimmed) continue;
+            writeLines(trimmed, { size, style, align: 'center' });
+            y += LINE_H * 0.5;
+          }
+        }
+        continue;
+      }
+      // Standard chapters and back matter (acknowledgments, afterword)
+      // keep the titled-page treatment — back matter is unnumbered
+      // anyway and the ordering above binds it after the story.
       newPage();
       y = PAGE_H / 4;
       writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });

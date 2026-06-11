@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type JSZipType from 'jszip';
 import { buildEpubZip, epubExporter } from './epub';
-import type { Block, Chapter, Character, Document } from '@/types';
+import { setLang } from '@/i18n';
+import type { Block, Chapter, ChapterKind, Character, Document } from '@/types';
 import type { ExportInput } from './index';
 
 /**
@@ -342,6 +343,37 @@ describe('epubExporter — cover image', () => {
     expect(cover).toContain('Novel Of Testing');
   });
 
+  it('a cover image wins over a cover-kind chapter — no duplicate cover page', async () => {
+    const base = makeInputWithCover();
+    const now = '2026-04-18T00:00:00.000Z';
+    const input: ExportInput = {
+      ...base,
+      chapters: [
+        {
+          id: 'cc', document_id: 'd1', title: 'Cover Page',
+          order: 0, kind: 'cover', created_at: now, updated_at: now,
+        },
+        ...base.chapters,
+      ],
+      blocks: [
+        {
+          id: 'ccb', chapter_id: 'cc', type: 'text', content: 'The Long Night',
+          order: 0, metadata: { type: 'text' },
+          deleted_at: null, deleted_from: null, created_at: now, updated_at: now,
+        },
+        ...base.blocks,
+      ],
+    };
+    const zip = await buildEpubZip(input);
+    const cover = await zip.file('OEBPS/cover.xhtml')!.async('string');
+    expect(cover).toContain('<img src="cover.jpg"');
+    // The cover-kind chapter must not become a second spine entry.
+    expect(zip.file('OEBPS/cover-1.xhtml')).toBeNull();
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf.match(/cover/g)!.length).toBeGreaterThan(0);
+    expect(opf).not.toContain('cover-1.xhtml');
+  });
+
   it('supports PNG covers with the right extension and mime type', async () => {
     // 1x1 transparent PNG.
     const ONE_PIXEL_PNG_BASE64 =
@@ -367,5 +399,138 @@ describe('epubExporter — cover image', () => {
     const opf = await zip.file('OEBPS/content.opf')!.async('string');
     expect(opf).toMatch(/media-type="image\/png"/);
     expect(opf).toMatch(/href="cover\.png"/);
+  });
+});
+
+// ---------- chapter kinds: front / back matter ----------
+
+describe('epubExporter — chapter kinds', () => {
+  const now = '2026-04-18T00:00:00.000Z';
+
+  function makeKindedInput(): ExportInput {
+    const base = makeInput();
+    const mk = (id: string, title: string, order: number, kind: ChapterKind): Chapter => ({
+      id, document_id: 'd1', title, order, kind, created_at: now, updated_at: now,
+    });
+    const textBlock = (id: string, chapterId: string, content: string): Block => ({
+      id, chapter_id: chapterId, type: 'text', content, order: 0,
+      metadata: { type: 'text' }, deleted_at: null, deleted_from: null,
+      created_at: now, updated_at: now,
+    });
+    // Sidebar order deliberately scrambles the book-binding order.
+    const chapters: Chapter[] = [
+      mk('k-aft', 'Afterword', 0, 'afterword'),
+      mk('k-std1', 'Chapter One', 1, 'standard'),
+      mk('k-ded', 'Dedication', 2, 'dedication'),
+      mk('k-cov', 'Cover Page', 3, 'cover'),
+      mk('k-std2', 'Chapter Two', 4, 'standard'),
+      mk('k-ack', 'Acknowledgments', 5, 'acknowledgments'),
+      mk('k-epi', 'Epigraph', 6, 'epigraph'),
+    ];
+    const blocks: Block[] = [
+      textBlock('kb-aft', 'k-aft', 'A note on sources.'),
+      textBlock('kb-std1', 'k-std1', 'The story begins.'),
+      textBlock('kb-ded', 'k-ded', 'For my mother.'),
+      textBlock('kb-cov', 'k-cov', 'The Long Night'),
+      textBlock('kb-std2', 'k-std2', 'The story ends.'),
+      textBlock('kb-ack', 'k-ack', 'Thanks to everyone.'),
+      textBlock('kb-epi', 'k-epi', 'All happy families are alike.'),
+    ];
+    return { ...base, chapters, blocks };
+  }
+
+  let zip: JSZipType;
+  let opf: string;
+
+  beforeAll(async () => {
+    zip = await buildEpubZip(makeKindedInput());
+    opf = await zip.file('OEBPS/content.opf')!.async('string');
+  });
+
+  it('still validates structurally', async () => {
+    const issues = await validateEpub(zip);
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+  });
+
+  it('uses the cover-kind chapter content for cover.xhtml instead of duplicating it', async () => {
+    const cover = await zip.file('OEBPS/cover.xhtml')!.async('string');
+    expect(cover).toContain('The Long Night');
+    expect(cover).toContain('epub:type="cover"');
+    // No second file carries the cover chapter.
+    expect(zip.file('OEBPS/cover-1.xhtml')).toBeNull();
+    const chapterOne = await zip.file('OEBPS/chapter-1.xhtml')!.async('string');
+    expect(chapterOne).not.toContain('The Long Night');
+  });
+
+  it('orders the spine: cover, dedication, epigraph, story, acknowledgments, afterword', () => {
+    const hrefs = [...opf.matchAll(/<item id="chap\d+" href="([^"]+)"/g)].map((m) => m[1]);
+    expect(hrefs).toEqual([
+      'cover.xhtml',
+      'dedication-1.xhtml',
+      'epigraph-1.xhtml',
+      'chapter-1.xhtml',
+      'chapter-2.xhtml',
+      'acknowledgments-1.xhtml',
+      'afterword-1.xhtml',
+    ]);
+  });
+
+  it('front matter hides the chapter heading; back matter keeps its title', async () => {
+    const dedication = await zip.file('OEBPS/dedication-1.xhtml')!.async('string');
+    expect(dedication).not.toContain('<h1>');
+    expect(dedication).toContain('For my mother.');
+    expect(dedication).toContain('epub:type="dedication"');
+    expect(dedication).toContain('class="matter dedication"');
+    const epigraph = await zip.file('OEBPS/epigraph-1.xhtml')!.async('string');
+    expect(epigraph).not.toContain('<h1>');
+    expect(epigraph).toContain('epub:type="epigraph"');
+    const ack = await zip.file('OEBPS/acknowledgments-1.xhtml')!.async('string');
+    expect(ack).toContain('<h1>Acknowledgments</h1>');
+    expect(ack).toContain('epub:type="acknowledgments"');
+    const afterword = await zip.file('OEBPS/afterword-1.xhtml')!.async('string');
+    expect(afterword).toContain('<h1>Afterword</h1>');
+    expect(afterword).toContain('epub:type="afterword"');
+  });
+
+  it('standard chapters keep the chapter epub:type and their heading', async () => {
+    const chapterOne = await zip.file('OEBPS/chapter-1.xhtml')!.async('string');
+    expect(chapterOne).toContain('epub:type="chapter"');
+    expect(chapterOne).toContain('<h1>Chapter One</h1>');
+  });
+
+  it('nav lists every page including front and back matter', async () => {
+    const nav = await zip.file('OEBPS/nav.xhtml')!.async('string');
+    for (const title of ['Dedication', 'Epigraph', 'Chapter One', 'Acknowledgments', 'Afterword']) {
+      expect(nav).toContain(title);
+    }
+  });
+});
+
+// ---------- language ----------
+
+describe('epubExporter — dc:language follows the app language', () => {
+  afterAll(() => setLang('en'));
+
+  it('emits hu metadata and chrome when the app language is Hungarian', async () => {
+    setLang('hu');
+    const zip = await buildEpubZip(makeInput());
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf).toContain('<dc:language>hu</dc:language>');
+    expect(opf).toContain('xml:lang="hu"');
+    const nav = await zip.file('OEBPS/nav.xhtml')!.async('string');
+    expect(nav).toContain('<h1>Tartalom</h1>');
+    expect(nav).toContain('Borító');
+    const chapterOne = await zip.file('OEBPS/chapter-1.xhtml')!.async('string');
+    expect(chapterOne).toContain('xml:lang="hu"');
+  });
+
+  it('defaults to en metadata and English chrome', async () => {
+    setLang('en');
+    const zip = await buildEpubZip(makeInput());
+    const opf = await zip.file('OEBPS/content.opf')!.async('string');
+    expect(opf).toContain('<dc:language>en</dc:language>');
+    const nav = await zip.file('OEBPS/nav.xhtml')!.async('string');
+    expect(nav).toContain('<h1>Contents</h1>');
+    expect(nav).toContain('Cover');
   });
 });

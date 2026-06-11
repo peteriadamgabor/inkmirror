@@ -1,7 +1,9 @@
 import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import {
+  chapterKindOf,
   contentToRuns,
   exportableBlocks,
+  orderChaptersForExport,
   resolveDialogueStyle,
   type Exporter,
   type ExportInput,
@@ -155,9 +157,33 @@ export const docxExporter: Exporter = {
       );
     }
 
-    const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
+    const sortedChapters = orderChaptersForExport(input.chapters);
     const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
+      const kind = chapterKindOf(chapter);
+      if (kind === 'cover' || kind === 'dedication' || kind === 'epigraph') {
+        // Front matter mirrors the editor: no chapter heading, text
+        // centered on its own page with generous top spacing.
+        let first = true;
+        for (const block of exportableBlocks(chapter, input.blocks)) {
+          if (block.content.trim().length === 0) continue;
+          for (const runs of contentLinesAsRuns(docx, block)) {
+            children.push(
+              new Paragraph({
+                pageBreakBefore: first,
+                alignment: AlignmentType.CENTER,
+                spacing: first ? { before: 3600, after: 120 } : { after: 120 },
+                children: runs,
+              }),
+            );
+            first = false;
+          }
+        }
+        continue;
+      }
+      // Standard chapters and back matter (acknowledgments, afterword)
+      // keep their title heading — back matter is unnumbered anyway and
+      // the ordering above already binds it after the story.
       children.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_1,

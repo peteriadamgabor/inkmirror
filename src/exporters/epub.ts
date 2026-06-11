@@ -1,8 +1,10 @@
-import type { Block, Character, DialogueMetadata, DialogueStyle } from '@/types';
+import type { Block, Chapter, ChapterKind, Character, DialogueMetadata, DialogueStyle } from '@/types';
+import { lang, t } from '@/i18n';
 import {
+  chapterKindOf,
   contentToRuns,
   exportableBlocks,
-  formatDialogueProse,
+  orderChaptersForExport,
   resolveDialogueStyle,
   type Exporter,
   type ExportInput,
@@ -63,14 +65,13 @@ function renderBlockXhtml(
       const data =
         block.metadata.type === 'dialogue' ? (block.metadata.data as DialogueMetadata) : null;
       const parenthetical = data?.parenthetical?.trim();
+      // Empty dialogue renders nothing — same gate formatDialogueProse
+      // used to apply before the mark-aware path replaced it.
+      if (!block.content.trim()) return '';
       // Wrap the full content as a single styled paragraph so the quote
       // marks live inside the paragraph, not around each soft line.
-      const wrapped = formatDialogueProse(block.content, dialogueStyle);
-      if (!wrapped) return '';
-      // Preserve inline bold/italic marks inside the wrapped text by
-      // splicing the mark-aware HTML between the wrapper's prefix and
-      // suffix. For dash-style there's no suffix; for quote styles we
-      // peel one char off each end.
+      // Inline bold/italic marks survive because the mark-aware HTML is
+      // spliced between the dialogue wrapper's prefix and suffix.
       const inline = inlineWithMarks(block);
       const dialogueInner =
         dialogueStyle === 'hu_dash'
@@ -81,7 +82,6 @@ function renderBlockXhtml(
       const parentheticalPrefix = parenthetical
         ? `<em>(${esc(parenthetical)})</em> `
         : '';
-      void wrapped;
       return `<p class="dialogue">${parentheticalPrefix}${dialogueInner}</p>`;
     }
     case 'text':
@@ -109,17 +109,30 @@ function inlineWithMarks(block: Block): string {
   return out;
 }
 
-function chapterXhtml(title: string, bodyInner: string): string {
+function chapterXhtml(
+  title: string,
+  bodyInner: string,
+  language: string,
+  kind: ChapterKind,
+): string {
+  // Mirror the editor's treatment of non-standard kinds: block chrome
+  // (here: the <h1> chapter heading) hidden, text centered. The title
+  // survives for acknowledgments / afterword — readers expect the
+  // back-matter label — while dedication / epigraph render just their
+  // text. epub:type gives reading systems the landmark semantics.
+  const showTitle =
+    kind === 'standard' || kind === 'acknowledgments' || kind === 'afterword';
+  const bodyClass = kind === 'standard' ? '' : ` class="matter ${kind}"`;
+  const epubType = kind === 'standard' ? 'chapter' : kind;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(language)}">
   <head>
     <title>${esc(title)}</title>
     <link rel="stylesheet" type="text/css" href="styles.css"/>
   </head>
-  <body>
-    <h1>${esc(title)}</h1>
-    ${bodyInner}
+  <body epub:type="${epubType}"${bodyClass}>
+    ${showTitle ? `<h1>${esc(title)}</h1>\n    ` : ''}${bodyInner}
   </body>
 </html>`;
 }
@@ -133,6 +146,10 @@ hr.scene-break { border: none; text-align: center; margin: 1.5em 0; }
 hr.scene-break::before { content: "* * *"; letter-spacing: 0.5em; }
 p.dialogue { text-indent: 1.5em; }
 p.dialogue + p.dialogue { text-indent: 1.5em; }
+body.matter { text-align: center; }
+body.matter p { text-indent: 0; }
+body.dedication, body.epigraph { padding-top: 25vh; font-style: italic; }
+body.cover { padding-top: 20vh; font-size: 1.4em; }
 `;
 
 interface CoverAsset {
@@ -150,6 +167,7 @@ function contentOpf(
   chapterFiles: string[],
   modified: string,
   coverAsset: CoverAsset | null,
+  language: string,
 ): string {
   const manifestItems = chapterFiles
     .map(
@@ -167,12 +185,12 @@ function contentOpf(
     .map((_, i) => `    <itemref idref="chap${i + 1}"/>`)
     .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id" xml:lang="en">
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id" xml:lang="${esc(language)}">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="book-id">urn:uuid:${esc(bookId)}</dc:identifier>
     <dc:title>${esc(title)}</dc:title>
-    <dc:creator>${esc(author || 'Unknown')}</dc:creator>
-    <dc:language>en</dc:language>
+    <dc:creator>${esc(author || t('exporters.unknownAuthor'))}</dc:creator>
+    <dc:language>${esc(language)}</dc:language>
     <dc:date>${modified.slice(0, 10)}</dc:date>${synopsis ? `\n    <dc:description>${esc(synopsis)}</dc:description>` : ''}
     <dc:rights>All rights reserved</dc:rights>
     <meta property="dcterms:modified">${modified}</meta>
@@ -210,19 +228,23 @@ function decodeDataUrl(dataUrl: string): Uint8Array {
   return out;
 }
 
-function navXhtml(title: string, chapters: Array<{ file: string; title: string }>): string {
+function navXhtml(
+  title: string,
+  chapters: Array<{ file: string; title: string }>,
+  language: string,
+): string {
   const items = chapters
     .map((c) => `        <li><a href="${c.file}">${esc(c.title)}</a></li>`)
     .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(language)}">
   <head>
     <title>${esc(title)}</title>
   </head>
   <body>
     <nav epub:type="toc" id="toc">
-      <h1>Contents</h1>
+      <h1>${esc(t('exporters.contents'))}</h1>
       <ol>
 ${items}
       </ol>
@@ -271,60 +293,101 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
     }
   }
 
+  const language = lang();
+  const dialogueStyle = resolveDialogueStyle(input.document);
+  const sortedChapters = orderChaptersForExport(input.chapters);
+  const coverTitle = t('exporters.cover');
+
+  // A cover-*kind* chapter feeds the cover page instead of being
+  // emitted as a separate spine entry next to the synthetic
+  // cover.xhtml (which used to duplicate it). A picked cover *image*
+  // still wins the cover page; the cover chapter is suppressed either
+  // way — its text is the title/author the image already carries.
+  const coverChapter =
+    sortedChapters.find((c) => chapterKindOf(c) === 'cover') ?? null;
+  const contentChapters = sortedChapters.filter((c) => c !== coverChapter);
+
+  const coverChapterInner = coverChapter
+    ? exportableBlocks(coverChapter, input.blocks)
+        .map((b) => renderBlockXhtml(b, input.characters, dialogueStyle))
+        .filter((x) => x.trim().length > 0)
+        .join('\n      ')
+    : '';
+
   const coverHtml = coverAsset
     ? `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
-  <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
-  <body style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(language)}">
+  <head><title>${esc(coverTitle)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+  <body epub:type="cover" style="margin:0;padding:0;display:flex;align-items:center;justify-content:center;min-height:100vh;">
     <img src="${esc(coverAsset.href)}" alt="" style="max-width:100%;max-height:100vh;display:block;"/>
   </body>
 </html>`
-    : `<?xml version="1.0" encoding="UTF-8"?>
+    : coverChapterInner
+      ? chapterXhtml(coverChapter?.title || coverTitle, coverChapterInner, language, 'cover')
+      : `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
-  <head><title>Cover</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
-  <body style="display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center;">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(language)}">
+  <head><title>${esc(coverTitle)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+  <body epub:type="cover" style="display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center;">
     <div>
-      <h1 style="font-size:2.4em;margin-bottom:0.5em;">${esc(input.document.title || 'Untitled')}</h1>
+      <h1 style="font-size:2.4em;margin-bottom:0.5em;">${esc(input.document.title || t('common.untitled'))}</h1>
       ${input.document.author ? `<p style="font-size:1.2em;font-style:italic;">${esc(input.document.author)}</p>` : ''}
     </div>
   </body>
 </html>`;
   zip.file('OEBPS/cover.xhtml', coverHtml);
 
-  const sortedChapters = input.chapters.slice().sort((a, b) => a.order - b.order);
   const chapterFiles: Array<{ file: string; title: string }> = [
-    { file: 'cover.xhtml', title: 'Cover' },
+    { file: 'cover.xhtml', title: coverTitle },
   ];
 
-  const dialogueStyle = resolveDialogueStyle(input.document);
-  sortedChapters.forEach((chapter, i) => {
-    const filename = `chapter-${i + 1}.xhtml`;
+  // Standard chapters keep the historical chapter-N.xhtml numbering;
+  // front/back matter files are named after their kind so the spine
+  // reads like a book's binding order.
+  let standardCount = 0;
+  const kindCounts: Partial<Record<ChapterKind, number>> = {};
+  const filenameFor = (chapter: Chapter): string => {
+    const kind = chapterKindOf(chapter);
+    if (kind === 'standard') {
+      standardCount += 1;
+      return `chapter-${standardCount}.xhtml`;
+    }
+    const n = (kindCounts[kind] ?? 0) + 1;
+    kindCounts[kind] = n;
+    return `${kind}-${n}.xhtml`;
+  };
+
+  for (const chapter of contentChapters) {
+    const filename = filenameFor(chapter);
     const bodyInner = exportableBlocks(chapter, input.blocks)
       .map((b) => renderBlockXhtml(b, input.characters, dialogueStyle))
       .filter((x) => x.trim().length > 0)
       .join('\n      ');
-    zip.file(`OEBPS/${filename}`, chapterXhtml(chapter.title, bodyInner));
+    zip.file(
+      `OEBPS/${filename}`,
+      chapterXhtml(chapter.title, bodyInner, language, chapterKindOf(chapter)),
+    );
     chapterFiles.push({ file: filename, title: chapter.title });
-  });
+  }
 
   zip.file(
     'OEBPS/nav.xhtml',
-    navXhtml(input.document.title || 'Untitled', chapterFiles),
+    navXhtml(input.document.title || t('common.untitled'), chapterFiles, language),
   );
 
   const modified = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   zip.file(
     'OEBPS/content.opf',
     contentOpf(
-      input.document.title || 'Untitled',
+      input.document.title || t('common.untitled'),
       input.document.author || '',
       input.document.synopsis || '',
       crypto.randomUUID(),
       chapterFiles.map((c) => c.file),
       modified,
       coverAsset,
+      language,
     ),
   );
 
