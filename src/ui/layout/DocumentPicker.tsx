@@ -21,6 +21,7 @@ import { openSettingsModal } from '@/store/ui-state';
 import { t } from '@/i18n';
 import { LanguagePicker } from '@/ui/shared/LanguagePicker';
 import { WhatsNewButton } from '@/ui/shared/WhatsNewButton';
+import { syncAppliedTick } from '@/sync';
 
 interface Props {
   onSelect: (docId: string) => void;
@@ -42,6 +43,18 @@ export const DocumentPicker = (props: Props) => {
   // Use listDocumentRows so the picker has access to sync metadata
   // (sync_enabled / last_synced_at) without a second IDB round-trip.
   const [docs, { refetch }] = createResource(() => repo.listDocumentRows());
+
+  // Documents can arrive or change underneath us via sync pulls — refetch
+  // whenever one is applied so the list never shows a stale library.
+  let lastSyncTick = syncAppliedTick();
+  createEffect(() => {
+    const tick = syncAppliedTick();
+    if (tick !== lastSyncTick) {
+      lastSyncTick = tick;
+      void refetch();
+    }
+  });
+
   const [creating, setCreating] = createSignal(false);
   const [showNewForm, setShowNewForm] = createSignal(false);
   const [newTitle, setNewTitle] = createSignal('');

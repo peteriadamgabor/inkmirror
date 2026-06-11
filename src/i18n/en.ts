@@ -1054,6 +1054,10 @@ export const en = {
     lastActivity: 'Last activity: {{ago}}',
     documentsHeader: 'Documents',
     syncedCounter: '{{n}} of {{total}} documents synced',
+    updatedFromSync: 'This document was updated from another device.',
+    nowDone: 'Everything is up to date.',
+    noDocuments: 'No documents yet.',
+    errorGeneric: 'Sync hit a problem. It will retry automatically.',
 
     passphrase: {
       title: 'Choose a passphrase',
@@ -1074,11 +1078,13 @@ export const en = {
     paircode: {
       instructionsTitle: 'On your other device:',
       step1: '1. Open InkMirror',
-      step2: '2. Settings → Sync → Add this device',
+      step2: '2. Settings → Sync → "Connect to existing sync"',
       step3: '3. Enter this code and your passphrase',
       expires: 'Code expires in {{time}}',
       expired: 'Code expired. Generate a new one?',
       generateNew: 'Generate new code',
+      copy: 'Copy code',
+      copied: 'Code copied.',
     },
 
     connect: {
@@ -1088,7 +1094,8 @@ export const en = {
       submit: 'Connect',
       wrongPassphrase: "Passphrase doesn't match. Try again.",
       paircodeExpired: 'Code expired. Ask the other device for a new one.',
-      connected: 'Connected · {{n}} documents synced',
+      connected: 'Connected. Your documents will appear shortly.',
+      failedGeneric: "Couldn't connect. Check the code and passphrase, then try again.",
     },
 
     status: {

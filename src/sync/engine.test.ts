@@ -179,7 +179,7 @@ describe('engine push errors', () => {
 
   it('non-409, non-5xx error transitions immediately to ERROR (no retry)', async () => {
     client.putDoc.mockReset();
-    client.putDoc.mockRejectedValueOnce(new SyncHttpError(401, { error: 'auth_mismatch' }));
+    client.putDoc.mockRejectedValueOnce(new SyncHttpError(422, { error: 'payload_invalid' }));
 
     const engine = createEngine(deps);
     engine.markDirty('doc-1');
@@ -191,6 +191,36 @@ describe('engine push errors', () => {
 
     expect(client.putDoc).toHaveBeenCalledTimes(1);
     expect(docStatusFor('doc-1').kind).toBe('error');
+  });
+
+  it('401 on push marks the circle orphaned instead of a dead-end doc ERROR', async () => {
+    setCircleStatus({ kind: 'active', syncId: 'sync-id-1' });
+    client.putDoc.mockReset();
+    client.putDoc.mockRejectedValueOnce(new SyncHttpError(401, { error: 'auth_mismatch' }));
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(circleStatus().kind).toBe('orphaned');
+  });
+
+  it('429 (rate limited) retries with backoff instead of wedging in ERROR', async () => {
+    client.putDoc.mockReset();
+    client.putDoc
+      .mockRejectedValueOnce(new SyncHttpError(429, { error: 'rate_limited' }))
+      .mockResolvedValueOnce({ revision: 5, updatedAt: '2026-06-11T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS); // initial push → 429 → queued
+    await vi.advanceTimersByTimeAsync(1_100); // first backoff step → success
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(2);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
   });
 });
 
@@ -455,5 +485,61 @@ describe('engine conflict resolution', () => {
 
     expect(client.putDoc).not.toHaveBeenCalled();
     expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+});
+
+describe('per-document sync_enabled gate', () => {
+  it('markDirty is a no-op for a disabled doc', () => {
+    const engine = createEngine({ ...deps, isDocSyncEnabled: () => false });
+    setDocStatus('doc-1', { kind: 'off' });
+    engine.markDirty('doc-1');
+    expect(docStatusFor('doc-1').kind).toBe('off');
+  });
+
+  it('a queued push is dropped when the doc is toggled off before the debounce fires', async () => {
+    let enabled = true;
+    const engine = createEngine({ ...deps, isDocSyncEnabled: () => enabled });
+    engine.markDirty('doc-1');
+    enabled = false; // toggle flips while the debounce timer is pending
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).not.toHaveBeenCalled();
+    expect(docStatusFor('doc-1').kind).toBe('off');
+  });
+
+  it('heartbeat does not pull a disabled doc the server lists', async () => {
+    client.list.mockResolvedValue([
+      { docId: 'doc-1', revision: 9, updatedAt: '2026-06-11T12:00:00Z' },
+    ]);
+    const engine = createEngine({ ...deps, isDocSyncEnabled: () => false });
+    engine.start();
+    // No runAllTimersAsync here — the heartbeat interval would loop forever.
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS + 100);
+
+    expect(client.getDoc).not.toHaveBeenCalled();
+    engine.stop();
+  });
+
+  it('setDocEnabled(true) pushes the doc current state without waiting for an edit', async () => {
+    const engine = createEngine({ ...deps, isDocSyncEnabled: () => true });
+    engine.setDocEnabled('doc-1', true);
+    expect(docStatusFor('doc-1').kind).toBe('pending');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+
+  it('setDocEnabled(false) cancels a queued push', async () => {
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    engine.setDocEnabled('doc-1', false);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).not.toHaveBeenCalled();
+    expect(docStatusFor('doc-1').kind).toBe('off');
   });
 });

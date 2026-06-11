@@ -1,28 +1,45 @@
-import { createSignal, Show, onCleanup } from 'solid-js';
+import { createSignal, Show, onCleanup, onMount } from 'solid-js';
 import { connectDB } from '@/db/connection';
-import { initCircle, issuePaircode } from '@/sync';
+import { initCircle, issuePaircode, startSyncIfConfigured } from '@/sync';
+import { loadKeys } from '@/sync/keystore';
 import { generatePassphrase } from '@/sync/wordlist';
 import { passphraseStrength } from '@/sync/strength';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { IconEye, IconEyeOff } from '@/ui/shared/icons';
+import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
 type Step =
   | { kind: 'passphrase' }
   | { kind: 'deriving' }
+  | { kind: 'issuing' }
   | { kind: 'done'; syncId: string }
   | { kind: 'paircode'; code: string; expiresAt: number };
 
 interface Props {
   onClose: () => void;
+  /**
+   * 'setup' (default) walks through passphrase creation. 'addDevice'
+   * skips straight to issuing a pair code for the EXISTING circle —
+   * asking an already-paired user to "choose a passphrase" again read
+   * like sync was broken.
+   */
+  mode?: 'setup' | 'addDevice';
 }
 
 export function PairingSetupModal(props: Props) {
-  const [step, setStep] = createSignal<Step>({ kind: 'passphrase' });
+  const mode = () => props.mode ?? 'setup';
+  const [step, setStep] = createSignal<Step>(
+    (props.mode ?? 'setup') === 'addDevice' ? { kind: 'issuing' } : { kind: 'passphrase' },
+  );
   const [pass, setPass] = createSignal('');
   const [confirm, setConfirm] = createSignal('');
   const [error, setError] = createSignal<string | null>(null);
   const [reveal, setReveal] = createSignal(false);
+
+  onMount(() => {
+    if (mode() === 'addDevice') void issueForExistingCircle();
+  });
 
   async function submitPassphrase(e: Event) {
     e.preventDefault();
@@ -41,9 +58,41 @@ export function PairingSetupModal(props: Props) {
     try {
       const db = await connectDB();
       const { syncId } = await initCircle({ db, baseUrl: '', passphrase: pass() });
+      // Start the engine right away — previously sync silently did
+      // nothing until the next full page reload.
+      await startSyncIfConfigured();
       setStep({ kind: 'done', syncId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      console.error('[sync] initCircle failed:', err);
+      setError(t('sync.errorGeneric'));
+      setStep({ kind: 'passphrase' });
+    }
+  }
+
+  async function issueCode(syncId: string) {
+    const db = await connectDB();
+    const r = await issuePaircode({ db, baseUrl: '', syncId });
+    setStep({
+      kind: 'paircode',
+      code: r.paircode,
+      expiresAt: new Date(r.expiresAt).getTime(),
+    });
+  }
+
+  async function issueForExistingCircle() {
+    try {
+      const db = await connectDB();
+      const keys = await loadKeys(db);
+      db.close();
+      if (!keys) {
+        // No keystore despite an active-looking circle — fall back to setup.
+        setStep({ kind: 'passphrase' });
+        return;
+      }
+      await issueCode(keys.syncId);
+    } catch (err) {
+      console.error('[sync] issuePaircode failed:', err);
+      setError(t('sync.errorGeneric'));
       setStep({ kind: 'passphrase' });
     }
   }
@@ -52,15 +101,10 @@ export function PairingSetupModal(props: Props) {
     const s = step();
     if (s.kind !== 'done') return;
     try {
-      const db = await connectDB();
-      const r = await issuePaircode({ db, baseUrl: '', syncId: s.syncId });
-      setStep({
-        kind: 'paircode',
-        code: r.paircode,
-        expiresAt: new Date(r.expiresAt).getTime(),
-      });
+      await issueCode(s.syncId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      console.error('[sync] issuePaircode failed:', err);
+      setError(t('sync.errorGeneric'));
     }
   }
 
@@ -69,7 +113,7 @@ export function PairingSetupModal(props: Props) {
   return (
     <ModalBackdrop onClick={props.onClose}>
       <div
-        class="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-6 max-w-md w-full mx-4"
+        class="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-6 max-w-md w-full mx-4 inkmirror-modal-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <Show when={step().kind === 'passphrase'}>
@@ -172,8 +216,16 @@ export function PairingSetupModal(props: Props) {
         </Show>
 
         <Show when={step().kind === 'deriving'}>
-          <p class="text-center py-8 text-stone-600 dark:text-stone-300 inkmirror-mirror-breath">
+          {/* animate-pulse, NOT inkmirror-mirror-breath: mirror-breath
+              applies scaleY(-1) — it rendered this text upside-down. */}
+          <p class="text-center py-8 text-stone-600 dark:text-stone-300 animate-pulse">
             {t('sync.passphrase.deriving')}
+          </p>
+        </Show>
+
+        <Show when={step().kind === 'issuing'}>
+          <p class="text-center py-8 text-stone-600 dark:text-stone-300 animate-pulse">
+            {t('common.loading')}
           </p>
         </Show>
 
@@ -235,8 +287,24 @@ function PairCodeDisplay(props: {
 
   return (
     <div>
-      <div class="text-3xl font-mono text-center my-6 inkmirror-smallcaps tracking-widest text-stone-800 dark:text-stone-100">
+      <div class="text-3xl font-mono text-center mt-6 mb-2 inkmirror-smallcaps tracking-widest text-stone-800 dark:text-stone-100 tabular-nums">
         {props.step.code.slice(0, 3)} – {props.step.code.slice(3)}
+      </div>
+      <div class="text-center mb-4">
+        <button
+          type="button"
+          class="text-xs text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+          onClick={() => {
+            navigator.clipboard
+              .writeText(props.step.code)
+              .then(() => toast.success(t('sync.paircode.copied')))
+              .catch(() => {
+                /* clipboard unavailable (http / permissions) — the code is on screen */
+              });
+          }}
+        >
+          {t('sync.paircode.copy')}
+        </button>
       </div>
       <p class="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">
         {t('sync.paircode.instructionsTitle')}

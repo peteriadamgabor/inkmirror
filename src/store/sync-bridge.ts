@@ -16,7 +16,8 @@
 
 import { getDb } from '@/db/connection';
 import type { DocumentRow, SentimentRow } from '@/db/connection';
-import { disambiguateTitle } from '@/db/repository';
+import { disambiguateTitle, setSyncEnabled } from '@/db/repository';
+import { setEngineDocEnabled } from '@/sync';
 import {
   rowToCharacter,
   rowToChapter,
@@ -283,6 +284,11 @@ export async function applySyncBundleToDocument(
     await Promise.allSettled(writes);
     throw err;
   }
+
+  // Keep the engine's synchronous gate in step with what we just wrote —
+  // a doc arriving on first pull is seeded sync_enabled=true and must be
+  // pushable immediately, without waiting for the next boot preload.
+  _enabledCache.set(docId, newRow.sync_enabled);
 }
 
 // ─── last-revision helpers ────────────────────────────────────────────────────
@@ -298,10 +304,36 @@ export async function applySyncBundleToDocument(
  */
 const _revCache = new Map<UUID, number>();
 
-export function preloadSyncRevisions(rows: ReadonlyArray<{ id: UUID; last_sync_revision: number }>): void {
+// Mirror of each document's sync_enabled flag, kept in memory because the
+// engine's gate must be synchronous. Populated at boot, updated by the
+// toggle path and by applied pulls. Cache miss = false: new documents are
+// created with sync_enabled=false, so an unknown doc must not push.
+const _enabledCache = new Map<UUID, boolean>();
+
+export function preloadSyncRevisions(
+  rows: ReadonlyArray<{ id: UUID; last_sync_revision: number; sync_enabled: boolean }>,
+): void {
   for (const row of rows) {
     _revCache.set(row.id, row.last_sync_revision);
+    _enabledCache.set(row.id, row.sync_enabled);
   }
+}
+
+export function isDocSyncEnabled(docId: UUID): boolean {
+  return _enabledCache.get(docId) ?? false;
+}
+
+/**
+ * THE single entry point for flipping a document's sync_enabled flag.
+ * Persists the row, keeps the engine's synchronous gate in step, and
+ * notifies the running engine (ON pushes pending local state, OFF
+ * cancels any queued push). The UI toggles previously wrote only the
+ * IDB row — the engine never noticed, making the checkbox decorative.
+ */
+export async function setDocumentSyncEnabled(docId: UUID, enabled: boolean): Promise<void> {
+  await setSyncEnabled(docId, enabled);
+  _enabledCache.set(docId, enabled);
+  setEngineDocEnabled(docId, enabled);
 }
 
 export function getDocLastSyncRevision(docId: UUID): number {

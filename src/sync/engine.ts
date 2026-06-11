@@ -23,6 +23,13 @@ export interface EngineDeps {
   applyBundle: (docId: string, plaintext: Uint8Array) => Promise<void>;
   getDocLastRevision: (docId: string) => number;
   setDocLastRevision: (docId: string, revision: number) => void;
+  /**
+   * Per-document opt-in gate. The engine consults this before every push
+   * AND before pulling a doc the server lists — a doc the user toggled
+   * off must neither leave nor enter this device. Defaults to "enabled"
+   * when omitted (legacy behavior, used by older tests).
+   */
+  isDocSyncEnabled?: (docId: string) => boolean;
   /** Optional: override the encrypt step (useful in tests to avoid real crypto.subtle scheduling). */
   encrypt?: (K_enc: CryptoKey, plaintext: Uint8Array, syncId: string, docId: string) => Promise<EncryptedBlob>;
   /** Optional: override the decrypt step (useful in tests to avoid real crypto.subtle scheduling). */
@@ -35,6 +42,8 @@ export interface Engine {
   markDirty: (docId: string) => void;
   syncNow: () => Promise<void>;
   resolveConflict: (docId: string, choice: ConflictResolution) => Promise<void>;
+  /** React to a sync_enabled toggle: ON pushes the doc's current state, OFF cancels any queued push. */
+  setDocEnabled: (docId: string, enabled: boolean) => void;
   start: () => void;
   stop: () => void;
 }
@@ -46,7 +55,10 @@ export function createEngine(deps: EngineDeps): Engine {
   let generation = 0;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
+  const enabled = (docId: string): boolean => deps.isDocSyncEnabled?.(docId) ?? true;
+
   function markDirty(docId: string): void {
+    if (!enabled(docId)) return;
     setDocStatus(docId, { kind: 'pending' });
     const existing = debounceTimers.get(docId);
     if (existing) clearTimeout(existing);
@@ -57,6 +69,12 @@ export function createEngine(deps: EngineDeps): Engine {
   async function pushDoc(docId: string, gen: number, attempt: number): Promise<void> {
     if (attempt === 0) debounceTimers.delete(docId);
     if (gen !== generation) return;
+    // Re-check at fire time: the toggle may have flipped while the
+    // debounce or a retry timer was pending.
+    if (!enabled(docId)) {
+      setDocStatus(docId, { kind: 'off' });
+      return;
+    }
     setDocStatus(docId, { kind: 'syncing' });
     try {
       const plaintext = await deps.buildBundle(docId);
@@ -84,8 +102,19 @@ export function createEngine(deps: EngineDeps): Engine {
         });
         return;
       }
+      if (err instanceof SyncHttpError && (err.status === 401 || err.status === 410)) {
+        // Auth no longer matches any server-side circle — same terminal
+        // state the heartbeat detects. Surface it instead of a dead-end
+        // per-doc ERROR.
+        setCircleStatus({ kind: 'orphaned', syncId: deps.syncId });
+        setDocStatus(docId, { kind: 'off' });
+        return;
+      }
+      // 429: the write limiter tripped (6/min — reachable while actively
+      // writing). It clears on its own, so it MUST be retryable — landing
+      // in ERROR wedged sync until reload.
       const isRetryable =
-        (err instanceof SyncHttpError && err.status >= 500) ||
+        (err instanceof SyncHttpError && (err.status >= 500 || err.status === 429)) ||
         !(err instanceof SyncHttpError);
       if (isRetryable && attempt < RETRY_DELAYS_MS.length) {
         setDocStatus(docId, { kind: 'pending' });
@@ -129,7 +158,7 @@ export function createEngine(deps: EngineDeps): Engine {
       // happened before the production KV binding existed). Surface the state
       // to the UI and stop the heartbeat loop — re-pairing is the only path
       // forward, and silent retries every 5 min serve no one.
-      if (err instanceof SyncHttpError && (err.status === 401 || err.status === 404)) {
+      if (err instanceof SyncHttpError && (err.status === 401 || err.status === 404 || err.status === 410)) {
         setCircleStatus({ kind: 'orphaned', syncId: deps.syncId });
         if (heartbeatTimer) {
           clearInterval(heartbeatTimer);
@@ -140,6 +169,8 @@ export function createEngine(deps: EngineDeps): Engine {
     }
 
     for (const item of serverList) {
+      // A doc toggled off on this device neither pushes nor pulls.
+      if (!enabled(item.docId)) continue;
       const localRev = deps.getDocLastRevision(item.docId);
       if (item.revision <= localRev) continue;
 
@@ -193,6 +224,12 @@ export function createEngine(deps: EngineDeps): Engine {
     await pullDoc(docId, s.serverRevision);
   }
 
+  // Fire a heartbeat the moment connectivity returns — otherwise the user
+  // waits out the remainder of the 5-minute interval after coming online.
+  const onOnline = (): void => {
+    void heartbeat();
+  };
+
   return {
     markDirty,
     syncNow: async () => {
@@ -205,13 +242,33 @@ export function createEngine(deps: EngineDeps): Engine {
       await heartbeat();
     },
     resolveConflict,
+    setDocEnabled: (docId: string, isEnabled: boolean): void => {
+      if (isEnabled) {
+        // Push the doc's current state — edits made while sync was off
+        // would otherwise sit local until the next incidental edit.
+        markDirty(docId);
+        return;
+      }
+      const t = debounceTimers.get(docId);
+      if (t) {
+        clearTimeout(t);
+        debounceTimers.delete(docId);
+      }
+      setDocStatus(docId, { kind: 'off' });
+    },
     start: () => {
       if (heartbeatTimer) return;
       heartbeatTimer = setInterval(() => { void heartbeat(); }, HEARTBEAT_MS);
+      if (typeof window !== 'undefined') {
+        window.addEventListener('online', onOnline);
+      }
     },
     stop: () => {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       heartbeatTimer = null;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', onOnline);
+      }
       generation++;
       for (const t of debounceTimers.values()) clearTimeout(t);
       debounceTimers.clear();

@@ -7,10 +7,12 @@
 export {
   SYNC_FEATURE,
   startSync,
+  startSyncIfConfigured,
   stopSync,
   syncNow,
   markDirty,
   resolveConflict,
+  setEngineDocEnabled,
 } from './engine-bootstrap';
 
 export type { StartSyncOptions } from './engine-bootstrap';
@@ -26,7 +28,7 @@ export type {
 
 export { forceClearLocally } from './pending-deletion';
 
-export { circleStatus, docStatusFor } from './state';
+export { circleStatus, docStatusFor, syncAppliedTick, bumpSyncApplied } from './state';
 export type { CircleStatus, DocSyncStatus } from './state';
 
 export type { ConflictResolution } from './engine';

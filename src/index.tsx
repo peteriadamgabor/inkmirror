@@ -27,7 +27,10 @@ import {
   getDocLastSyncRevision,
   setDocLastSyncRevision,
   preloadSyncRevisions,
+  isDocSyncEnabled,
 } from '@/store/sync-bridge';
+import { bumpSyncApplied } from '@/sync';
+import { store } from '@/store/document';
 import { BootSplash } from '@/ui/layout/BootSplash';
 import { DocumentPicker } from '@/ui/layout/DocumentPicker';
 import { CrashBoundary } from '@/ui/shared/CrashBoundary';
@@ -249,9 +252,26 @@ if (isKnownPath && !isStaticPage) {
               toast.info(t('block.previewSyncCancelled'));
             }
             await applySyncBundleToDocument(docId, plaintext);
+            // The apply writes IDB only. If this document is open in the
+            // editor, the Solid store still shows pre-pull content — and
+            // the next autosave would write that stale state back over
+            // the pull. Rehydrate so the editor reflects what just landed.
+            if (store.document?.id === docId) {
+              const loaded = await repo.loadDocument(docId);
+              if (loaded) {
+                hydrateFromLoaded(loaded);
+                // Undo entries reference pre-pull content; replaying one
+                // would resurrect stale text over the synced state.
+                clearUndoStack();
+                toast.info(t('sync.updatedFromSync'));
+              }
+            }
+            // Wake IDB-backed lists (picker, sync settings) to refetch.
+            bumpSyncApplied();
           },
           getDocLastRevision: getDocLastSyncRevision,
           setDocLastRevision: (id, rev) => { void setDocLastSyncRevision(id, rev); },
+          isDocSyncEnabled,
         });
       }
       const docs = await repo.listDocuments();

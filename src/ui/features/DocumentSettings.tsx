@@ -19,6 +19,7 @@ import { Checkbox } from '@/ui/shared/Checkbox';
 import { circleStatus, syncNow, docStatusFor } from '@/sync';
 import type { DocSyncStatus } from '@/sync';
 import * as repo from '@/db/repository';
+import { setDocumentSyncEnabled } from '@/store/sync-bridge';
 import { formatEditedTimestamp } from '@/utils/block-timestamp';
 
 const DIALOGUE_STYLE_ORDER: DialogueStyle[] = ['straight', 'curly', 'hu_dash'];
@@ -471,10 +472,13 @@ function DocSyncSection(props: DocSyncSectionProps) {
 
   async function handleToggle(enabled: boolean) {
     try {
-      await repo.setSyncEnabled(props.docId, enabled);
+      // Through the bridge, not repo directly — the running engine must
+      // hear about the toggle (push on enable, cancel queued on disable).
+      await setDocumentSyncEnabled(props.docId, enabled);
       setSyncEnabled(enabled);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      console.error('[sync] toggle failed:', err);
+      toast.error(t('sync.errorGeneric'));
     }
   }
 

@@ -1,6 +1,11 @@
 import { createSignal, Show } from 'solid-js';
 import { connectDB } from '@/db/connection';
-import { redeemPaircode, SyncHttpError } from '@/sync';
+import {
+  redeemPaircode,
+  startSyncIfConfigured,
+  syncNow,
+  SyncHttpError,
+} from '@/sync';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { IconEye, IconEyeOff } from '@/ui/shared/icons';
 import { toast } from '@/ui/shared/toast';
@@ -49,7 +54,12 @@ export function PairRedeemModal(props: Props) {
     try {
       const db = await connectDB();
       await redeemPaircode({ db, baseUrl: '', paircode: code, passphrase: pass() });
-      toast.success(t('sync.connect.connected', { n: 0 }));
+      // Start the engine and pull the circle's documents immediately —
+      // previously NOTHING synced until the next full page reload, which
+      // made a fresh pairing look broken.
+      await startSyncIfConfigured();
+      void syncNow();
+      toast.success(t('sync.connect.connected'));
       props.onConnected?.();
       props.onClose();
     } catch (err) {
@@ -61,10 +71,12 @@ export function PairRedeemModal(props: Props) {
           setError(t('sync.connect.paircodeExpired'));
           setExpired(true);
         } else {
-          setError(`http ${err.status}`);
+          console.error('[sync] redeem failed:', err);
+          setError(t('sync.connect.failedGeneric'));
         }
       } else {
-        setError(err instanceof Error ? err.message : String(err));
+        console.error('[sync] redeem failed:', err);
+        setError(t('sync.connect.failedGeneric'));
       }
     } finally {
       setBusy(false);

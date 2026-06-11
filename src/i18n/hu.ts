@@ -1047,6 +1047,10 @@ export const hu: Messages = {
     lastActivity: 'Utolsó tevékenység: {{ago}}',
     documentsHeader: 'Dokumentumok',
     syncedCounter: '{{n}}/{{total}} dokumentum szinkronizálva',
+    updatedFromSync: 'Ez a dokumentum frissült egy másik eszközről.',
+    nowDone: 'Minden naprakész.',
+    noDocuments: 'Még nincsenek dokumentumok.',
+    errorGeneric: 'A szinkronizálás hibába ütközött. Automatikusan újrapróbálja.',
 
     passphrase: {
       title: 'Válassz jelmondatot',
@@ -1067,11 +1071,13 @@ export const hu: Messages = {
     paircode: {
       instructionsTitle: 'A másik eszközön:',
       step1: '1. Nyisd meg az InkMirrort',
-      step2: '2. Beállítások → Szinkronizálás → Eszköz hozzáadása',
+      step2: '2. Beállítások → Szinkronizálás → „Csatlakozás meglévő szinkronhoz"',
       step3: '3. Add meg ezt a kódot és a jelmondatot',
       expires: 'A kód {{time}} múlva lejár',
       expired: 'A kód lejárt. Generálsz újat?',
       generateNew: 'Új kód generálása',
+      copy: 'Kód másolása',
+      copied: 'Kód kimásolva.',
     },
 
     connect: {
@@ -1081,7 +1087,8 @@ export const hu: Messages = {
       submit: 'Csatlakozás',
       wrongPassphrase: 'A jelmondat nem egyezik. Próbáld újra.',
       paircodeExpired: 'A kód lejárt. Kérj egy újat a másik eszközön.',
-      connected: 'Csatlakoztatva · {{n}} dokumentum szinkronizálva',
+      connected: 'Csatlakozva. A dokumentumaid hamarosan megjelennek.',
+      failedGeneric: 'Nem sikerült csatlakozni. Ellenőrizd a kódot és a jelmondatot, majd próbáld újra.',
     },
 
     status: {

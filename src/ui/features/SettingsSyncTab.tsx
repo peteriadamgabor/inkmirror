@@ -1,8 +1,15 @@
-import { createResource, createSignal, For, Show } from 'solid-js';
-import { circleStatus, syncNow, destroyCircle, forceClearLocally } from '@/sync';
+import { createEffect, createResource, createSignal, For, Show } from 'solid-js';
+import {
+  circleStatus,
+  syncNow,
+  destroyCircle,
+  forceClearLocally,
+  syncAppliedTick,
+} from '@/sync';
 import { connectDB } from '@/db/connection';
 import { loadKeys } from '@/sync/keystore';
 import * as repo from '@/db/repository';
+import { setDocumentSyncEnabled } from '@/store/sync-bridge';
 import type { DocumentRow } from '@/db/connection';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
@@ -51,7 +58,8 @@ export function SettingsSyncTab() {
         toast.info(t('sync.pendingDeletion.queued'));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      console.error('[sync]', err);
+      toast.error(t('sync.errorGeneric'));
     }
   }
 
@@ -100,7 +108,10 @@ export function SettingsSyncTab() {
       </Show>
 
       <Show when={setupOpen()}>
-        <PairingSetupModal onClose={() => setSetupOpen(false)} />
+        <PairingSetupModal
+          mode={circleStatus().kind === 'active' ? 'addDevice' : 'setup'}
+          onClose={() => setSetupOpen(false)}
+        />
       </Show>
       <Show when={redeemOpen()}>
         <PairRedeemModal onClose={() => setRedeemOpen(false)} />
@@ -149,7 +160,8 @@ function PendingDeletionPanel() {
         toast.info(t('sync.pendingDeletion.stillPending'));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      console.error('[sync]', err);
+      toast.error(t('sync.errorGeneric'));
     }
   }
 
@@ -171,7 +183,8 @@ function PendingDeletionPanel() {
       }
       toast.success(t('sync.pendingDeletion.forceClearDone'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      console.error('[sync]', err);
+      toast.error(t('sync.errorGeneric'));
     }
   }
 
@@ -237,7 +250,8 @@ function OrphanedSyncPanel() {
       await destroyCircle({ db: await connectDB(), baseUrl: '', syncId: keys.syncId, K_auth: keys.K_auth });
       toast.success(t('sync.orphan.resetDone'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      console.error('[sync]', err);
+      toast.error(t('sync.errorGeneric'));
     }
   }
 
@@ -264,15 +278,82 @@ function OrphanedSyncPanel() {
 }
 
 function ActiveSyncPanel(props: { onAddDevice: () => void; onDisable: () => void }) {
+  const [rows, { refetch }] = createResource(() => repo.listDocumentRows());
+  const [syncing, setSyncing] = createSignal(false);
+
+  // Refetch whenever a pull lands so titles, checkmarks, and timestamps
+  // track reality without a reload.
+  let lastTick = syncAppliedTick();
+  createEffect(() => {
+    const tick = syncAppliedTick();
+    if (tick !== lastTick) {
+      lastTick = tick;
+      void refetch();
+    }
+  });
+
+  const syncedCount = () => (rows() ?? []).filter((r) => r.sync_enabled).length;
+  const lastActivity = () => {
+    const stamps = (rows() ?? [])
+      .map((r) => r.last_synced_at)
+      .filter((x): x is number => x !== null);
+    return stamps.length > 0 ? Math.max(...stamps) : null;
+  };
+
+  async function handleSyncNow() {
+    if (syncing()) return;
+    setSyncing(true);
+    try {
+      await syncNow();
+      await refetch();
+      toast.success(t('sync.nowDone'));
+    } catch (err) {
+      console.error('[sync] syncNow failed:', err);
+      toast.error(t('sync.errorGeneric'));
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function toggleSync(docId: string, enabled: boolean) {
+    try {
+      await setDocumentSyncEnabled(docId, enabled);
+      await refetch();
+    } catch (err) {
+      console.error('[sync] toggle failed:', err);
+      toast.error(t('sync.errorGeneric'));
+    }
+  }
+
   return (
     <div>
       <h2 class="text-sm font-semibold mb-1 inkmirror-smallcaps text-stone-500 dark:text-stone-400">
         {t('sync.title')}
       </h2>
-      <p class="text-sm text-emerald-600 dark:text-emerald-400 mb-4">
+      <p class="text-sm text-emerald-600 dark:text-emerald-400 mb-1">
         {t('sync.on')}
+        <Show when={rows()}>
+          {(r) => (
+            <span class="text-stone-400 dark:text-stone-500">
+              {' · '}
+              {t('sync.syncedCounter', {
+                n: String(syncedCount()),
+                total: String(r().length),
+              })}
+            </span>
+          )}
+        </Show>
       </p>
-      <div class="flex flex-wrap gap-2 mb-6">
+      <Show when={lastActivity()}>
+        {(ts) => (
+          <p class="text-[11px] text-stone-400 dark:text-stone-500 mb-4 tabular-nums">
+            {t('sync.lastActivity', {
+              ago: formatEditedTimestamp(new Date(ts()).toISOString()),
+            })}
+          </p>
+        )}
+      </Show>
+      <div class="flex flex-wrap gap-2 mb-6 mt-3">
         <button
           type="button"
           onClick={props.onAddDevice}
@@ -282,14 +363,15 @@ function ActiveSyncPanel(props: { onAddDevice: () => void; onDisable: () => void
         </button>
         <button
           type="button"
-          onClick={() => void syncNow()}
-          class="px-4 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+          disabled={syncing()}
+          onClick={() => void handleSyncNow()}
+          class="px-4 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-violet-300 dark:hover:border-violet-700 transition-colors disabled:opacity-50"
         >
-          {t('sync.syncNow')}
+          {syncing() ? t('sync.status.syncing') : t('sync.syncNow')}
         </button>
       </div>
 
-      <DocumentSyncList />
+      <DocumentSyncList rows={rows() ?? []} loading={rows.loading} onToggle={toggleSync} />
 
       <button
         type="button"
@@ -302,35 +384,28 @@ function ActiveSyncPanel(props: { onAddDevice: () => void; onDisable: () => void
   );
 }
 
-function DocumentSyncList() {
-  const [rows, { refetch }] = createResource(() => repo.listDocumentRows());
-
-  async function toggleSync(docId: string, enabled: boolean) {
-    try {
-      await repo.setSyncEnabled(docId, enabled);
-      await refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }
-
+function DocumentSyncList(props: {
+  rows: DocumentRow[];
+  loading: boolean;
+  onToggle: (docId: string, enabled: boolean) => Promise<void>;
+}) {
   return (
     <div>
       <div class="text-[10px] tracking-wider text-stone-400 inkmirror-smallcaps mb-2">
         {t('sync.documentsHeader')}
       </div>
       <Show
-        when={(rows() ?? []).length > 0}
+        when={props.rows.length > 0}
         fallback={
           <p class="text-sm text-stone-400 dark:text-stone-500">
-            {t('common.loading')}
+            {props.loading ? t('common.loading') : t('sync.noDocuments')}
           </p>
         }
       >
         <div class="flex flex-col gap-2">
-          <For each={rows() ?? []}>
+          <For each={props.rows}>
             {(row: DocumentRow) => (
-              <DocSyncRow row={row} onToggle={toggleSync} />
+              <DocSyncRow row={row} onToggle={props.onToggle} />
             )}
           </For>
         </div>

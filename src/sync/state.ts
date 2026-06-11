@@ -37,3 +37,12 @@ export function docStatusFor(docId: string): DocSyncStatus {
 export function setDocStatus(docId: string, status: DocSyncStatus): void {
   setDocs(docId, status);
 }
+
+// Bumped after every applied sync pull. UI surfaces that render from IDB
+// (DocumentPicker, sync settings list) subscribe to this to refetch —
+// without it, documents arriving via sync stay invisible until reload.
+const [_appliedTick, setAppliedTick] = createSignal(0);
+export const syncAppliedTick = _appliedTick;
+export function bumpSyncApplied(): void {
+  setAppliedTick((n) => n + 1);
+}

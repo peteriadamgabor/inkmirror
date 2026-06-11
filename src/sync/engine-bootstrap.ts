@@ -30,7 +30,14 @@ export interface StartSyncOptions {
   applyBundle: (docId: string, plaintext: Uint8Array) => Promise<void>;
   getDocLastRevision: (docId: string) => number;
   setDocLastRevision: (docId: string, revision: number) => void;
+  /** Per-document sync_enabled gate — see EngineDeps.isDocSyncEnabled. */
+  isDocSyncEnabled?: (docId: string) => boolean;
 }
+
+// Remembered from the boot-time startSync call so pairing flows can start
+// the engine immediately after keys land — previously sync did NOTHING
+// until the next full page reload, because boot ran before keys existed.
+let _lastOpts: StartSyncOptions | null = null;
 
 /**
  * Start the sync engine if a circle exists in IDB. No-op if not configured
@@ -38,6 +45,7 @@ export interface StartSyncOptions {
  */
 export async function startSync(opts: StartSyncOptions): Promise<void> {
   if (!SYNC_FEATURE) return;
+  _lastOpts = opts;
   if (_engine) return; // already running
 
   const db = await connectDB();
@@ -81,8 +89,25 @@ export async function startSync(opts: StartSyncOptions): Promise<void> {
     applyBundle: opts.applyBundle,
     getDocLastRevision: opts.getDocLastRevision,
     setDocLastRevision: opts.setDocLastRevision,
+    isDocSyncEnabled: opts.isDocSyncEnabled,
   });
   _engine.start();
+}
+
+/**
+ * (Re)start the engine using the options captured at boot. Called by the
+ * pairing flows right after initCircle / redeemPaircode store keys, so
+ * sync comes alive without a page reload. No-op when boot never ran
+ * (tests) or the engine is already up.
+ */
+export async function startSyncIfConfigured(): Promise<void> {
+  if (!_lastOpts) return;
+  await startSync(_lastOpts);
+}
+
+/** Forward a per-document sync_enabled toggle to the running engine. */
+export function setEngineDocEnabled(docId: string, enabled: boolean): void {
+  _engine?.setDocEnabled(docId, enabled);
 }
 
 export function stopSync(): void {
@@ -106,4 +131,5 @@ export async function resolveConflict(docId: string, choice: ConflictResolution)
 export function _resetForTesting(): void {
   _engine?.stop();
   _engine = null;
+  _lastOpts = null;
 }
