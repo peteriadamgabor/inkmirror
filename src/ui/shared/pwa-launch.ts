@@ -1,4 +1,5 @@
 import { importBridge } from '@/store/import-bridge';
+import { importBridgeUi } from '@/ui/shared/import-ui';
 import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
 
@@ -41,7 +42,7 @@ export async function consumeShareTargetIfPresent(): Promise<void> {
     const file = new File([blob], name, { type: blob.type || 'application/json' });
     await cache.delete(`/__share/${id}`);
     window.history.replaceState(null, '', '/');
-    await importBridge(file);
+    await importBridge(file, importBridgeUi);
   } catch {
     window.history.replaceState(null, '', '/');
     // The user shared a file into the app and it never arrived — say so
@@ -65,7 +66,7 @@ export function installPwaLaunchHandler(): void {
     for (const handle of params.files ?? []) {
       try {
         const file = await handle.getFile();
-        await importBridge(file, {});
+        await importBridge(file, importBridgeUi);
       } catch {
         // launchQueue consumers fire after boot, so the toast host is up
         // by the time a handle turns out to be unreadable.

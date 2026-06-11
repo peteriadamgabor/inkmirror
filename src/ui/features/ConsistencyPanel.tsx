@@ -1,12 +1,13 @@
 import { createMemo, For, Show } from 'solid-js';
 import { store, setInconsistencyFlagStatus } from '@/store/document';
-import { profile, runConsistencyScan } from '@/store/ai-facade';
-import { t } from '@/i18n';
-import type { InconsistencyFlag, UUID } from '@/types';
 import {
   getContradictionThreshold,
   isThresholdOverridden,
-} from '@/ai/dev-threshold';
+  profile,
+  runConsistencyScan,
+} from '@/store/ai-facade';
+import { t } from '@/i18n';
+import type { InconsistencyFlag, UUID } from '@/types';
 
 async function openDevMenuLazy(): Promise<void> {
   const mod = await import('./DevMenu');

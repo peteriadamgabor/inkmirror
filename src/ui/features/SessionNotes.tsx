@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, on, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, on, onCleanup, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { t } from '@/i18n';
 
@@ -45,6 +45,20 @@ export const SessionNotes = () => {
   const [justSaved, setJustSaved] = createSignal(false);
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let savedIndicatorTimer: ReturnType<typeof setTimeout> | null = null;
+  // The write the debounce timer would perform, kept so unmount can flush
+  // it instead of dropping the writer's last keystrokes.
+  let pendingSave: { docId: string; value: string } | null = null;
+
+  onCleanup(() => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = null;
+    if (pendingSave) {
+      writeNotes(pendingSave.docId, pendingSave.value);
+      pendingSave = null;
+    }
+    if (savedIndicatorTimer) clearTimeout(savedIndicatorTimer);
+    savedIndicatorTimer = null;
+  });
 
   const documentId = createMemo(() => store.document?.id ?? null);
 
@@ -64,7 +78,10 @@ export const SessionNotes = () => {
     const docId = documentId();
     if (!docId) return;
     if (saveTimer) clearTimeout(saveTimer);
+    pendingSave = { docId, value };
     saveTimer = setTimeout(() => {
+      saveTimer = null;
+      pendingSave = null;
       writeNotes(docId, value);
       setJustSaved(true);
       if (savedIndicatorTimer) clearTimeout(savedIndicatorTimer);

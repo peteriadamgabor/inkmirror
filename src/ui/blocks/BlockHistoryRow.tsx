@@ -2,7 +2,7 @@ import { For, Show } from 'solid-js';
 import { diffWords, countSegments, type WordDiffSegment } from '@/utils/word-diff';
 import { t } from '@/i18n';
 import { formatEditedTimestamp } from '@/utils/block-timestamp';
-import type { BlockRevision } from '@/db/repository-revisions';
+import type { BlockRevision } from '@/store/document';
 
 const MAJOR_REWRITE_THRESHOLD = 10;
 

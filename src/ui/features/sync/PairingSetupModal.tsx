@@ -1,7 +1,10 @@
 import { createSignal, Show, onCleanup, onMount } from 'solid-js';
-import { connectDB } from '@/db/connection';
-import { initCircle, issuePaircode, startSyncIfConfigured } from '@/sync';
-import { loadKeys } from '@/sync/keystore';
+import {
+  createSyncCircle,
+  getStoredSyncId,
+  issueSyncPaircode,
+} from '@/store/sync-bridge';
+import { startSyncIfConfigured } from '@/sync';
 import { generatePassphrase } from '@/sync/wordlist';
 import { passphraseStrength } from '@/sync/strength';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
@@ -56,8 +59,7 @@ export function PairingSetupModal(props: Props) {
 
     setStep({ kind: 'deriving' });
     try {
-      const db = await connectDB();
-      const { syncId } = await initCircle({ db, baseUrl: '', passphrase: pass() });
+      const { syncId } = await createSyncCircle(pass());
       // Start the engine right away — previously sync silently did
       // nothing until the next full page reload.
       await startSyncIfConfigured();
@@ -70,8 +72,7 @@ export function PairingSetupModal(props: Props) {
   }
 
   async function issueCode(syncId: string) {
-    const db = await connectDB();
-    const r = await issuePaircode({ db, baseUrl: '', syncId });
+    const r = await issueSyncPaircode(syncId);
     setStep({
       kind: 'paircode',
       code: r.paircode,
@@ -81,15 +82,13 @@ export function PairingSetupModal(props: Props) {
 
   async function issueForExistingCircle() {
     try {
-      const db = await connectDB();
-      const keys = await loadKeys(db);
-      db.close();
-      if (!keys) {
+      const syncId = await getStoredSyncId();
+      if (!syncId) {
         // No keystore despite an active-looking circle — fall back to setup.
         setStep({ kind: 'passphrase' });
         return;
       }
-      await issueCode(keys.syncId);
+      await issueCode(syncId);
     } catch (err) {
       console.error('[sync] issuePaircode failed:', err);
       setError(t('sync.errorGeneric'));

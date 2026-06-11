@@ -14,10 +14,19 @@
  * (permitted for `store/` layer) but never touches Solid reactivity.
  */
 
-import { getDb } from '@/db/connection';
+import { connectDB, getDb } from '@/db/connection';
 import type { DocumentRow, SentimentRow } from '@/db/connection';
 import { disambiguateTitle, setSyncEnabled } from '@/db/repository';
-import { setEngineDocEnabled } from '@/sync';
+import {
+  destroyCircle,
+  forceClearLocally,
+  initCircle,
+  issuePaircode,
+  redeemPaircode,
+  setEngineDocEnabled,
+} from '@/sync';
+import type { DestroyCircleResult } from '@/sync';
+import { loadKeys } from '@/sync/keystore';
 import {
   rowToCharacter,
   rowToChapter,
@@ -28,6 +37,89 @@ import {
 } from '@/db/repository-rows';
 import { serializeForSync, parseFromSync, type SyncBundle } from '@/sync/format';
 import type { Block, Chapter, Character, UUID } from '@/types';
+
+// ─── ui-facing wrappers (pairing + circle lifecycle + document list) ──────────
+//
+// The pairing modals and the sync settings tab need raw DB handles to feed
+// the pairing/circle functions, plus the document rows for the sync list.
+// `ui/` must not import `@/db/*`, so the handle plumbing lives here.
+
+export { listDocumentRows } from '@/db/repository';
+export type { DocumentRow } from '@/db/connection';
+
+/** Create a brand-new sync circle from a passphrase (PairingSetupModal). */
+export async function createSyncCircle(passphrase: string): Promise<{ syncId: string }> {
+  const db = await connectDB();
+  return initCircle({ db, baseUrl: '', passphrase });
+}
+
+/** Issue a pair code for the given circle (PairingSetupModal). */
+export async function issueSyncPaircode(
+  syncId: string,
+): Promise<{ paircode: string; expiresAt: string }> {
+  const db = await connectDB();
+  return issuePaircode({ db, baseUrl: '', syncId });
+}
+
+/**
+ * Read the stored circle id from the keystore, or null when this device
+ * has no keys yet. Used by the addDevice flow to skip passphrase setup.
+ */
+export async function getStoredSyncId(): Promise<string | null> {
+  const db = await connectDB();
+  try {
+    const keys = await loadKeys(db);
+    return keys?.syncId ?? null;
+  } finally {
+    db.close();
+  }
+}
+
+/** Redeem a pair code on a fresh device (PairRedeemModal). */
+export async function redeemSyncPaircode(
+  paircode: string,
+  passphrase: string,
+): Promise<void> {
+  const db = await connectDB();
+  await redeemPaircode({ db, baseUrl: '', paircode, passphrase });
+}
+
+/**
+ * Tear down the circle: best-effort server delete + local keystore wipe.
+ * Returns null when there is no keystore (nothing to do). With
+ * `withRetry`, a `reopenDb` callback is passed so destroyCircle's retry
+ * scheduler can reopen IDB on each attempt — the handle used here may be
+ * closed by the time a retry fires. The orphan-reset flow passes
+ * `withRetry: false` because the server side is already gone.
+ */
+export async function destroySyncCircle(opts: {
+  withRetry: boolean;
+}): Promise<DestroyCircleResult | null> {
+  const db = await connectDB();
+  const keys = await loadKeys(db);
+  db.close();
+  if (!keys) return null;
+  return destroyCircle({
+    db: await connectDB(),
+    baseUrl: '',
+    syncId: keys.syncId,
+    K_auth: keys.K_auth,
+    ...(opts.withRetry ? { reopenDb: () => connectDB() } : {}),
+  });
+}
+
+/**
+ * Wipe local sync state when a pending server-side deletion can't
+ * complete (force-clear path in the sync settings tab).
+ */
+export async function forceClearSyncLocally(): Promise<void> {
+  const db = await connectDB();
+  try {
+    await forceClearLocally(db);
+  } finally {
+    db.close();
+  }
+}
 
 // ─── read side ────────────────────────────────────────────────────────────────
 

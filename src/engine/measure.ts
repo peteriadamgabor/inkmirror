@@ -79,16 +79,40 @@ export function createPretextMeasurer(): Measurer {
   };
 }
 
-/** Wraps a Measurer with a keyed cache on (width, font, lineHeight, text). */
+/**
+ * Cap on the memoized measurer's cache. Keys embed the full block text, so
+ * an unbounded Map grows by megabytes over a long writing session. 500
+ * entries comfortably covers every on-screen block plus scroll-back while
+ * keeping the worst case to a few hundred KB.
+ */
+const MEASURE_CACHE_MAX = 500;
+
+/**
+ * Wraps a Measurer with an LRU cache keyed on (width, font, lineHeight, text).
+ * Uses Map insertion order as recency: hits are deleted + reinserted to move
+ * them to the back; once the cap is exceeded, the oldest entry (first key)
+ * is evicted.
+ */
 export function createMemoizedMeasurer(backend: Measurer): Measurer {
   const cache = new Map<string, MeasureResult>();
   return {
     measure(input) {
       const key = `${input.width}|${input.font}|${input.lineHeight}|${input.text}`;
       const cached = cache.get(key);
-      if (cached) return cached;
+      if (cached) {
+        // Refresh recency: re-insert so this key becomes the newest entry.
+        cache.delete(key);
+        cache.set(key, cached);
+        return cached;
+      }
       const result = backend.measure(input);
       cache.set(key, result);
+      if (cache.size > MEASURE_CACHE_MAX) {
+        // Map iterates in insertion order — the first key is the least
+        // recently used one.
+        const oldest = cache.keys().next();
+        if (!oldest.done) cache.delete(oldest.value);
+      }
       return result;
     },
   };

@@ -23,6 +23,7 @@ export type {
 } from '@/ai';
 
 export {
+  PROFILE_STORAGE_KEY,
   profile,
   setStoredProfile,
   getStoredProfile,
@@ -31,4 +32,17 @@ export {
 export type { AiBackend, AiProfile } from '@/ai/profile';
 
 export { runConsistencyScan, isScanRunning } from '@/ai/inconsistency';
-export type { ScanOptions } from '@/ai/inconsistency';
+export type { ScanOptions, PairScoreData } from '@/ai/inconsistency';
+
+// Dev-mode surface (ConsistencyPanel footer + lazy DevMenu).
+export {
+  DEFAULT_THRESHOLD,
+  MAX_THRESHOLD,
+  MIN_THRESHOLD,
+  getContradictionThreshold,
+  isThresholdOverridden,
+  resetContradictionThreshold,
+  setContradictionThreshold,
+} from '@/ai/dev-threshold';
+export { runInstrumentedScan } from '@/ai/dev-instrumentation';
+export type { InstrumentedScanResult } from '@/ai/dev-instrumentation';

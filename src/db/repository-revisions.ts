@@ -5,7 +5,7 @@
  */
 
 import type { Block, UUID } from '@/types';
-import type { BlockRevisionRow, BlockRow } from './connection';
+import { getDb, type BlockRevisionRow, type BlockRow } from './connection';
 import { db } from './_repo-internal';
 import { logDbError } from './errors';
 import { rowToBlock } from './repository-rows';
@@ -70,6 +70,45 @@ export async function loadRevisions(blockId: UUID): Promise<BlockRevision[]> {
     }));
   } catch (err) {
     logDbError('repository.loadRevisions', err);
+    throw err;
+  }
+}
+
+/**
+ * Batched lookup used by the graveyard's enrich pass: the latest non-empty
+ * revision content for each requested block, resolved over the `by_block`
+ * index inside ONE readonly transaction (the per-block `loadRevisions`
+ * loop opened one transaction per deleted block).
+ *
+ * Blocks with no non-empty revision are simply absent from the result map.
+ *
+ * NOTE: bypasses the DbLike test-injection layer because it needs a real
+ * transaction; test setup must use fake-indexeddb.
+ */
+export async function loadLatestNonEmptyRevisionContent(
+  blockIds: UUID[],
+): Promise<Map<UUID, string>> {
+  const out = new Map<UUID, string>();
+  if (blockIds.length === 0) return out;
+  try {
+    const idb = await getDb();
+    const tx = idb.transaction('block_revisions', 'readonly');
+    const index = tx.store.index('by_block');
+    const perBlock = await Promise.all(blockIds.map((id) => index.getAll(id)));
+    await tx.done;
+    blockIds.forEach((id, i) => {
+      let latest: BlockRevisionRow | null = null;
+      for (const row of perBlock[i]) {
+        if (row.content.trim().length === 0) continue;
+        if (!latest || row.snapshot_at.localeCompare(latest.snapshot_at) > 0) {
+          latest = row;
+        }
+      }
+      if (latest) out.set(id, latest.content);
+    });
+    return out;
+  } catch (err) {
+    logDbError('repository.loadLatestNonEmptyRevisionContent', err);
     throw err;
   }
 }

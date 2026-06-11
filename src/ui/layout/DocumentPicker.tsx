@@ -1,7 +1,7 @@
 import { createEffect, createResource, createSignal, For, onMount, Show } from 'solid-js';
-import * as repo from '@/db/repository';
+import * as repo from '@/store/documents-list';
 import type { Document } from '@/types';
-import type { DocumentRow } from '@/db/connection';
+import type { DocumentRow } from '@/store/documents-list';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { useTheme } from '@/ui/theme';
@@ -13,6 +13,7 @@ import {
   exportDocumentBundle,
 } from '@/backup/export';
 import { importBridge } from '@/store/import-bridge';
+import { importBridgeUi } from '@/ui/shared/import-ui';
 import { openDemo } from '@/backup/demo';
 import { DEMO_DOC_ID } from '@/backup/demo-bundle';
 import { downloadBlob } from '@/exporters';
@@ -199,7 +200,7 @@ export const DocumentPicker = (props: Props) => {
   };
 
   const handleImportFile = async (file: File) => {
-    await importBridge(file, { onAfterImport: refetch });
+    await importBridge(file, importBridgeUi, { onAfterImport: refetch });
   };
 
   const triggerImport = () => {

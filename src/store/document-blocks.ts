@@ -464,16 +464,24 @@ export function moveBlockToPosition(blockId: UUID, targetIndex: number): boolean
   const chapterId = current.chapter_id;
   let orderIdx = 0;
   const documentId = store.document?.id;
+  const changedIds: UUID[] = [];
   for (const id of newOrder) {
     const b = store.blocks[id];
     if (!b || b.chapter_id !== chapterId) continue;
     if (b.order !== orderIdx) {
       setStore('blocks', id, (old) => ({ ...old, order: orderIdx, updated_at: now }));
-      if (canPersist() && documentId) {
-        track(repo.saveBlock(unwrap(store.blocks[id]), documentId).catch(() => undefined));
-      }
+      changedIds.push(id);
     }
     orderIdx++;
+  }
+  if (changedIds.length > 0 && canPersist() && documentId) {
+    // One batched transaction — a drag in a large chapter previously fired
+    // one single-put transaction per shifted block.
+    track(
+      repo
+        .saveBlocks(changedIds.map((id) => unwrap(store.blocks[id])), documentId)
+        .catch(() => undefined),
+    );
   }
   return true;
 }
@@ -670,14 +678,16 @@ export async function refreshGraveyard(): Promise<void> {
     const rows = await repo.loadDeletedBlocks(store.document.id);
     // Blocks are typically deleted only after their content was backspaced
     // to empty, so the row itself is empty. Join with the revision store
-    // to surface the last non-empty version for display.
-    const enriched = await Promise.all(
-      rows.map(async (b) => {
-        if (b.content.trim().length > 0) return b;
-        const recovered = await recoverLastNonEmpty(b.id);
-        return recovered ? { ...b, content: recovered } : b;
-      }),
-    );
+    // to surface the last non-empty version for display — batched over the
+    // by_block index in one transaction instead of one query per block.
+    const emptyIds = rows
+      .filter((b) => b.content.trim().length === 0)
+      .map((b) => b.id);
+    const recovered = await repo.loadLatestNonEmptyRevisionContent(emptyIds);
+    const enriched = rows.map((b) => {
+      const content = recovered.get(b.id);
+      return content !== undefined ? { ...b, content } : b;
+    });
     setGraveyard(enriched);
   } catch {
     /* swallow — non-critical */

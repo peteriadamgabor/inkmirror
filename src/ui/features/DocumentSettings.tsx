@@ -18,7 +18,7 @@ import { toast } from '@/ui/shared/toast';
 import { Checkbox } from '@/ui/shared/Checkbox';
 import { circleStatus, syncNow, docStatusFor } from '@/sync';
 import type { DocSyncStatus } from '@/sync';
-import * as repo from '@/db/repository';
+import * as repo from '@/store/documents-list';
 import { setDocumentSyncEnabled } from '@/store/sync-bridge';
 import { formatEditedTimestamp } from '@/utils/block-timestamp';
 

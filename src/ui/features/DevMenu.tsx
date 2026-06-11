@@ -9,11 +9,12 @@ import {
   isThresholdOverridden,
   resetContradictionThreshold,
   setContradictionThreshold,
-} from '@/ai/dev-threshold';
-import { runInstrumentedScan, type InstrumentedScanResult } from '@/ai/dev-instrumentation';
+  isScanRunning,
+  runInstrumentedScan,
+  type InstrumentedScanResult,
+  type PairScoreData,
+} from '@/store/ai-facade';
 import { disableDevMode } from '@/ui/shared/dev-mode';
-import { isScanRunning } from '@/ai/inconsistency';
-import type { PairScoreData } from '@/ai/inconsistency';
 import type { TriggerCategory } from '@/types';
 
 const EXIT_MS = 170;

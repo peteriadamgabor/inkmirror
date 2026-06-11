@@ -5,7 +5,7 @@ import { enterPreview, previewState } from '@/store/preview';
 import { IconHistory } from '@/ui/shared/icons';
 import { t } from '@/i18n';
 import { BlockHistoryRow } from './BlockHistoryRow';
-import type { BlockRevision } from '@/db/repository-revisions';
+import type { BlockRevision } from '@/store/document';
 
 // Lets the command palette (or any other surface) request a specific block's
 // revision-history popover to open. Cleared once consumed so re-requesting the

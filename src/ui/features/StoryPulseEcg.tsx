@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from 'solid-js';
 import { store } from '@/store/document';
 import { visibleBlocksInChapter } from '@/store/selectors';
 import type { UUID } from '@/types';
@@ -37,7 +37,9 @@ export const StoryPulseEcg = () => {
       () => {
         setDrawing(true);
         const t = setTimeout(() => setDrawing(false), 650);
-        return () => clearTimeout(t);
+        // Solid ignores effect return values (that's a React idiom) —
+        // onCleanup is what actually runs on re-run/dispose.
+        onCleanup(() => clearTimeout(t));
       },
     ),
   );

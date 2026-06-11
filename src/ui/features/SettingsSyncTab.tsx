@@ -1,16 +1,12 @@
 import { createEffect, createResource, createSignal, For, Show } from 'solid-js';
+import { circleStatus, syncNow, syncAppliedTick } from '@/sync';
 import {
-  circleStatus,
-  syncNow,
-  destroyCircle,
-  forceClearLocally,
-  syncAppliedTick,
-} from '@/sync';
-import { connectDB } from '@/db/connection';
-import { loadKeys } from '@/sync/keystore';
-import * as repo from '@/db/repository';
-import { setDocumentSyncEnabled } from '@/store/sync-bridge';
-import type { DocumentRow } from '@/db/connection';
+  destroySyncCircle,
+  forceClearSyncLocally,
+  listDocumentRows,
+  setDocumentSyncEnabled,
+} from '@/store/sync-bridge';
+import type { DocumentRow } from '@/store/sync-bridge';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { Checkbox } from '@/ui/shared/Checkbox';
@@ -35,20 +31,10 @@ export function SettingsSyncTab() {
     });
     if (!ok) return;
     try {
-      const db = await connectDB();
-      const keys = await loadKeys(db);
-      db.close();
-      if (!keys) return;
-      const result = await destroyCircle({
-        db: await connectDB(),
-        baseUrl: '',
-        syncId: keys.syncId,
-        K_auth: keys.K_auth,
-        // The retry scheduler outlives a single fetch, so it must reopen
-        // its own DB handle on each attempt. The handle we just used
-        // here may be closed by then.
-        reopenDb: () => connectDB(),
-      });
+      // withRetry: the retry scheduler outlives a single fetch, so the
+      // bridge passes a reopenDb callback for each attempt.
+      const result = await destroySyncCircle({ withRetry: true });
+      if (!result) return;
       if (result.kind === 'completed') {
         toast.success(t('sync.off'));
       } else {
@@ -143,17 +129,8 @@ function PendingDeletionPanel() {
 
   async function handleRetry() {
     try {
-      const db = await connectDB();
-      const keys = await loadKeys(db);
-      db.close();
-      if (!keys) return;
-      const result = await destroyCircle({
-        db: await connectDB(),
-        baseUrl: '',
-        syncId: keys.syncId,
-        K_auth: keys.K_auth,
-        reopenDb: () => connectDB(),
-      });
+      const result = await destroySyncCircle({ withRetry: true });
+      if (!result) return;
       if (result.kind === 'completed') {
         toast.success(t('sync.off'));
       } else {
@@ -175,12 +152,7 @@ function PendingDeletionPanel() {
     });
     if (!ok) return;
     try {
-      const db = await connectDB();
-      try {
-        await forceClearLocally(db);
-      } finally {
-        db.close();
-      }
+      await forceClearSyncLocally();
       toast.success(t('sync.pendingDeletion.forceClearDone'));
     } catch (err) {
       console.error('[sync]', err);
@@ -239,15 +211,12 @@ function OrphanedSyncPanel() {
     });
     if (!ok) return;
     try {
-      const db = await connectDB();
-      const keys = await loadKeys(db);
-      db.close();
-      // No keys = nothing to wipe; defensively reset the status anyway.
-      if (!keys) return;
-      // destroyCircle best-effort-deletes server side and unconditionally wipes
-      // local keystore + sets circleStatus back to 'unconfigured'. Perfect for
-      // the orphan case where the server side is already gone.
-      await destroyCircle({ db: await connectDB(), baseUrl: '', syncId: keys.syncId, K_auth: keys.K_auth });
+      // destroySyncCircle best-effort-deletes server side and unconditionally
+      // wipes local keystore + sets circleStatus back to 'unconfigured'.
+      // Perfect for the orphan case where the server side is already gone —
+      // no retry needed. Null = no keys = nothing to wipe.
+      const result = await destroySyncCircle({ withRetry: false });
+      if (!result) return;
       toast.success(t('sync.orphan.resetDone'));
     } catch (err) {
       console.error('[sync]', err);
@@ -278,7 +247,7 @@ function OrphanedSyncPanel() {
 }
 
 function ActiveSyncPanel(props: { onAddDevice: () => void; onDisable: () => void }) {
-  const [rows, { refetch }] = createResource(() => repo.listDocumentRows());
+  const [rows, { refetch }] = createResource(() => listDocumentRows());
   const [syncing, setSyncing] = createSignal(false);
 
   // Refetch whenever a pull lands so titles, checkmarks, and timestamps

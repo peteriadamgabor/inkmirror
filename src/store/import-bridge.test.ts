@@ -26,20 +26,22 @@ vi.mock('@/backup/import', () => ({
   importDocumentBundle: importDocumentBundleMock,
   importDatabaseBackup: importDatabaseBackupMock,
 }));
-vi.mock('@/ui/shared/confirm', () => ({
-  askConfirmChoice: askConfirmChoiceMock,
-}));
 vi.mock('@/db/repository', () => ({
   loadDocument: loadDocumentMock,
-}));
-vi.mock('@/ui/shared/toast', () => ({
-  toast: { success: toastSuccessMock, error: toastErrorMock },
 }));
 vi.mock('@/i18n', () => ({
   t: (key: string) => key,
 }));
 
-import { importBridge } from './import-bridge';
+import { importBridge, type ImportBridgeUi } from './import-bridge';
+
+// Confirm/toast arrive via DI (store/ must not import ui/) — the real
+// implementations live in @/ui/shared/import-ui; tests inject fakes.
+const ui: ImportBridgeUi = {
+  confirmChoice: askConfirmChoiceMock,
+  notifySuccess: toastSuccessMock,
+  notifyError: toastErrorMock,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -62,7 +64,7 @@ describe('importBridge', () => {
       documentTitles: ['Novel'],
     });
 
-    await importBridge(file, { onAfterImport: refetchMock });
+    await importBridge(file, ui, { onAfterImport: refetchMock });
 
     expect(parseBundleMock).toHaveBeenCalledWith(file);
     expect(askConfirmChoiceMock).not.toHaveBeenCalled();
@@ -86,7 +88,7 @@ describe('importBridge', () => {
       documentTitles: ['Existing Novel'],
     });
 
-    await importBridge(file, { onAfterImport: refetchMock });
+    await importBridge(file, ui, { onAfterImport: refetchMock });
 
     expect(askConfirmChoiceMock).toHaveBeenCalled();
     expect(importDocumentBundleMock).toHaveBeenCalledWith(expect.any(Object), 'replace');
@@ -101,7 +103,7 @@ describe('importBridge', () => {
     loadDocumentMock.mockResolvedValue({ document: { title: 'Existing' } });
     askConfirmChoiceMock.mockResolvedValue('cancel');
 
-    await importBridge(file, { onAfterImport: refetchMock });
+    await importBridge(file, ui, { onAfterImport: refetchMock });
 
     expect(importDocumentBundleMock).not.toHaveBeenCalled();
     expect(refetchMock).not.toHaveBeenCalled();
@@ -116,7 +118,7 @@ describe('importBridge', () => {
       documentTitles: [],
     });
 
-    await importBridge(file, { onAfterImport: refetchMock });
+    await importBridge(file, ui, { onAfterImport: refetchMock });
 
     expect(importDatabaseBackupMock).toHaveBeenCalled();
     expect(toastSuccessMock).toHaveBeenCalled();
@@ -126,7 +128,7 @@ describe('importBridge', () => {
   it('toasts on parse error and does not call onAfterImport', async () => {
     parseBundleMock.mockRejectedValue(new Error('not valid JSON'));
 
-    await importBridge(file, { onAfterImport: refetchMock });
+    await importBridge(file, ui, { onAfterImport: refetchMock });
 
     expect(toastErrorMock).toHaveBeenCalled();
     expect(refetchMock).not.toHaveBeenCalled();

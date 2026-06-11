@@ -79,3 +79,14 @@ describe('worker SPA route serving', () => {
     expect(await res.text()).toBe('// js');
   });
 });
+
+describe('baseline security headers', () => {
+  it('sets HSTS alongside the existing headers on every response', async () => {
+    const res = await worker.fetch(get('/'), makeEnv());
+    expect(res.headers.get('strict-transport-security')).toBe(
+      'max-age=31536000; includeSubDomains',
+    );
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+});

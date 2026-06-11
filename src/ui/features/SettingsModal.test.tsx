@@ -10,7 +10,7 @@ import {
   PROFILE_STORAGE_KEY,
   getStoredProfile,
   setStoredProfile,
-} from '@/ai/profile';
+} from '@/store/ai-facade';
 import { pendingConfirm, resolveConfirm } from '@/ui/shared/confirm';
 import { lang, setLang } from '@/i18n';
 

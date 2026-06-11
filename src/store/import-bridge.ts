@@ -3,10 +3,33 @@ import {
   importDocumentBundle,
   parseBundle,
 } from '@/backup/import';
-import { askConfirmChoice } from '@/ui/shared/confirm';
 import * as repo from '@/db/repository';
-import { toast } from '@/ui/shared/toast';
 import { t } from '@/i18n';
+
+export type ImportConfirmResult = 'confirm' | 'neutral' | 'cancel';
+
+/** Structural mirror of the UI layer's ConfirmOptions — declared here so
+ * store/ never imports from ui/ (the import rule is ui/ → store/ → db/). */
+export interface ImportConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  neutralLabel?: string;
+  danger?: boolean;
+}
+
+/**
+ * UI capabilities injected by the caller (DI, mirroring the sentimentHook
+ * pattern in `./document`). The real implementations live in
+ * `@/ui/shared/import-ui` and wrap askConfirmChoice / toast.
+ */
+export interface ImportBridgeUi {
+  /** Tri-state collision modal: Replace / Keep both / Cancel. */
+  confirmChoice(opts: ImportConfirmOptions): Promise<ImportConfirmResult>;
+  notifySuccess(message: string): void;
+  notifyError(message: string): void;
+}
 
 export interface ImportBridgeOptions {
   /** Run after a successful import — typically the picker's refetch. */
@@ -24,6 +47,7 @@ export interface ImportBridgeOptions {
  */
 export async function importBridge(
   file: File,
+  ui: ImportBridgeUi,
   options: ImportBridgeOptions = {},
 ): Promise<void> {
   try {
@@ -33,7 +57,7 @@ export async function importBridge(
       let strategy: 'copy' | 'replace' = 'copy';
       if (existing) {
         const title = existing.document.title || t('common.untitled');
-        const choice = await askConfirmChoice({
+        const choice = await ui.confirmChoice({
           title: t('picker.collisionTitle', { title }),
           message: t('picker.collisionBody'),
           confirmLabel: t('picker.collisionReplace'),
@@ -47,9 +71,9 @@ export async function importBridge(
       const result = await importDocumentBundle(bundle, strategy);
       const resultTitle = result.documentTitles[0];
       if (result.replaced) {
-        toast.success(t('picker.replacedToast', { title: resultTitle }));
+        ui.notifySuccess(t('picker.replacedToast', { title: resultTitle }));
       } else {
-        toast.success(t('picker.importedToast', { title: resultTitle }));
+        ui.notifySuccess(t('picker.importedToast', { title: resultTitle }));
       }
     } else {
       const result = await importDatabaseBackup(bundle);
@@ -57,11 +81,11 @@ export async function importBridge(
       if (result.documentsSkipped > 0) {
         parts.push(t('picker.restoreSkipped', { n: result.documentsSkipped }));
       }
-      toast.success(t('picker.restoreComplete', { detail: parts.join(', ') }));
+      ui.notifySuccess(t('picker.restoreComplete', { detail: parts.join(', ') }));
     }
     options.onAfterImport?.();
   } catch (err) {
-    toast.error(
+    ui.notifyError(
       t('toast.importFailed', {
         error: err instanceof Error ? err.message : String(err),
       }),

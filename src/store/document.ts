@@ -499,6 +499,9 @@ export function matchLeadingSpeaker(
 
 // ---------- aggregate re-exports (public API stays at @/store/document) ----------
 
+// Type re-export so ui/ (BlockHistory) never imports from @/db directly.
+export type { BlockRevision } from '@/db/repository';
+
 export {
   type UpdateBlockContentOptions,
   updateBlockContent,

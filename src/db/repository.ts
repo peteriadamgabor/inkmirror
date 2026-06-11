@@ -40,6 +40,7 @@ export {
   type BlockRevision,
   saveRevision,
   loadRevisions,
+  loadLatestNonEmptyRevisionContent,
   loadDeletedBlocks,
   restoreBlock,
   softDeleteBlock,
@@ -138,6 +139,33 @@ export async function saveBlock(block: Block, documentId: UUID): Promise<void> {
     await d.blocks.put(blockToRow(block, documentId));
   } catch (err) {
     logDbError('repository.saveBlock', err);
+    throw err;
+  }
+}
+
+/**
+ * Batched variant of saveBlock: all puts in ONE readwrite transaction
+ * instead of one transaction per block. A drag in a 500-block chapter
+ * previously serialized up to 500 single-put transactions; this is one.
+ *
+ * NOTE: bypasses the DbLike test-injection layer (same as
+ * repointDeletedBlocksForDeletedChapter) because it needs a real
+ * transaction; test setup must use fake-indexeddb.
+ */
+export async function saveBlocks(blocks: Block[], documentId: UUID): Promise<void> {
+  if (blocks.length === 0) return;
+  try {
+    const idb = await getDb();
+    const tx = idb.transaction('blocks', 'readwrite');
+    // tx.done joins the same Promise.all: if a put fails the transaction
+    // aborts and tx.done rejects — awaiting it separately would leave
+    // that rejection unobserved.
+    await Promise.all([
+      ...blocks.map((b) => tx.store.put(blockToRow(b, documentId))),
+      tx.done,
+    ]);
+  } catch (err) {
+    logDbError('repository.saveBlocks', err);
     throw err;
   }
 }

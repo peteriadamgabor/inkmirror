@@ -1,11 +1,6 @@
 import { createSignal, Show } from 'solid-js';
-import { connectDB } from '@/db/connection';
-import {
-  redeemPaircode,
-  startSyncIfConfigured,
-  syncNow,
-  SyncHttpError,
-} from '@/sync';
+import { redeemSyncPaircode } from '@/store/sync-bridge';
+import { startSyncIfConfigured, syncNow, SyncHttpError } from '@/sync';
 import { ModalBackdrop } from '@/ui/shared/ModalBackdrop';
 import { IconEye, IconEyeOff } from '@/ui/shared/icons';
 import { toast } from '@/ui/shared/toast';
@@ -52,8 +47,7 @@ export function PairRedeemModal(props: Props) {
 
     setBusy(true);
     try {
-      const db = await connectDB();
-      await redeemPaircode({ db, baseUrl: '', paircode: code, passphrase: pass() });
+      await redeemSyncPaircode(code, pass());
       // Start the engine and pull the circle's documents immediately —
       // previously NOTHING synced until the next full page reload, which
       // made a fresh pairing look broken.
