@@ -174,6 +174,23 @@ export function moveChapter(chapterId: UUID, direction: 'up' | 'down'): boolean 
   return true;
 }
 
+/**
+ * Per-chapter override for whether exporters print the chapter title.
+ * `undefined` falls back to the kind default (see exporters'
+ * shouldPrintChapterTitle).
+ */
+export function setChapterExportTitle(chapterId: UUID, printTitle: boolean): void {
+  const idx = store.chapters.findIndex((c) => c.id === chapterId);
+  if (idx < 0) return;
+  const now = new Date().toISOString();
+  setStore('chapters', idx, (c) => ({ ...c, export_title: printTitle, updated_at: now }));
+
+  if (canPersist()) {
+    const chapter = store.chapters[idx];
+    track(repo.saveChapter(unwrap(chapter)));
+  }
+}
+
 export function renameChapter(chapterId: UUID, title: string): void {
   const trimmed = title.trim();
   if (!trimmed) return;

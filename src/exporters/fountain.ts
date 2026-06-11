@@ -1,9 +1,9 @@
 import type { Block, Character, DialogueMetadata, SceneMetadata } from '@/types';
 import {
-  chapterKindOf,
   contentToRuns,
   exportableBlocks,
   orderChaptersForExport,
+  shouldPrintChapterTitle,
   speakerNameFor,
   textBlob,
   type Exporter,
@@ -93,15 +93,14 @@ export function renderFountain(input: ExportInput): string {
   );
 
   // Book-binding order: front matter (cover, dedication, epigraph)
-  // before the first section, back matter after the last. Cover /
-  // dedication / epigraph render as plain action text with no `#`
-  // section heading — the title page above already carries the
-  // Title:/Author: keys. Acknowledgments / afterword keep their
-  // section heading so the back-matter label survives.
+  // before the first section, back matter after the last. Title
+  // visibility is per chapter (kind default + user override): the
+  // title page above already carries the Title:/Author: keys, so
+  // front matter defaults to plain action text with no `#` section
+  // heading, while back matter keeps its label.
   const sortedChapters = orderChaptersForExport(input.chapters);
   for (const chapter of sortedChapters) {
-    const kind = chapterKindOf(chapter);
-    if (kind !== 'cover' && kind !== 'dedication' && kind !== 'epigraph') {
+    if (shouldPrintChapterTitle(chapter)) {
       parts.push(`# ${chapter.title}`, '');
     }
     // CONT'D tracking resets at every chapter boundary.

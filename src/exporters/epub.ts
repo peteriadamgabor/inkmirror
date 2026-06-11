@@ -6,6 +6,7 @@ import {
   exportableBlocks,
   orderChaptersForExport,
   resolveDialogueStyle,
+  shouldPrintChapterTitle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -114,14 +115,13 @@ function chapterXhtml(
   bodyInner: string,
   language: string,
   kind: ChapterKind,
+  showTitle: boolean,
 ): string {
-  // Mirror the editor's treatment of non-standard kinds: block chrome
-  // (here: the <h1> chapter heading) hidden, text centered. The title
-  // survives for acknowledgments / afterword — readers expect the
-  // back-matter label — while dedication / epigraph render just their
-  // text. epub:type gives reading systems the landmark semantics.
-  const showTitle =
-    kind === 'standard' || kind === 'acknowledgments' || kind === 'afterword';
+  // Mirror the editor's treatment of non-standard kinds: text centered,
+  // block chrome hidden. Whether the <h1> appears is per chapter (kind
+  // default + user override), decided by the caller via
+  // shouldPrintChapterTitle. epub:type gives reading systems the
+  // landmark semantics.
   const bodyClass = kind === 'standard' ? '' : ` class="matter ${kind}"`;
   const epubType = kind === 'standard' ? 'chapter' : kind;
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -324,7 +324,13 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
   </body>
 </html>`
     : coverChapterInner
-      ? chapterXhtml(coverChapter?.title || coverTitle, coverChapterInner, language, 'cover')
+      ? chapterXhtml(
+          coverChapter?.title || coverTitle,
+          coverChapterInner,
+          language,
+          'cover',
+          coverChapter ? shouldPrintChapterTitle(coverChapter) : false,
+        )
       : `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(language)}">
@@ -366,7 +372,13 @@ export async function buildEpubZip(input: ExportInput): Promise<JSZipInstance> {
       .join('\n      ');
     zip.file(
       `OEBPS/${filename}`,
-      chapterXhtml(chapter.title, bodyInner, language, chapterKindOf(chapter)),
+      chapterXhtml(
+        chapter.title,
+        bodyInner,
+        language,
+        chapterKindOf(chapter),
+        shouldPrintChapterTitle(chapter),
+      ),
     );
     chapterFiles.push({ file: filename, title: chapter.title });
   }

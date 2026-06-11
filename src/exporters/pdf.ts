@@ -6,6 +6,7 @@ import {
   exportableBlocks,
   orderChaptersForExport,
   resolveDialogueStyle,
+  shouldPrintChapterTitle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -275,12 +276,20 @@ export const pdfExporter: Exporter = {
     const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
       const kind = chapterKindOf(chapter);
+      // Layout stays kind-driven; whether the title prints is per
+      // chapter (kind default + user override).
+      const printTitle = shouldPrintChapterTitle(chapter);
       if (kind === 'cover' || kind === 'dedication' || kind === 'epigraph') {
-        // Front matter mirrors the editor: no chapter heading, the text
-        // itself centered on its own page. Dedication / epigraph keep
-        // their italic plaque treatment; the cover page is enlarged.
+        // Front matter mirrors the editor: the text itself centered on
+        // its own page. Dedication / epigraph keep their italic plaque
+        // treatment; the cover page is enlarged. The heading appears
+        // only when the chapter opts into printing its title.
         newPage();
         y = PAGE_H / 3;
+        if (printTitle) {
+          writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
+          y += LINE_H * 2;
+        }
         const style = kind === 'cover' ? 'normal' : 'italic';
         const size = kind === 'cover' ? 18 : BODY_FONT_SIZE + 1;
         for (const block of exportableBlocks(chapter, input.blocks)) {
@@ -293,13 +302,14 @@ export const pdfExporter: Exporter = {
         }
         continue;
       }
-      // Standard chapters and back matter (acknowledgments, afterword)
-      // keep the titled-page treatment — back matter is unnumbered
-      // anyway and the ordering above binds it after the story.
+      // Standard chapters and back matter (acknowledgments, afterword):
+      // titled page by default, plain page when suppressed.
       newPage();
       y = PAGE_H / 4;
-      writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
-      y += LINE_H * 2;
+      if (printTitle) {
+        writeLines(chapter.title, { size: 22, style: 'bold', align: 'center' });
+        y += LINE_H * 2;
+      }
       for (const block of exportableBlocks(chapter, input.blocks)) {
         const parts = flatten(block, input.characters, dialogueStyle);
         if (parts.length === 0) continue;

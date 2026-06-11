@@ -6,7 +6,9 @@ import {
   moveChapter,
   renameChapter,
   setActiveChapter,
+  setChapterExportTitle,
 } from '@/store/document';
+import { shouldPrintChapterTitle } from '@/exporters';
 import { askConfirm } from '@/ui/shared/confirm';
 import { toast } from '@/ui/shared/toast';
 import { openContextMenuAt, type ContextMenuItem } from '@/ui/shared/contextMenu';
@@ -188,10 +190,16 @@ export const SidebarChapterList = (props: Props) => {
               const openMenu = (e: MouseEvent) => {
                 e.stopPropagation();
                 const trigger = e.currentTarget as HTMLElement;
+                const printsTitle = shouldPrintChapterTitle(c);
                 const items: ContextMenuItem[] = [
                   {
                     label: t('sidebar.chapterMenu.rename'),
                     onSelect: () => startRenameChapter(c.id, c.title),
+                  },
+                  {
+                    label: t('sidebar.chapterMenu.printTitle'),
+                    hint: printsTitle ? '✓' : undefined,
+                    onSelect: () => setChapterExportTitle(c.id, !printsTitle),
                   },
                   { kind: 'divider' },
                   {

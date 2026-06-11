@@ -67,6 +67,7 @@ export interface ChapterRow {
   title: string;
   order_idx: number;
   kind?: string;
+  export_title?: boolean;
   created_at: string;
   updated_at: string;
 }

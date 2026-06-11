@@ -55,6 +55,7 @@ export function chapterToRow(c: Chapter): ChapterRow {
     title: c.title,
     order_idx: c.order,
     kind: c.kind,
+    export_title: c.export_title,
     created_at: c.created_at,
     updated_at: c.updated_at,
   };
@@ -68,6 +69,7 @@ export function rowToChapter(r: ChapterRow): Chapter {
     order: r.order_idx,
     // Legacy rows (written before ChapterKind existed) default to standard.
     kind: (r.kind as Chapter['kind'] | undefined) ?? 'standard',
+    export_title: r.export_title,
     created_at: r.created_at,
     updated_at: r.updated_at,
   };

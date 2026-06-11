@@ -106,6 +106,31 @@ export function isBackMatterKind(kind: ChapterKind): boolean {
 }
 
 /**
+ * Default title visibility per kind: standard chapters and back matter
+ * print their title (readers expect the label); cover / dedication /
+ * epigraph render just their text — the content *is* the page.
+ */
+const KIND_PRINTS_TITLE: Record<ChapterKind, boolean> = {
+  standard: true,
+  cover: false,
+  dedication: false,
+  epigraph: false,
+  acknowledgments: true,
+  afterword: true,
+};
+
+/**
+ * Whether exporters should print this chapter's title. The per-chapter
+ * `export_title` override (sidebar → chapter menu) wins; unset falls
+ * back to the kind default above. Every exporter's title decision
+ * routes through here — layout (centering, page breaks, binding order)
+ * stays kind-driven regardless.
+ */
+export function shouldPrintChapterTitle(chapter: Chapter): boolean {
+  return chapter.export_title ?? KIND_PRINTS_TITLE[chapterKindOf(chapter)];
+}
+
+/**
  * Order chapters the way a printed book is bound: front matter first
  * (cover, dedication, epigraph), then standard chapters, then back
  * matter (acknowledgments, afterword). The sidebar `order` is

@@ -68,6 +68,7 @@ export const en = {
       moveUp: 'Move up',
       moveDown: 'Move down',
       changeType: 'Change type',
+      printTitle: 'Print title in exports',
       delete: 'Delete chapter',
       deleteTitle: 'Delete "{{title}}"?',
       deleteBody: "Every block in this chapter moves to the Dead Text Graveyard. Nothing is truly lost. You can restore it later.",

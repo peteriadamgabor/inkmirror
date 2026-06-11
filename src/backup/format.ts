@@ -201,6 +201,10 @@ export function validateDocumentBundle(bundle: DocumentBundleV1): void {
     if (kind !== undefined && (typeof kind !== 'string' || !VALID_CHAPTER_KINDS.has(kind))) {
       throw new Error(`chapter "${(ch as { id: string }).id}" has invalid kind "${String(kind)}"`);
     }
+    const exportTitle = (ch as { export_title?: unknown }).export_title;
+    if (exportTitle !== undefined && typeof exportTitle !== 'boolean') {
+      throw new Error(`chapter "${(ch as { id: string }).id}" has invalid export_title`);
+    }
     chapterIds.add((ch as { id: string }).id);
   }
 

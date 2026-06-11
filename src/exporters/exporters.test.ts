@@ -4,7 +4,11 @@ import { renderMarkdown } from './markdown';
 import { renderFountain } from './fountain';
 import { __test as pdfInternals } from './pdf';
 import type { Block, Chapter, ChapterKind, Character, Document } from '@/types';
-import { orderChaptersForExport, type ExportInput } from './index';
+import {
+  orderChaptersForExport,
+  shouldPrintChapterTitle,
+  type ExportInput,
+} from './index';
 
 function makeInput(): ExportInput {
   const now = '2026-04-15T00:00:00.000Z';
@@ -319,6 +323,68 @@ describe('fountainExporter — chapter kinds', () => {
     expect(out).toContain('# Acknowledgments');
     expect(out).toContain('# Afterword');
     expect(out.indexOf('# Chapter Two')).toBeLessThan(out.indexOf('# Acknowledgments'));
+  });
+});
+
+// ---------- per-chapter title override ----------
+
+describe('shouldPrintChapterTitle', () => {
+  const now = '2026-04-15T00:00:00.000Z';
+  const mk = (kind: ChapterKind, exportTitle?: boolean): Chapter => ({
+    id: 'x', document_id: 'd1', title: 'T', order: 0, kind,
+    export_title: exportTitle, created_at: now, updated_at: now,
+  });
+
+  it('defaults follow the kind', () => {
+    expect(shouldPrintChapterTitle(mk('standard'))).toBe(true);
+    expect(shouldPrintChapterTitle(mk('acknowledgments'))).toBe(true);
+    expect(shouldPrintChapterTitle(mk('afterword'))).toBe(true);
+    expect(shouldPrintChapterTitle(mk('cover'))).toBe(false);
+    expect(shouldPrintChapterTitle(mk('dedication'))).toBe(false);
+    expect(shouldPrintChapterTitle(mk('epigraph'))).toBe(false);
+  });
+
+  it('the per-chapter override wins in both directions', () => {
+    expect(shouldPrintChapterTitle(mk('epigraph', true))).toBe(true);
+    expect(shouldPrintChapterTitle(mk('standard', false))).toBe(false);
+  });
+});
+
+describe('export_title override across formats', () => {
+  function makeOverriddenInput(): ExportInput {
+    const input = makeKindedInput();
+    const chapters = input.chapters.map((c) => {
+      if (c.id === 'k-epi') return { ...c, export_title: true };
+      if (c.id === 'k-std1') return { ...c, export_title: false };
+      return c;
+    });
+    return { ...input, chapters };
+  }
+
+  it('markdown: epigraph gains its heading, suppressed standard loses it', () => {
+    const out = renderMarkdown(makeOverriddenInput());
+    expect(out).toContain('## Epigraph');
+    expect(out).not.toContain('## Chapter One');
+    // The chapter body is still there, behind a thematic break.
+    expect(out).toContain('The story begins.');
+    expect(out).toContain('## Chapter Two');
+  });
+
+  it('fountain: same override drives the # section headings', () => {
+    const out = renderFountain(makeOverriddenInput());
+    expect(out).toContain('# Epigraph');
+    expect(out).not.toContain('# Chapter One');
+    expect(out).toContain('The story begins.');
+  });
+
+  it('json: export_title round-trips, absent stays absent', () => {
+    const out = JSON.parse(renderJson(makeOverriddenInput()));
+    const epi = out.chapters.find((c: { title: string }) => c.title === 'Epigraph');
+    const std1 = out.chapters.find((c: { title: string }) => c.title === 'Chapter One');
+    const std2 = out.chapters.find((c: { title: string }) => c.title === 'Chapter Two');
+    expect(epi.export_title).toBe(true);
+    expect(std1.export_title).toBe(false);
+    expect(std2.export_title).toBeUndefined();
   });
 });
 

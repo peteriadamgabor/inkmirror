@@ -1,10 +1,10 @@
 import type { Block, Chapter, Character, DialogueMetadata, DialogueStyle } from '@/types';
 import { t } from '@/i18n';
 import {
-  chapterKindOf,
   contentToRuns,
   orderChaptersForExport,
   resolveDialogueStyle,
+  shouldPrintChapterTitle,
   textBlob,
   visibleChapterBlocks,
   type Exporter,
@@ -85,12 +85,10 @@ function renderChapter(
   dialogueStyle: DialogueStyle,
   parts: string[],
 ): void {
-  const kind = chapterKindOf(chapter);
-  // Non-standard kinds mirror the editor: block chrome hidden, no
-  // chapter-heading convention. Acknowledgments / afterword keep their
-  // title (readers expect the back-matter label); cover / dedication /
-  // epigraph render just their text — the content *is* the page.
-  if (kind === 'standard' || kind === 'acknowledgments' || kind === 'afterword') {
+  // Title visibility is per chapter (kind default + user override);
+  // chapters without a printed title get a thematic break instead so
+  // the boundary survives in the output.
+  if (shouldPrintChapterTitle(chapter)) {
     parts.push(`\n## ${escapeMarkdown(chapter.title)}`);
   } else {
     parts.push('\n---\n');

@@ -584,6 +584,7 @@ export {
   deleteChapter,
   moveChapter,
   renameChapter,
+  setChapterExportTitle,
 } from './document-chapters';
 
 export {

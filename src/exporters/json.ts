@@ -21,6 +21,7 @@ interface JsonExport {
     title: string;
     order: number;
     kind: ChapterKind;
+    export_title?: boolean;
     blocks: Array<{
       id: string;
       type: string;
@@ -67,6 +68,7 @@ export function renderJson(input: ExportInput): string {
           title: chapter.title,
           order: chapter.order,
           kind: chapterKindOf(chapter),
+          export_title: chapter.export_title,
           blocks: input.blocks
             .filter((b) => b.chapter_id === chapter.id && b.type !== 'note' && b.deleted_at === null)
             .sort((a, b) => a.order - b.order)

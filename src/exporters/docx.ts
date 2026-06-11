@@ -5,6 +5,7 @@ import {
   exportableBlocks,
   orderChaptersForExport,
   resolveDialogueStyle,
+  shouldPrintChapterTitle,
   type Exporter,
   type ExportInput,
 } from './index';
@@ -161,10 +162,26 @@ export const docxExporter: Exporter = {
     const dialogueStyle = resolveDialogueStyle(input.document);
     for (const chapter of sortedChapters) {
       const kind = chapterKindOf(chapter);
+      // Layout stays kind-driven; whether the title paragraph appears
+      // is per chapter (kind default + user override).
+      const printTitle = shouldPrintChapterTitle(chapter);
       if (kind === 'cover' || kind === 'dedication' || kind === 'epigraph') {
-        // Front matter mirrors the editor: no chapter heading, text
-        // centered on its own page with generous top spacing.
+        // Front matter mirrors the editor: text centered on its own
+        // page with generous top spacing; the heading only when the
+        // chapter opts into printing its title.
         let first = true;
+        if (printTitle) {
+          children.push(
+            new Paragraph({
+              heading: HeadingLevel.HEADING_1,
+              pageBreakBefore: true,
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 3600, after: 240 },
+              children: [new TextRun(sanitizeXmlText(chapter.title))],
+            }),
+          );
+          first = false;
+        }
         for (const block of exportableBlocks(chapter, input.blocks)) {
           if (block.content.trim().length === 0) continue;
           for (const runs of contentLinesAsRuns(docx, block)) {
@@ -181,23 +198,35 @@ export const docxExporter: Exporter = {
         }
         continue;
       }
-      // Standard chapters and back matter (acknowledgments, afterword)
-      // keep their title heading — back matter is unnumbered anyway and
-      // the ordering above already binds it after the story.
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          pageBreakBefore: true,
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 240, after: 240 },
-          children: [new TextRun(sanitizeXmlText(chapter.title))],
-        }),
-      );
+      // Standard chapters and back matter (acknowledgments, afterword):
+      // titled page by default; with the title suppressed the page break
+      // moves onto the first content paragraph.
+      if (printTitle) {
+        children.push(
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            pageBreakBefore: true,
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 240, after: 240 },
+            children: [new TextRun(sanitizeXmlText(chapter.title))],
+          }),
+        );
+      }
+      let firstBody = !printTitle;
       for (const block of exportableBlocks(chapter, input.blocks)) {
         if (block.content.trim().length === 0 && block.type !== 'scene') continue;
-        children.push(
-          ...blockParagraphs(docx, block, input.characters, dialogueStyle),
-        );
+        const paragraphs = blockParagraphs(docx, block, input.characters, dialogueStyle);
+        if (firstBody && paragraphs.length > 0) {
+          children.push(
+            new Paragraph({
+              pageBreakBefore: true,
+              spacing: { before: 240 },
+              children: [],
+            }),
+          );
+          firstBody = false;
+        }
+        children.push(...paragraphs);
       }
     }
 

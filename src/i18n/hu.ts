@@ -69,6 +69,7 @@ export const hu: Messages = {
       moveUp: 'Mozgatás fel',
       moveDown: 'Mozgatás le',
       changeType: 'Típus módosítása',
+      printTitle: 'Cím nyomtatása exportáláskor',
       delete: 'Fejezet törlése',
       deleteTitle: '"{{title}}" törlése?',
       deleteBody: 'A fejezet minden blokkja a Halott Szöveg Temetőbe kerül. Semmi sem vész el igazán. Később bármikor visszaállíthatod.',

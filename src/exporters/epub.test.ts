@@ -504,6 +504,21 @@ describe('epubExporter — chapter kinds', () => {
       expect(nav).toContain(title);
     }
   });
+
+  it('per-chapter export_title override flips the <h1> in both directions', async () => {
+    const input = makeKindedInput();
+    input.chapters = input.chapters.map((c) => {
+      if (c.id === 'k-epi') return { ...c, export_title: true };
+      if (c.id === 'k-std1') return { ...c, export_title: false };
+      return c;
+    });
+    const overridden = await buildEpubZip(input);
+    const epigraph = await overridden.file('OEBPS/epigraph-1.xhtml')!.async('string');
+    expect(epigraph).toContain('<h1>Epigraph</h1>');
+    const chapterOne = await overridden.file('OEBPS/chapter-1.xhtml')!.async('string');
+    expect(chapterOne).not.toContain('<h1>');
+    expect(chapterOne).toContain('The story begins.');
+  });
 });
 
 // ---------- language ----------

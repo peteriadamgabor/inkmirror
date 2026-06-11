@@ -27,6 +27,7 @@ const en: WhatsNewEntry[] = [
     title: 'v0.10.0 — A book-shaped book, and saves you can trust',
     items: [
       'Cover, dedication, epigraph, acknowledgments and afterword chapters now export where they belong in every format — front matter before the story, back matter after, no chapter numbering, centered where a book would center them. EPUBs no longer ship two covers, and a Hungarian novel is finally tagged as Hungarian inside the EPUB.',
+      'You decide which chapter titles appear in exports: each chapter\'s ⋯ menu has a "Print title in exports" toggle. An epigraph can carry its title when you want it to, and a chapter can go without — the sensible defaults stay as they are.',
       'If a save ever fails (full disk, private-mode storage limits), InkMirror now tells you immediately with a red indicator and a notification — previously it could quietly claim "Saved". Nothing changed about how often it saves; it just stopped being capable of lying about it.',
       'Edits made offline now sync by themselves the moment you are back online — no more documents stuck in an error state until the next edit. Sync also stopped re-uploading documents whose content has not changed, which saves data and battery on every device in your circle.',
       'Exporting and the writing-mood AI now keep working offline once you have used them — and the landing, roadmap and privacy pages open offline too.',
@@ -185,6 +186,7 @@ const hu: WhatsNewEntry[] = [
     title: 'v0.10.0 — Könyv alakú könyv, és mentés, amiben megbízhatsz',
     items: [
       'A borító, ajánlás, mottó, köszönetnyilvánítás és utószó fejezetek mostantól minden formátumban oda kerülnek exportáláskor, ahová valók — az előzékoldalak a történet elé, a zárszavak utána, fejezetszámozás nélkül, középre igazítva ott, ahol egy könyv is középre tenné. Az EPUB nem tartalmaz többé két borítót, és egy magyar regény végre magyarként van megjelölve az EPUB belsejében is.',
+      'Te döntöd el, mely fejezetcímek jelennek meg az exportban: minden fejezet ⋯ menüjében ott a „Cím nyomtatása exportáláskor" kapcsoló. Egy mottó viselheti a címét, ha úgy akarod, egy fejezet pedig elhagyhatja — az észszerű alapértelmezések maradnak.',
       'Ha egy mentés valaha meghiúsul (megtelt lemez, privát mód tárhelykorlátja), az InkMirror azonnal szól: piros jelzés és értesítés — korábban előfordulhatott, hogy csendben „Mentve" feliratot mutatott. A mentések gyakorisága nem változott; csak hazudni nem tud többé róla.',
       'Az offline írt változások mostantól maguktól szinkronizálódnak, amint visszatér a net — nincs többé hibaállapotban ragadt dokumentum a következő szerkesztésig. A szinkron ráadásul nem tölti fel újra a változatlan tartalmú dokumentumokat, ami adatot és akkumulátort spórol a kör minden eszközén.',
       'Az exportálás és az írói hangulat-AI offline is működik, ha egyszer már használtad őket — és a kezdő-, ütemterv- és adatvédelmi oldalak is megnyílnak net nélkül.',
