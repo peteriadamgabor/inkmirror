@@ -72,7 +72,7 @@ test.describe('Small premium tweaks', () => {
 
     // Open search.
     await page.keyboard.press('Control+f');
-    const input = page.getByPlaceholder(/Search the manuscript/);
+    const input = page.getByPlaceholder(/Search the document/);
     await expect(input).toBeVisible({ timeout: 2_000 });
 
     // Type query → counter shows total matches.
@@ -101,7 +101,7 @@ test.describe('Small premium tweaks', () => {
     await page.waitForTimeout(500);
 
     await page.keyboard.press('Control+f');
-    const search = page.getByPlaceholder(/Search the manuscript/);
+    const search = page.getByPlaceholder(/Search the document/);
     await search.fill('fox');
     await expect(page.locator('[data-testid="search-counter"]'))
       .toHaveText('1 / 2', { timeout: 2_000 });
