@@ -183,6 +183,9 @@ export const CommandPalette = () => {
         <div
           class="w-[520px] max-w-[92vw] bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden flex flex-col inkmirror-modal-panel"
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('hotkeys.appLabels.palette')}
         >
           <input
             ref={inputEl}
