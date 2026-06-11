@@ -2,7 +2,8 @@ import { SyncHttpError } from './client';
 import type { SyncClient } from './client';
 import { encryptBundle, decryptBundle } from './crypto';
 import type { EncryptedBlob } from './crypto';
-import { setCircleStatus, setDocStatus, docStatusFor } from './state';
+import { setCircleStatus, setDocStatus, docStatusFor, allDocStatuses } from './state';
+import { bytesHash } from '@/utils/hash';
 
 export const DEBOUNCE_MS  = 10_000;
 export const HEARTBEAT_MS = 5 * 60 * 1000;
@@ -55,6 +56,15 @@ export function createEngine(deps: EngineDeps): Engine {
   let generation = 0;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
+  // Per-doc hash of the last plaintext bundle the server is known to hold
+  // (set on successful push AND on pull/apply). markDirty fires for every
+  // tracked IDB write — including sentiment rows from the AI worker — so
+  // without this gate an unchanged doc gets re-encrypted and re-uploaded,
+  // bumping the server revision and forcing every other device to pull
+  // bytes it already has. In-memory only: a reload re-pushes once, which
+  // is acceptable.
+  const lastPushedHash = new Map<string, string>();
+
   const enabled = (docId: string): boolean => deps.isDocSyncEnabled?.(docId) ?? true;
 
   function markDirty(docId: string): void {
@@ -79,6 +89,17 @@ export function createEngine(deps: EngineDeps): Engine {
     try {
       const plaintext = await deps.buildBundle(docId);
       if (gen !== generation) return;
+      // Unchanged since the last push/pull? Skip the encrypt + PUT +
+      // revision bump entirely — the server already has these bytes.
+      const plaintextHash = bytesHash(plaintext);
+      if (plaintextHash === lastPushedHash.get(docId)) {
+        setDocStatus(docId, {
+          kind: 'idle',
+          lastSyncedAt: Date.now(),
+          revision: deps.getDocLastRevision(docId),
+        });
+        return;
+      }
       const encryptFn = deps.encrypt ?? encryptBundle;
       const blob = await encryptFn(deps.K_enc, plaintext, deps.syncId, docId);
       if (gen !== generation) return;
@@ -90,6 +111,7 @@ export function createEngine(deps: EngineDeps): Engine {
       );
       if (gen !== generation) return;
       deps.setDocLastRevision(docId, result.revision);
+      lastPushedHash.set(docId, plaintextHash);
       setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: result.revision });
     } catch (err) {
       if (gen !== generation) return;
@@ -116,6 +138,14 @@ export function createEngine(deps: EngineDeps): Engine {
       const isRetryable =
         (err instanceof SyncHttpError && (err.status >= 500 || err.status === 429)) ||
         !(err instanceof SyncHttpError);
+      // Offline: don't burn the backoff budget on a connection that can't
+      // possibly succeed (6 steps ≈ 63s, then a wedged ERROR). Park the doc
+      // as 'pending' with NO retry timer — the 'online' handler re-pushes
+      // parked docs the moment connectivity returns.
+      if (isRetryable && typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setDocStatus(docId, { kind: 'pending' });
+        return;
+      }
       if (isRetryable && attempt < RETRY_DELAYS_MS.length) {
         setDocStatus(docId, { kind: 'pending' });
         const delay = RETRY_DELAYS_MS[attempt];
@@ -139,6 +169,9 @@ export function createEngine(deps: EngineDeps): Engine {
       await deps.applyBundle(docId, plaintext);
       if (gen !== generation) return;
       deps.setDocLastRevision(docId, blob.revision);
+      // Remember what the server holds — a just-pulled doc whose next
+      // local rebuild serializes to the same bytes must not re-push.
+      lastPushedHash.set(docId, bytesHash(plaintext));
       setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: blob.revision });
     } catch (err) {
       if (gen !== generation) return;
@@ -213,6 +246,7 @@ export function createEngine(deps: EngineDeps): Engine {
           { ...blob, expectedRevision: s.serverRevision },
         );
         deps.setDocLastRevision(docId, result.revision);
+        lastPushedHash.set(docId, bytesHash(plaintext));
         setDocStatus(docId, { kind: 'idle', lastSyncedAt: Date.now(), revision: result.revision });
       } catch (err) {
         setDocStatus(docId, { kind: 'error', message: err instanceof Error ? err.message : String(err) });
@@ -224,23 +258,33 @@ export function createEngine(deps: EngineDeps): Engine {
     await pullDoc(docId, s.serverRevision);
   }
 
-  // Fire a heartbeat the moment connectivity returns — otherwise the user
-  // waits out the remainder of the 5-minute interval after coming online.
+  async function syncNow(): Promise<void> {
+    // Flush all pending debounce timers — fire push immediately for each.
+    for (const [docId, t] of debounceTimers.entries()) {
+      clearTimeout(t);
+      debounceTimers.delete(docId);
+      void pushDoc(docId, generation, 0);
+    }
+    await heartbeat();
+  }
+
+  // Connectivity returned: re-queue docs parked by an offline push
+  // ('pending' with no timer) or wedged in 'error' from a burned-out
+  // backoff, then flush + heartbeat. Without the re-queue, the user would
+  // wait out the rest of the 5-minute interval — and 'error' docs would
+  // never push again at all (heartbeat only pulls and skips them).
   const onOnline = (): void => {
-    void heartbeat();
+    for (const [docId, status] of allDocStatuses()) {
+      if (status.kind === 'pending' || status.kind === 'error') {
+        markDirty(docId); // re-checks the enabled gate internally
+      }
+    }
+    void syncNow();
   };
 
   return {
     markDirty,
-    syncNow: async () => {
-      // Flush all pending debounce timers — fire push immediately for each.
-      for (const [docId, t] of debounceTimers.entries()) {
-        clearTimeout(t);
-        debounceTimers.delete(docId);
-        void pushDoc(docId, generation, 0);
-      }
-      await heartbeat();
-    },
+    syncNow,
     resolveConflict,
     setDocEnabled: (docId: string, isEnabled: boolean): void => {
       if (isEnabled) {

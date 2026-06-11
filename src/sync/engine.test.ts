@@ -488,6 +488,140 @@ describe('engine conflict resolution', () => {
   });
 });
 
+describe('offline push parking', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('an offline retryable failure parks the doc PENDING without burning retries', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    client.putDoc.mockReset();
+    client.putDoc.mockRejectedValue(new TypeError('fetch failed'));
+
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    // Wait out the entire backoff budget — no retry timer may be spinning.
+    await vi.advanceTimersByTimeAsync(70_000);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(docStatusFor('doc-1').kind).toBe('pending');
+  });
+
+  it('the online event re-pushes a doc parked PENDING by an offline failure', async () => {
+    const listeners = new Map<string, () => void>();
+    vi.stubGlobal('window', {
+      addEventListener: (name: string, fn: () => void) => { listeners.set(name, fn); },
+      removeEventListener: (name: string) => { listeners.delete(name); },
+    });
+    vi.stubGlobal('navigator', { onLine: false });
+    client.putDoc.mockReset();
+    client.putDoc
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce({ revision: 5, updatedAt: '2026-06-11T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    engine.start();
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(docStatusFor('doc-1').kind).toBe('pending');
+
+    vi.stubGlobal('navigator', { onLine: true });
+    listeners.get('online')!();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(client.putDoc).toHaveBeenCalledTimes(2);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+    engine.stop();
+  });
+
+  it('the online event re-pushes docs wedged in ERROR', async () => {
+    const listeners = new Map<string, () => void>();
+    vi.stubGlobal('window', {
+      addEventListener: (name: string, fn: () => void) => { listeners.set(name, fn); },
+      removeEventListener: (name: string) => { listeners.delete(name); },
+    });
+    vi.stubGlobal('navigator', { onLine: true });
+    setDocStatus('doc-1', { kind: 'error', message: 'gave up after backoff' });
+    client.putDoc.mockReset();
+    client.putDoc.mockResolvedValue({ revision: 5, updatedAt: '2026-06-11T12:00:00Z' });
+
+    const engine = createEngine(deps);
+    engine.start();
+    listeners.get('online')!();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(client.putDoc).toHaveBeenCalledWith('sync-id-1', 'doc-1', expect.anything());
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+    engine.stop();
+  });
+});
+
+describe('content-hash dedupe (unchanged docs skip the PUT)', () => {
+  it('two markDirty cycles with identical content produce exactly one PUT', async () => {
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+
+    // Second dirty cycle (e.g. a sentiment-row write) with identical bytes.
+    engine.markDirty('doc-1');
+    expect(docStatusFor('doc-1').kind).toBe('pending');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(1); // skipped — no revision bump
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+  });
+
+  it('changed content still pushes', async () => {
+    const engine = createEngine(deps);
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+    expect(client.putDoc).toHaveBeenCalledTimes(1);
+
+    (deps.buildBundle as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Uint8Array([9, 9, 9]),
+    );
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).toHaveBeenCalledTimes(2);
+  });
+
+  it('a just-pulled doc does not immediately re-push identical bytes', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    client.list.mockResolvedValueOnce([{ docId: 'doc-1', revision: 9, updatedAt: '' }]);
+    client.getDoc.mockResolvedValueOnce({ ...stubEncryptedBlob(), revision: 9, updatedAt: '' });
+    // Decrypted pull payload == what buildBundle will serialize locally.
+    deps.decrypt = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
+    deps.getDocLastRevision = vi.fn().mockReturnValue(4);
+    setDocStatus('doc-1', { kind: 'idle', lastSyncedAt: 0, revision: 4 });
+
+    const engine = createEngine(deps);
+    engine.start();
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
+    engine.stop();
+    await vi.runAllTimersAsync();
+    expect(deps.applyBundle).toHaveBeenCalledTimes(1);
+
+    engine.markDirty('doc-1');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(client.putDoc).not.toHaveBeenCalled();
+    expect(docStatusFor('doc-1').kind).toBe('idle');
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('per-document sync_enabled gate', () => {
   it('markDirty is a no-op for a disabled doc', () => {
     const engine = createEngine({ ...deps, isDocSyncEnabled: () => false });

@@ -38,6 +38,12 @@ export function setDocStatus(docId: string, status: DocSyncStatus): void {
   setDocs(docId, status);
 }
 
+/** Snapshot of every known doc status — used by the engine's `online`
+ * handler to find docs parked in 'pending'/'error' that need a re-push. */
+export function allDocStatuses(): Array<[string, DocSyncStatus]> {
+  return Object.entries(_docs);
+}
+
 // Bumped after every applied sync pull. UI surfaces that render from IDB
 // (DocumentPicker, sync settings list) subscribe to this to refetch —
 // without it, documents arriving via sync stay invisible until reload.
