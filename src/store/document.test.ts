@@ -5,6 +5,7 @@ import {
   updateBlockContent,
   createBlockAfter,
   deleteBlock,
+  ensureChapterHasBlock,
   setPersistEnabled,
   createChapter,
   deleteChapter,
@@ -330,6 +331,60 @@ describe('document store mutations', () => {
     it('is a no-op for unknown ids', () => {
       deleteBlock('nope');
       expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+
+    it('returns null when the chapter still has live blocks', () => {
+      expect(deleteBlock('b2')).toBeNull();
+    });
+  });
+
+  describe('chapter never left without a live block', () => {
+    it('deleting the last block of a chapter seeds a fresh empty one', () => {
+      deleteBlock('b1');
+      deleteBlock('b2');
+      const seededId = deleteBlock('b3');
+      expect(seededId).toBeTruthy();
+      expect(store.blockOrder).toEqual([seededId]);
+      const seeded = store.blocks[seededId!];
+      expect(seeded.chapter_id).toBe('ch1');
+      expect(seeded.type).toBe('text');
+      expect(seeded.content).toBe('');
+      expect(seeded.deleted_at).toBeNull();
+      // The deleted blocks still went to the graveyard untouched.
+      expect(store.blocks['b3'].deleted_at).toBeTruthy();
+    });
+
+    it('seeds into the right slot when other chapters exist', () => {
+      const { chapterId: ch2, blockId: ch2Block } = createChapter()!;
+      setActiveChapter('ch1');
+      deleteBlock('b1');
+      deleteBlock('b2');
+      const seededId = deleteBlock('b3');
+      expect(seededId).toBeTruthy();
+      expect(store.blocks[seededId!].chapter_id).toBe('ch1');
+      // Seed lands before chapter 2's blocks in the global order.
+      expect(store.blockOrder).toEqual([seededId, ch2Block]);
+      expect(store.chapters.map((c) => c.id)).toEqual(['ch1', ch2]);
+    });
+
+    it('ensureChapterHasBlock is a no-op for non-empty or unknown chapters', () => {
+      expect(ensureChapterHasBlock('ch1')).toBeNull();
+      expect(ensureChapterHasBlock('ghost')).toBeNull();
+      expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
+    });
+
+    it('ensureChapterHasBlock heals an already-empty chapter', () => {
+      // Simulate a document that got into the dead state before the
+      // deleteBlock reseed existed (the editor's healing effect calls
+      // this when it renders an empty chapter).
+      const doc = makeDoc();
+      doc.blocks = [];
+      loadSyntheticDoc(doc);
+      expect(store.blockOrder).toEqual([]);
+      const seededId = ensureChapterHasBlock('ch1');
+      expect(seededId).toBeTruthy();
+      expect(store.blockOrder).toEqual([seededId]);
+      expect(store.blocks[seededId!].chapter_id).toBe('ch1');
     });
   });
 

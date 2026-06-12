@@ -720,9 +720,70 @@ export async function restoreBlock(blockId: UUID): Promise<void> {
   await refreshGraveyard();
 }
 
-export function deleteBlock(blockId: UUID, skipUndo = false): void {
+/**
+ * A chapter must never be left with zero live blocks: block creation is
+ * anchored to an existing block (createBlockAfter/Before), so an empty
+ * chapter would be a dead end the user cannot type into. Seeds a fresh
+ * empty text block when the chapter has none and returns its id, or
+ * null when the chapter is fine (or no longer exists).
+ */
+export function ensureChapterHasBlock(chapterId: UUID): UUID | null {
+  if (!store.chapters.some((c) => c.id === chapterId)) return null;
+  const hasLiveBlock = store.blockOrder.some(
+    (id) => store.blocks[id]?.chapter_id === chapterId,
+  );
+  if (hasLiveBlock) return null;
+
+  const newId = uuid();
+  const now = new Date().toISOString();
+  const block: Block = {
+    id: newId,
+    chapter_id: chapterId,
+    type: 'text',
+    content: '',
+    order: 0,
+    metadata: defaultMetadataFor('text'),
+    deleted_at: null,
+    deleted_from: null,
+    created_at: now,
+    updated_at: now,
+  };
+
+  // blockOrder spans the whole document grouped by chapter sequence, so
+  // the seed slots in before the first block of any later chapter.
+  const chapterIdx = store.chapters.findIndex((c) => c.id === chapterId);
+  const laterChapterIds = new Set(
+    store.chapters.slice(chapterIdx + 1).map((c) => c.id),
+  );
+  let insertAt = store.blockOrder.length;
+  for (let i = 0; i < store.blockOrder.length; i++) {
+    const b = store.blocks[store.blockOrder[i]];
+    if (b && laterChapterIds.has(b.chapter_id)) {
+      insertAt = i;
+      break;
+    }
+  }
+  const newOrder = [...store.blockOrder];
+  newOrder.splice(insertAt, 0, newId);
+
+  setStore('blocks', newId, block);
+  setStore('blockOrder', newOrder);
+
+  if (canPersist() && store.document) {
+    track(repo.saveBlock(unwrap(block), store.document.id));
+  }
+
+  return newId;
+}
+
+/**
+ * Soft-delete a block into the graveyard. If this empties the chapter, a
+ * fresh blank block is seeded in its place (see ensureChapterHasBlock)
+ * and its id is returned so the caller can focus it.
+ */
+export function deleteBlock(blockId: UUID, skipUndo = false): UUID | null {
   const block = store.blocks[blockId];
-  if (!block) return;
+  if (!block) return null;
   const chapter = store.chapters.find((c) => c.id === block.chapter_id);
   const position = store.blockOrder.indexOf(blockId);
 
@@ -761,4 +822,6 @@ export function deleteBlock(blockId: UUID, skipUndo = false): void {
     // whatever the user typed right up to the moment of deletion.
     track(repo.saveBlock(unwrap(store.blocks[blockId]), store.document.id));
   }
+
+  return ensureChapterHasBlock(block.chapter_id);
 }

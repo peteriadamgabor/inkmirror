@@ -577,6 +577,7 @@ export {
   refreshGraveyard,
   restoreBlock,
   deleteBlock,
+  ensureChapterHasBlock,
 } from './document-blocks';
 
 export {

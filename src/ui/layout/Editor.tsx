@@ -14,7 +14,14 @@ import { StoryPulseEcg } from '@/ui/features/StoryPulseEcg';
 import { computeVisible } from '@/engine/virtualizer';
 import { createMemoizedMeasurer, createPretextMeasurer } from '@/engine/measure';
 import { contentHash } from '@/utils/hash';
-import { store, setViewport, setMeasurement, saveState, renameChapter } from '@/store/document';
+import {
+  store,
+  setViewport,
+  setMeasurement,
+  saveState,
+  renameChapter,
+  ensureChapterHasBlock,
+} from '@/store/document';
 import { dominantChapterLabel } from '@/store/selectors';
 import { useTheme } from '@/ui/theme';
 import { uiState, toggleSpellcheck, toggleDocumentSettings } from '@/store/ui-state';
@@ -111,6 +118,17 @@ export const Editor = () => {
       return;
     }
     measureDebounced();
+  });
+
+  // Self-heal: a chapter rendered with zero live blocks is a dead end —
+  // block creation needs an existing block as an anchor, so the user
+  // would have no way to start typing again. Documents could get into
+  // this state before deleteBlock learned to reseed; this also covers
+  // any future path (sync, import, restore) that empties a chapter.
+  createEffect(() => {
+    const activeId = store.activeChapterId;
+    if (!activeId || !store.document) return;
+    if (activeOrder().length === 0) ensureChapterHasBlock(activeId);
   });
 
   // Find which block currently sits at the top of the viewport and at what

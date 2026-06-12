@@ -359,8 +359,9 @@ export const BlockView = (props: { block: Block }) => {
       case 'delete-empty-block': {
         const idx = store.blockOrder.indexOf(props.block.id);
         const previousId = idx > 0 ? store.blockOrder[idx - 1] : null;
-        deleteBlock(props.block.id);
-        if (previousId) focusBlock(previousId, 'end');
+        const seededId = deleteBlock(props.block.id);
+        if (seededId) focusBlock(seededId, 'start');
+        else if (previousId) focusBlock(previousId, 'end');
         break;
       }
       case 'focus-previous': {
@@ -423,8 +424,9 @@ export const BlockView = (props: { block: Block }) => {
             const nextId = idx >= 0 && idx < store.blockOrder.length - 1
               ? store.blockOrder[idx + 1]
               : null;
-            deleteBlock(props.block.id);
-            if (previousId) focusBlock(previousId, 'end');
+            const seededId = deleteBlock(props.block.id);
+            if (seededId) focusBlock(seededId, 'start');
+            else if (previousId) focusBlock(previousId, 'end');
             else if (nextId) focusBlock(nextId, 'start');
           }
         })();
