@@ -4,6 +4,21 @@
  * utilities used by BlockView and the editor hooks.
  */
 
+/**
+ * Plain-text length of the block, measured with the SAME ruler as
+ * getCaretOffset (Range.toString) so the two are directly comparable.
+ * Range.toString counts text nodes only — <br> elements and <div>
+ * line-break boundaries contribute nothing. Using el.innerText here
+ * instead (which renders those as "\n") made the end-of-block check in
+ * keybindings unreachable once the browser inserted a <br> on a soft
+ * line break, so Enter kept inserting newlines instead of a new block.
+ */
+export function getTextLength(el: HTMLElement): number {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  return range.toString().length;
+}
+
 export function getCaretOffset(el: HTMLElement): number {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return 0;
@@ -114,7 +129,7 @@ export function focusBlock(blockId: string, caretPosition: 'start' | 'end' | num
     el.focus();
     const offset =
       caretPosition === 'start' ? 0 :
-      caretPosition === 'end' ? (el.innerText?.length ?? 0) :
+      caretPosition === 'end' ? getTextLength(el) :
       caretPosition;
     setCaretOffset(el, offset);
   });

@@ -33,6 +33,7 @@ import {
   focusBlock,
   getCaretOffset,
   getSelectionOffsets,
+  getTextLength,
   isCaretAtFirstLine,
   isCaretAtLastLine,
   restoreSelectionRange,
@@ -97,7 +98,7 @@ export const BlockView = (props: { block: Block }) => {
         // Park the caret at the end of the newly-written content.
         // Without this the browser leaves the selection on a node that
         // was just replaced, which feels like nothing happened.
-        setCaretOffset(el, el.innerText?.length ?? 0);
+        setCaretOffset(el, getTextLength(el));
       }
     }
   });
@@ -317,8 +318,12 @@ export const BlockView = (props: { block: Block }) => {
       }
     }
 
+    // Both numbers must come from the same ruler (Range.toString, which
+    // ignores <br>/<div> line breaks). el.innerText counted those as "\n",
+    // so once a soft break existed in the DOM, caret-at-end could never
+    // equal contentLength and Enter stopped creating new blocks.
     const caret = getCaretOffset(el);
-    const len = el.innerText?.length ?? 0;
+    const len = getTextLength(el);
     const ctx: KeyContext = {
       key: e.key,
       shiftKey: e.shiftKey,
