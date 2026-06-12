@@ -23,6 +23,14 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-06-12b',
+    title: 'v0.10.2 — Paste, exactly where you meant it',
+    items: [
+      'Fixed: pasting multi-paragraph text into a block could duplicate the text after your caret — or, when pasting into an empty block, silently drop the first paragraph. The paste now lands exactly once, exactly where the caret was.',
+      'Fixed: in a block with a soft line break (Shift+Enter), the paste split point and bold/italic ranges could shift by one character per line break. Both now align precisely with what you see.',
+    ],
+  },
+  {
     id: '2026-06-12',
     title: 'v0.10.1 — The Enter key keeps its promise',
     items: [
@@ -190,6 +198,14 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-06-12b',
+    title: 'v0.10.2 — Beillesztés, pontosan oda, ahová szántad',
+    items: [
+      'Javítva: többbekezdéses szöveg beillesztése egy blokkba megduplázhatta a kurzor utáni szöveget — üres blokkba illesztve pedig csendben elveszhetett az első bekezdés. A beillesztés mostantól pontosan egyszer, pontosan a kurzornál landol.',
+      'Javítva: lágy sortörést (Shift+Enter) tartalmazó blokkban a beillesztés vágáspontja és a félkövér/dőlt kijelölések soronként egy-egy karakterrel elcsúszhattak. Mostantól mindkettő pontosan azt fedi, amit látsz.',
+    ],
+  },
   {
     id: '2026-06-12',
     title: 'v0.10.1 — Az Enter állja a szavát',
