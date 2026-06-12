@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { marksToHtml, normalizeMarks, parseMarksFromDom, toggleMark } from './marks';
+import { domPointToContentOffset, marksToHtml, normalizeMarks, parseMarksFromDom, toggleMark } from './marks';
 import type { Mark } from '@/types/block';
 
 describe('normalizeMarks', () => {
@@ -242,5 +242,68 @@ describe('roundtrip: marks → html → marks', () => {
     const html = marksToHtml(content, marks);
     // The \n survives between the escaped text and the <b> wrapper.
     expect(html).toBe('First\n<b>Bold tail</b>');
+  });
+});
+
+describe('domPointToContentOffset', () => {
+  // Every expectation cross-checks against parseMarksFromDom(root).content —
+  // the two walks must stay in lockstep, that's the whole contract.
+  function makeRoot(html: string): HTMLElement {
+    const root = document.createElement('div');
+    root.innerHTML = html;
+    return root;
+  }
+
+  it('plain text node maps 1:1', () => {
+    const root = makeRoot('hello');
+    expect(parseMarksFromDom(root).content).toBe('hello');
+    expect(domPointToContentOffset(root, root.firstChild!, 3)).toBe(3);
+  });
+
+  it('counts a <br> before the point as one character', () => {
+    const root = makeRoot('ab<br>cd');
+    expect(parseMarksFromDom(root).content).toBe('ab\ncd');
+    // Point at 'd' (offset 1 inside the 'cd' text node) → index 4.
+    expect(domPointToContentOffset(root, root.lastChild!, 1)).toBe(4);
+  });
+
+  it('point anchored on the <br> element itself maps to just before it', () => {
+    const root = makeRoot('ab<br>cd');
+    const br = root.childNodes[1];
+    expect(domPointToContentOffset(root, br, 0)).toBe(2);
+  });
+
+  it('element-anchored point (root + child index) lands between children', () => {
+    const root = makeRoot('ab<br>cd');
+    expect(domPointToContentOffset(root, root, 0)).toBe(0);
+    expect(domPointToContentOffset(root, root, 2)).toBe(3); // after the br
+    expect(domPointToContentOffset(root, root, 3)).toBe(5); // end
+  });
+
+  it('walks into inline mark wrappers', () => {
+    const root = makeRoot('a<b>bc</b><br>d');
+    expect(parseMarksFromDom(root).content).toBe('abc\nd');
+    const boldText = root.childNodes[1].firstChild!;
+    expect(domPointToContentOffset(root, boldText, 1)).toBe(2);
+    expect(domPointToContentOffset(root, root.lastChild!, 1)).toBe(5);
+  });
+
+  it('counts Chrome-style <div> line wrappers as one break', () => {
+    const root = makeRoot('ab<div>cd</div>');
+    expect(parseMarksFromDom(root).content).toBe('ab\ncd');
+    const divText = root.lastChild!.firstChild!;
+    expect(domPointToContentOffset(root, divText, 0)).toBe(3);
+    expect(domPointToContentOffset(root, divText, 2)).toBe(5);
+  });
+
+  it('literal newline text nodes need no adjustment', () => {
+    const root = makeRoot('');
+    root.textContent = 'ab\ncd';
+    expect(domPointToContentOffset(root, root.firstChild!, 4)).toBe(4);
+  });
+
+  it('clamps a text offset past the node end', () => {
+    const root = makeRoot('ab');
+    expect(domPointToContentOffset(root, root.firstChild!, 99)).toBe(2);
   });
 });

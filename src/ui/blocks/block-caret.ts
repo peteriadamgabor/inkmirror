@@ -2,7 +2,18 @@
  * Pure DOM helpers for caret + selection management inside a
  * contenteditable block. No Solid imports — these are framework-free
  * utilities used by BlockView and the editor hooks.
+ *
+ * Two offset rulers live here, on purpose:
+ * - getCaretOffset / getTextLength use Range.toString, which ignores
+ *   <br>/<div> line breaks. Right for "is the caret at the visual end
+ *   of the text" questions (Enter / Backspace keybindings).
+ * - getContentCaretOffset / getSelectionOffsets count line breaks the
+ *   way parseMarksFromDom commits them ("\n"). Right whenever the
+ *   offset will index into stored block content (paste splitting,
+ *   mark ranges).
  */
+
+import { domPointToContentOffset } from '@/engine/marks';
 
 /**
  * Plain-text length of the block, measured with the SAME ruler as
@@ -135,9 +146,24 @@ export function focusBlock(blockId: string, caretPosition: 'start' | 'end' | num
   });
 }
 
-/** Get the current selection's character offsets relative to `el`'s
- *  plain-text content. Returns null if the selection isn't inside this
- *  block or is collapsed (caret only, no range to mark). */
+/**
+ * Caret position as an index into the content string parseMarksFromDom
+ * would commit for this block (line breaks counted as "\n"). Use this —
+ * not getCaretOffset — when the offset will slice stored content.
+ */
+export function getContentCaretOffset(el: HTMLElement): number {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return 0;
+  const range = sel.getRangeAt(0);
+  if (!el.contains(range.startContainer)) return 0;
+  return domPointToContentOffset(el, range.startContainer, range.startOffset);
+}
+
+/** Get the current selection's character offsets as indexes into the
+ *  committed content string (line breaks counted as "\n", matching
+ *  parseMarksFromDom — mark ranges are stored against that string).
+ *  Returns null if the selection isn't inside this block or is
+ *  collapsed (caret only, no range to mark). */
 export function getSelectionOffsets(el: HTMLElement): { start: number; end: number } | null {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return null;
@@ -145,10 +171,7 @@ export function getSelectionOffsets(el: HTMLElement): { start: number; end: numb
   if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) {
     return null;
   }
-  const pre = range.cloneRange();
-  pre.selectNodeContents(el);
-  pre.setEnd(range.startContainer, range.startOffset);
-  const start = pre.toString().length;
-  const end = start + range.toString().length;
+  const start = domPointToContentOffset(el, range.startContainer, range.startOffset);
+  const end = domPointToContentOffset(el, range.endContainer, range.endOffset);
   return { start, end };
 }

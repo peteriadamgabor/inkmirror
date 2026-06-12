@@ -32,6 +32,7 @@ import { t } from '@/i18n';
 import {
   focusBlock,
   getCaretOffset,
+  getContentCaretOffset,
   getSelectionOffsets,
   getTextLength,
   isCaretAtFirstLine,
@@ -215,7 +216,9 @@ export const BlockView = (props: { block: Block }) => {
       // so insertPastedParagraphs sees an accurate head/tail around the caret.
       const { content, marks } = parseMarksFromDom(el);
       updateBlockContent(props.block.id, content, { marks });
-      const caret = getCaretOffset(el);
+      // Content ruler, not getCaretOffset: this offset slices the stored
+      // content, where soft line breaks are "\n" characters.
+      const caret = getContentCaretOffset(el);
       const result = insertPastedParagraphs(props.block.id, caret, text);
       focusBlock(result.targetBlockId, result.caretOffset);
       return;

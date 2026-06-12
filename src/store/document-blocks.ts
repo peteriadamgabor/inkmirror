@@ -256,6 +256,12 @@ export function insertPastedParagraphs(
   // First paragraph joins the existing head.
   const firstContent = head + paragraphs[0];
   updateBlockContent(blockId, firstContent);
+  // The source block is focused during paste, so the BlockView sync
+  // effect would skip this write — and the stale DOM would then be
+  // committed right back over it on blur, undoing the split. Pulse the
+  // external-change signal to force the DOM write (same pattern as
+  // undo/redo).
+  markExternalBlockChange(blockId);
 
   let previousId = blockId;
   // Middle paragraphs each become their own block.

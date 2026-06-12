@@ -1,5 +1,11 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { getCaretOffset, getTextLength } from './block-caret';
+import {
+  getCaretOffset,
+  getContentCaretOffset,
+  getSelectionOffsets,
+  getTextLength,
+} from './block-caret';
+import { parseMarksFromDom } from '@/engine/marks';
 import { resolveKeyIntent, type KeyContext } from './keybindings';
 
 /**
@@ -100,5 +106,60 @@ describe('getTextLength / getCaretOffset consistency', () => {
     placeCaret(line2, 5);
     expect(getCaretOffset(el)).toBe(getTextLength(el));
     expect(resolveKeyIntent(enterContext(el))).toEqual({ type: 'create-block-after' });
+  });
+});
+
+describe('content-ruler offsets (paste splitting, mark ranges)', () => {
+  let el: HTMLElement;
+
+  beforeEach(() => {
+    el = document.createElement('div');
+    document.body.appendChild(el);
+  });
+
+  function selectRange(
+    startNode: Node, startOffset: number,
+    endNode: Node, endOffset: number,
+  ): void {
+    const range = document.createRange();
+    range.setStart(startNode, startOffset);
+    range.setEnd(endNode, endOffset);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  it('getContentCaretOffset counts a soft break, getCaretOffset does not', () => {
+    el.innerHTML = 'ab<br>cd';
+    placeCaret(el.lastChild!, 1); // between 'c' and 'd'
+    // Committed content is 'ab\ncd' — 'd' sits at index 4.
+    expect(parseMarksFromDom(el).content).toBe('ab\ncd');
+    expect(getContentCaretOffset(el)).toBe(4);
+    // The visual-end ruler ignores the break by design.
+    expect(getCaretOffset(el)).toBe(3);
+  });
+
+  it('paste split offset slices the committed content at the right spot', () => {
+    el.innerHTML = 'head<br>TAIL';
+    placeCaret(el.lastChild!, 0); // caret right before 'TAIL'
+    const { content } = parseMarksFromDom(el);
+    const caret = getContentCaretOffset(el);
+    expect(content.slice(0, caret)).toBe('head\n');
+    expect(content.slice(caret)).toBe('TAIL');
+  });
+
+  it('getSelectionOffsets indexes into committed content across a <br>', () => {
+    el.innerHTML = 'ab<br>cd';
+    selectRange(el.lastChild!, 0, el.lastChild!, 2); // select 'cd'
+    const offsets = getSelectionOffsets(el)!;
+    expect(offsets).toEqual({ start: 3, end: 5 });
+    // A mark stored with these offsets covers exactly the selected text.
+    expect(parseMarksFromDom(el).content.slice(offsets.start, offsets.end)).toBe('cd');
+  });
+
+  it('getSelectionOffsets stays correct without any soft break', () => {
+    el.textContent = 'hello world';
+    selectRange(el.firstChild!, 6, el.firstChild!, 11); // 'world'
+    expect(getSelectionOffsets(el)).toEqual({ start: 6, end: 11 });
   });
 });

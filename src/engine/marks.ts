@@ -176,6 +176,81 @@ const BLOCK_TAGS = new Set([
  * <p>, …) become "\n" — without this, the line break the
  * browser inserts on mid-content Enter is lost on commit.
  */
+/**
+ * Map a DOM point (node + offset, as in a Range endpoint) to an index
+ * into the content string that parseMarksFromDom would produce for
+ * `root`. Counts <br> and block-level boundaries as "\n" using the
+ * exact accumulation rules above — keep the two walks in lockstep.
+ *
+ * Use this whenever a caret/selection offset will be used to index
+ * into committed block content (paste splitting, mark ranges).
+ * Range.toString-based offsets ignore <br>, so they drift by one per
+ * soft line break the browser inserted since the last re-render.
+ */
+export function domPointToContentOffset(root: Node, node: Node, offset: number): number {
+  let length = 0;
+  let lastChar = '';
+  let result = -1;
+
+  const append = (s: string): void => {
+    if (s.length === 0) return;
+    length += s.length;
+    lastChar = s[s.length - 1];
+  };
+
+  const visit = (n: Node): boolean => {
+    if (n.nodeType === Node.TEXT_NODE) {
+      const text = n.textContent ?? '';
+      if (n === node) {
+        result = length + Math.min(offset, text.length);
+        return true;
+      }
+      append(text);
+      return false;
+    }
+    if (n.nodeType !== Node.ELEMENT_NODE) {
+      if (n === node) {
+        result = length;
+        return true;
+      }
+      return false;
+    }
+    const tag = (n as HTMLElement).tagName.toLowerCase();
+    if (tag === 'br') {
+      if (n === node) {
+        result = length;
+        return true;
+      }
+      append('\n');
+      return false;
+    }
+    if (BLOCK_TAGS.has(tag) && length > 0 && lastChar !== '\n') {
+      append('\n');
+    }
+    const children = Array.from(n.childNodes);
+    for (let i = 0; i < children.length; i++) {
+      // Element-anchored Range endpoints address a child index.
+      if (n === node && i === offset) {
+        result = length;
+        return true;
+      }
+      if (visit(children[i])) return true;
+    }
+    if (n === node) {
+      result = length;
+      return true;
+    }
+    return false;
+  };
+
+  const children = Array.from(root.childNodes);
+  for (let i = 0; i < children.length; i++) {
+    if (root === node && i === offset) return length;
+    if (visit(children[i])) return result;
+  }
+  return result >= 0 ? result : length;
+}
+
 export function parseMarksFromDom(root: Node): { content: string; marks: Mark[] } {
   let content = '';
   const marks: Mark[] = [];

@@ -14,7 +14,7 @@ import {
   performUndo,
   performRedo,
 } from './document';
-import { clearUndoStack, canUndo, finalizePendingBatch } from './undo';
+import { clearUndoStack, canUndo, externalSync, finalizePendingBatch } from './undo';
 import * as repo from '@/db/repository';
 import type { SyntheticDoc } from '@/engine/synthetic';
 import type { Block, Chapter, Document } from '@/types';
@@ -270,6 +270,14 @@ describe('document-blocks store mutations', () => {
       expect(result).toEqual({ targetBlockId: 'b1', caretOffset: 2 });
       expect(store.blockOrder).toEqual(['b1', 'b2', 'b3']);
       expect(store.blocks['b1'].content).toBe('first');
+    });
+
+    it('pulses externalSync so the focused source block force-renders', () => {
+      // Without the pulse, the BlockView sync effect skips the focused
+      // source block and its stale pre-paste DOM gets committed back
+      // over the split on blur — reverting the paste.
+      insertPastedParagraphs('b1', 5, 'AAA\n\nBBB');
+      expect(externalSync()?.blockId).toBe('b1');
     });
   });
 
