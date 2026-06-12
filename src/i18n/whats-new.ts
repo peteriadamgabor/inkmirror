@@ -23,6 +23,14 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-06-12',
+    title: 'v0.10.1 — The Enter key keeps its promise',
+    items: [
+      'Fixed: pressing Enter at the end of a block sometimes only inserted a line break instead of starting a new block — and once it happened, it kept happening in that block. It now reliably starts a new block again, and Backspace can once again remove a block you have emptied out.',
+      'Fixed: deleting every block in a chapter left the document with nowhere to type and no way to add a block. A fresh empty block now always takes the place of the last deleted one, and documents already stuck in that state heal themselves the next time you open them.',
+    ],
+  },
+  {
     id: '2026-06-11b',
     title: 'v0.10.0 — A book-shaped book, and saves you can trust',
     items: [
@@ -182,6 +190,14 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-06-12',
+    title: 'v0.10.1 — Az Enter állja a szavát',
+    items: [
+      'Javítva: az Enter a blokk végén néha csak sortörést szúrt be új blokk helyett — és ha egyszer megtörtént, abban a blokkban onnantól mindig így viselkedett. Mostantól megbízhatóan új blokkot kezd, és a Backspace is újra törli a kiürített blokkot.',
+      'Javítva: ha egy fejezet összes blokkját kitörölted, a dokumentumban nem maradt hová írni, és új blokkot sem lehetett létrehozni. Az utolsó törölt blokk helyén mostantól mindig megjelenik egy üres blokk, a már beragadt dokumentumok pedig a következő megnyitáskor maguktól rendbe jönnek.',
+    ],
+  },
   {
     id: '2026-06-11b',
     title: 'v0.10.0 — Könyv alakú könyv, és mentés, amiben megbízhatsz',
