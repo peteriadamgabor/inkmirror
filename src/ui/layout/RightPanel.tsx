@@ -11,6 +11,7 @@ import { CharacterArcs } from '@/ui/features/CharacterArcs';
 import { ConsistencyPanel } from '@/ui/features/ConsistencyPanel';
 import { EchoesPanel } from '@/ui/features/EchoesPanel';
 import { SessionNotes } from '@/ui/features/SessionNotes';
+import { LastWordsFirstLines } from '@/ui/features/LastWordsFirstLines';
 import { toggleRightPanel } from '@/store/ui-state';
 import { IconChevron } from '@/ui/shared/icons';
 import { t } from '@/i18n';
@@ -89,6 +90,8 @@ export const RightPanel = () => {
       <ConsistencyPanel />
 
       <EchoesPanel />
+
+      <LastWordsFirstLines />
 
       <SessionNotes />
 

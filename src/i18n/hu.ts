@@ -399,6 +399,17 @@ export const hu: Messages = {
     placeholder: 'Gondolatok, emlékeztetők, ötletek. Ezzel a dokumentummal marad.',
     savedHint: 'Automatikusan mentve',
   },
+  lastWords: {
+    title: 'Első sorok · Utolsó szavak',
+    subtitle: 'Minden fejezet nyitó és záró mondata, egymás mellett.',
+    firstLines: 'Első sorok',
+    lastWords: 'Utolsó szavak',
+  },
+  session: {
+    recap: 'Előző munkamenet: {{minutes}} perc, {{words}} szó — főként itt: „{{chapter}}.”',
+    recapNoChapter: 'Előző munkamenet: {{minutes}} perc, {{words}} szó.',
+    lastLine: 'Az utolsó sor, amit írtál: „{{line}}”',
+  },
   characterPage: {
     closeLabel: 'Karakterlap bezárása',
     descriptionLabel: 'Leírás',

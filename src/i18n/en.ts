@@ -719,6 +719,17 @@ export const en = {
     placeholder: 'Thoughts, reminders, ideas. Stays with this document.',
     savedHint: 'Auto-saved',
   },
+  lastWords: {
+    title: 'First lines · Last words',
+    subtitle: 'Every chapter\'s opening and closing sentence, side by side.',
+    firstLines: 'First lines',
+    lastWords: 'Last words',
+  },
+  session: {
+    recap: 'Last session: {{minutes}} min, {{words}} words — mostly in “{{chapter}}.”',
+    recapNoChapter: 'Last session: {{minutes}} min, {{words}} words.',
+    lastLine: 'The last line you wrote: “{{line}}”',
+  },
   characterPage: {
     closeLabel: 'Close character page',
     descriptionLabel: 'Description',

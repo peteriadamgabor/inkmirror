@@ -23,6 +23,14 @@ export interface WhatsNewEntry {
 
 const en: WhatsNewEntry[] = [
   {
+    id: '2026-06-20',
+    title: 'v0.11.0 — Your own words, handed back',
+    items: [
+      'New: First lines · Last words. In the story panel, read every chapter\'s opening sentence down one column and its closing sentence down the other — a quiet way to ask whether your openings establish and your endings land. Collapsed by default; no AI, just your own prose.',
+      'New: a "welcome back" line. When you reopen a document, InkMirror quietly recalls your last sitting — how long, how many words, where you worked, and the last line you committed. A bookmark, not a greeting. No streaks, no scores.',
+    ],
+  },
+  {
     id: '2026-06-12b',
     title: 'v0.10.2 — Paste, exactly where you meant it',
     items: [
@@ -198,6 +206,14 @@ const en: WhatsNewEntry[] = [
 ];
 
 const hu: WhatsNewEntry[] = [
+  {
+    id: '2026-06-20',
+    title: 'v0.11.0 — A saját szavaid, visszaadva',
+    items: [
+      'Új: Első sorok · Utolsó szavak. A történet-panelen az egyik oszlopban minden fejezet nyitó mondata, a másikban a záró mondata olvasható egymás mellett — csendes módja annak, hogy megkérdezd: a nyitásaid megalapoznak-e, a zárásaid pedig megérkeznek-e. Alapból összecsukva; nincs MI, csak a saját prózád.',
+      'Új: „újra itt vagy” sor. Amikor újra megnyitsz egy dokumentumot, az InkMirror csendben felidézi az előző alkalmat — mennyi ideig, hány szót, hol dolgoztál, és mi volt az utolsó sor, amit leírtál. Könyvjelző, nem üdvözlés. Nincs sorozat, nincs pontszám.',
+    ],
+  },
   {
     id: '2026-06-12b',
     title: 'v0.10.2 — Beillesztés, pontosan oda, ahová szántad',

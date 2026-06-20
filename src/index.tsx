@@ -58,6 +58,12 @@ import { daysSinceLastExport } from '@/exporters';
 import { toast } from '@/ui/shared/toast';
 import { t, lang } from '@/i18n';
 import { cancelPreviewIfDocMatches } from '@/store/preview';
+import {
+  beginSession,
+  endSession,
+  recallLastSession,
+  type SessionRecord,
+} from '@/store/session-memory';
 import type { UUID } from '@/types';
 import './index.css';
 
@@ -92,6 +98,27 @@ async function initDb(): Promise<void> {
   await getDb();
 }
 
+/**
+ * Compose the quiet "welcome back" line from a prior sitting's record.
+ * Returns null when there's nothing worth surfacing. The writer is shown,
+ * not awarded — no streak, no celebration, just their own words handed back.
+ */
+function sessionRecapMessage(rec: SessionRecord): string | null {
+  const parts: string[] = [];
+  if (rec.wordsAdded > 0) {
+    const minutes = Math.max(1, rec.durationMin);
+    parts.push(
+      rec.chapterTitle
+        ? t('session.recap', { minutes, words: rec.wordsAdded, chapter: rec.chapterTitle })
+        : t('session.recapNoChapter', { minutes, words: rec.wordsAdded }),
+    );
+  }
+  if (rec.lastLine) {
+    parts.push(t('session.lastLine', { line: rec.lastLine }));
+  }
+  return parts.length ? parts.join(' ') : null;
+}
+
 async function openDocument(docId: UUID): Promise<void> {
   try {
     await flushPendingWrites(100);
@@ -104,6 +131,14 @@ async function openDocument(docId: UUID): Promise<void> {
     clearUndoStack();
     setAppState({ kind: 'ready' });
     scheduleAiPreload();
+    // Session memory: surface the previous sitting's bookmark, then start
+    // tracking this one. Read the record before beginSession overwrites it.
+    const recap = recallLastSession(docId);
+    if (recap) {
+      const msg = sessionRecapMessage(recap);
+      if (msg) setTimeout(() => toast.info(msg, 9000), 1200);
+    }
+    beginSession(docId);
     if (!hotkeysInstalled) {
       installGlobalHotkeys();
       hotkeysInstalled = true;
@@ -133,6 +168,7 @@ async function openDocument(docId: UUID): Promise<void> {
 // Register the picker navigation callback so the Sidebar can call
 // it without importing index.tsx (which would be circular).
 setReturnToPicker(() => {
+  endSession();
   void flushPendingWrites(100).then(() => {
     setAppState({ kind: 'picker' });
   });
@@ -304,7 +340,15 @@ if (isKnownPath && !isStaticPage) {
       });
     });
 
+  // Persist the session bookmark when the tab is backgrounded (the reliable
+  // "leaving" signal on mobile) and on unload. endSession() no-ops when no
+  // sitting is open, so firing on every hide is harmless.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') endSession();
+  });
+
   window.addEventListener('beforeunload', () => {
+    endSession();
     void flushPendingWrites(200);
   });
 }
