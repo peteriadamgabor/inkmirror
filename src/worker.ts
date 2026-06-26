@@ -11,15 +11,18 @@
  *   2. /feedback — accept POSTed user feedback and forward it to a
  *      private Discord channel via webhook. Honeypot + length caps;
  *      no PII stored on our side. (See ./worker/feedback.ts)
- *   3. /sync/* — opt-in E2E-encrypted sync (KV + R2). (See ./worker/sync.ts)
- *   4. Known SPA routes — explicitly serve /index.html so the client
+ *   3. /glitchtip-tunnel — same-origin Sentry ingest tunnel that forwards
+ *      crash envelopes to the self-hosted GlitchTip instance, injecting the
+ *      NetBird auth header server-side. (See ./worker/glitchtip-tunnel.ts)
+ *   4. /sync/* — opt-in E2E-encrypted sync (KV + R2). (See ./worker/sync.ts)
+ *   5. Known SPA routes — explicitly serve /index.html so the client
  *      router can mount. With `not_found_handling: "none"` set in
  *      wrangler, ASSETS no longer rewrites unknown paths to index.html
  *      automatically; the Worker owns that decision now.
- *   5. File-extensioned paths that don't exist (probes like /wp-login.php,
+ *   6. File-extensioned paths that don't exist (probes like /wp-login.php,
  *      /.env, /admin.php) — fast 404, no body. Bots stop wasting our
  *      bandwidth and our logs stay quiet.
- *   6. Path-shaped unknown URLs (/foo, /typo/bar) — serve the SPA shell
+ *   7. Path-shaped unknown URLs (/foo, /typo/bar) — serve the SPA shell
  *      with HTTP 404 status. Browsers see the styled NotFoundRoute,
  *      crawlers see a real 404 and back off.
  *
@@ -30,6 +33,7 @@
 import { withSecurityHeaders } from './worker/security-headers';
 import { handleHfProxy } from './worker/hf-proxy';
 import { handleFeedback } from './worker/feedback';
+import { handleGlitchTipTunnel } from './worker/glitchtip-tunnel';
 import { handleSync } from './worker/sync';
 import type { Env } from './worker/types';
 
@@ -80,6 +84,10 @@ export default {
 
     if (path === '/feedback') {
       return withSecurityHeaders(await handleFeedback(request, env));
+    }
+
+    if (path === '/glitchtip-tunnel') {
+      return withSecurityHeaders(await handleGlitchTipTunnel(request, env));
     }
 
     if (path.startsWith('/sync/')) {

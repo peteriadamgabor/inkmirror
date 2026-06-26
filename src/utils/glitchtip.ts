@@ -18,23 +18,29 @@
  * never opt in.
  *
  * Reverse-proxy auth: GlitchTip sits behind a NetBird auth proxy that
- * blocks the dashboard but is bypassed for ingest paths via a custom
- * header. Configure with two Vite env vars (set on the Cloudflare Pages
- * project, NOT committed):
- *   VITE_GLITCHTIP_PROXY_AUTH_HEADER  default: "X-NetBird-Auth"
- *   VITE_GLITCHTIP_PROXY_AUTH_VALUE   the shared secret
- * The header ships in the browser bundle by definition — anyone can
- * extract it from DevTools. Treat it as low-friction obfuscation
- * ("don't show the login UI to drive-by scanners"), not authentication.
- * Real protection is the DSN's project key + GlitchTip's own ingest
- * validation.
+ * blocks unauthenticated access. We can't pass that proxy from the
+ * browser — a custom auth header on a cross-origin POST triggers a CORS
+ * preflight, and browsers never attach custom headers to a preflight, so
+ * the proxy 401s it before the real request fires. Instead the SDK runs
+ * with `tunnel: '/glitchtip-tunnel'`: envelopes POST to that same-origin
+ * Worker route, which injects the NetBird secret server-side (see
+ * src/worker/glitchtip-tunnel.ts). The secret never ships in the bundle.
  */
 
 import { lang } from '@/i18n';
 import { getStoredProfile } from '@/ai/profile';
 
+/**
+ * DSN resolution order:
+ *   1. `VITE_GLITCHTIP_DSN` — set on the Cloudflare Pages project so the
+ *      ingest target can be repointed (e.g. server reinstall) without a
+ *      code change. Public token by design; ships in the bundle.
+ *   2. Hardcoded fallback below — keeps local/dev builds and any build
+ *      without the env var pointed at the current self-hosted instance.
+ */
 export const GLITCHTIP_DSN =
-  'https://cae4cf6954864756a6dcd18580f4c8cc@glitchtip.peteriadamgabor.com/1';
+  import.meta.env.VITE_GLITCHTIP_DSN ||
+  'https://1dc5441f4fcd4bff8aaff4e290be16d4@glitchtip.peteriadamgabor.com/1';
 
 const STORAGE_KEY = 'inkmirror.errorReporting';
 let initialized = false;
@@ -69,6 +75,10 @@ export async function initGlitchTip(): Promise<void> {
     const Sentry = await import('@sentry/browser');
     Sentry.init({
       dsn: GLITCHTIP_DSN,
+      // Route every envelope through our same-origin Worker, which adds the
+      // NetBird auth header server-side. Avoids the CORS preflight that makes
+      // a browser-set auth header impossible. See the file header.
+      tunnel: '/glitchtip-tunnel',
       release: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown',
       environment: import.meta.env.MODE,
       sampleRate: 1.0,
@@ -77,9 +87,6 @@ export async function initGlitchTip(): Promise<void> {
       // Drop the session-tracking integration: GlitchTip doesn't ingest
       // sessions, and shipping per-load session pings is bytes for nothing.
       integrations: (defaults) => defaults.filter((i) => i.name !== 'BrowserSession'),
-      transportOptions: {
-        headers: buildProxyAuthHeaders(),
-      },
       beforeSend(event) {
         return sanitize(event);
       },
@@ -148,19 +155,4 @@ function safeAiProfile(): string {
   } catch {
     return 'unknown';
   }
-}
-
-/**
- * Build the custom auth header Sentry's transport injects on every
- * envelope POST. Returns an empty object when no token is configured,
- * so dev/local builds without the env var simply submit unsigned and
- * either succeed (if no proxy in front) or get a clean 401 from the
- * proxy.
- */
-function buildProxyAuthHeaders(): Record<string, string> {
-  const value = import.meta.env.VITE_GLITCHTIP_PROXY_AUTH_VALUE;
-  if (!value) return {};
-  const headerName =
-    import.meta.env.VITE_GLITCHTIP_PROXY_AUTH_HEADER || 'X-NetBird-Auth';
-  return { [headerName]: value };
 }
