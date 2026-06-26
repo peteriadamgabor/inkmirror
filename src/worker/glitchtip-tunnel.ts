@@ -49,6 +49,7 @@ export async function handleGlitchTipTunnel(request: Request, env: Env): Promise
 
   let dsnHost: string;
   let projectId: string;
+  let publicKey: string;
   try {
     const header = JSON.parse(body.slice(0, firstNewline)) as { dsn?: unknown };
     if (typeof header.dsn !== 'string') {
@@ -56,12 +57,13 @@ export async function handleGlitchTipTunnel(request: Request, env: Env): Promise
     }
     const dsn = new URL(header.dsn);
     dsnHost = dsn.hostname;
+    publicKey = dsn.username;
     projectId = dsn.pathname.replace(/\//g, '');
   } catch {
     return new Response('Bad envelope header', { status: 400 });
   }
 
-  if (dsnHost !== ALLOWED_HOST || !/^\d+$/.test(projectId)) {
+  if (dsnHost !== ALLOWED_HOST || !/^\d+$/.test(projectId) || !publicKey) {
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -73,8 +75,23 @@ export async function handleGlitchTipTunnel(request: Request, env: Env): Promise
     headers[headerName] = env.GLITCHTIP_PROXY_AUTH_VALUE;
   }
 
-  const upstream = `https://${ALLOWED_HOST}/api/${projectId}/envelope/`;
+  // Authenticate the ingest with the DSN public key as a query param — the
+  // canonical Sentry/GlitchTip ingest contract. Relying on the envelope's
+  // embedded `dsn` header alone is not accepted by every GlitchTip version.
+  const upstream =
+    `https://${ALLOWED_HOST}/api/${projectId}/envelope/` +
+    `?sentry_key=${encodeURIComponent(publicKey)}&sentry_version=7`;
   const resp = await fetch(upstream, { method: 'POST', headers, body });
+
+  // On failure, surface enough to tell the NetBird proxy apart from
+  // GlitchTip's own ingest auth in `wrangler tail`: the proxy returns a
+  // bare 401/403 HTML page; GlitchTip returns a JSON error body.
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    console.error(
+      `[glitchtip-tunnel] upstream status=${resp.status} body=${detail.slice(0, 300)}`,
+    );
+  }
 
   // Pass the status back so the SDK can log delivery failures; drop the
   // body (GlitchTip's ingest response is uninteresting to the client).
