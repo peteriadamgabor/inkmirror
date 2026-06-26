@@ -123,7 +123,13 @@ export function sanitize<T extends SentryEventLike>(event: T): T {
   next.breadcrumbs = undefined;
   next.extra = undefined;
   next.tags = undefined;
-  next.contexts = { ...(event.contexts ?? {}), app: safe };
+  // Inject our `app` snapshot and drop the SDK's auto-added `culture` context:
+  // it carries the user's timezone (a region/location signal) that would
+  // undercut the IP masking the Worker tunnel already gives us. Other contexts
+  // (e.g. `trace`) are harmless correlation ids and pass through.
+  const contexts: Record<string, unknown> = { ...(event.contexts ?? {}), app: safe };
+  delete contexts.culture;
+  next.contexts = contexts;
   return next as T;
 }
 
